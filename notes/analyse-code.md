@@ -4,6 +4,17 @@ Date : 2026-11-17. Lecture de `Safety.kt`, `Updater.kt`, `RootSerial.kt`, `Relea
 début de `MachineController.kt` et `app/build.gradle.kts`. L'UI, les scripts PowerShell et les
 tests n'ont pas été exécutés ni relus en détail.
 
+## Matériel testé
+
+- Étiquette : SilverCrest **SKMC 1200 C3** (« Kitchen Cooking Machine »), fabriqué en 11/2019,
+  IAN 338924_1907. Le préfixe SKMC correspond au Monsieur Cuisine Connect visé par Toque
+  (le Smart est le SKMS 1200).
+- Le suffixe « C3 » n'apparaît nulle part ailleurs dans le dépôt : sa signification (révision
+  matérielle, version régionale ou lot) est inconnue.
+- À confirmer sur la tablette avant tout flash : Android 6 et puce MediaTek MT6580. Le script
+  d'installation s'arrête de lui-même si le fichier de partition ou les sauvegardes ne
+  correspondent pas.
+
 ## Architecture
 
 - `core/` : Kotlin pur, sans Android, testé. Protocole série (`protocol/Mcc.kt`), règles de
