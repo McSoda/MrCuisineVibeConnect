@@ -20,6 +20,15 @@ tests n'ont pas été exécutés ni relus en détail.
   `spm188a`, eMMC d'environ 14,5 Gio, sans chiffrement des données. Le fichier de partition du
   dépôt correspond : `boot` en `0x1d20000` et `recovery` en `0x2d20000`, 16 Mio chacun ; `system`
   1,5 Gio ; `userdata` 12,6 Gio.
+- `default.prop` du ramdisk de `boot` : `ro.secure=1`, `ro.debuggable=0`, `ro.adb.secure=1`,
+  `persist.sys.usb.config=mtp`. Au démarrage, ADB est donc absent, et même une fois activé il n'offre
+  qu'un accès `shell` sans root, avec autorisation obligatoire de la clé du PC. Empreinte :
+  `alps/full_spm188a/spm188a:6.0/MRA58K/1565230695:user/test-keys`.
+- Copie de `userdata` : ADB n'a jamais été activé. `adb_enabled=0` dans
+  `system/users/0/settings_global.xml` (Android 6 stocke les réglages en XML, pas dans `settings.db`),
+  aucune entrée `development_settings_enabled`, `misc/adb/` vide (pas de `adb_keys`), pas de
+  `persist.sys.usb.config` dans `property/`. Activer ADB suppose une modification du système, comme
+  le fait `tools/robot/twrp-root.sh` depuis TWRP.
 - Applis d'origine : `MCLauncher` (appli du robot), `MCUpdater`, plus les applis Android
   d'un système MediaTek générique (dont `Settings`, `EngineerMode`, `FactoryMode`).
 - Le mode console de SP Flash Tool v5.1924 (`flash_tool.exe -i`, étape `backup` du script) a échoué
