@@ -11,9 +11,20 @@ tests n'ont pas été exécutés ni relus en détail.
   (le Smart est le SKMS 1200).
 - Le suffixe « C3 » n'apparaît nulle part ailleurs dans le dépôt : sa signification (révision
   matérielle, version régionale ou lot) est inconnue.
-- À confirmer sur la tablette avant tout flash : Android 6 et puce MediaTek MT6580. Le script
-  d'installation s'arrête de lui-même si le fichier de partition ou les sauvegardes ne
-  correspondent pas.
+- Écran « À propos de… » de l'appli d'origine : firmware de la base moteur 4922, image système
+  « v3.9a_2019-08-08 », appli d'origine 1.1.27-release **build 285**. Le protocole et les programmes
+  de Toque viennent du build 292 (`Mcc.kt`, `Safety.kt`) : à comparer par un essai à vide avant tout
+  pilotage réel.
+- Confirmé par une lecture complète de la mémoire (SP Flash Tool, Read Back, aucune écriture) :
+  **Android 6.0** (MRA58K, SDK 23, build du 2019-08-08, « test-keys »), puce **MT6580**, carte
+  `spm188a`, eMMC d'environ 14,5 Gio, sans chiffrement des données. Le fichier de partition du
+  dépôt correspond : `boot` en `0x1d20000` et `recovery` en `0x2d20000`, 16 Mio chacun ; `system`
+  1,5 Gio ; `userdata` 12,6 Gio.
+- Applis d'origine : `MCLauncher` (appli du robot), `MCUpdater`, plus les applis Android
+  d'un système MediaTek générique (dont `Settings`, `EngineerMode`, `FactoryMode`).
+- Le mode console de SP Flash Tool v5.1924 (`flash_tool.exe -i`, étape `backup` du script) a échoué
+  sur Windows 11 : arrêt en 3 s, code -3, aucune sortie, même sans BOM dans le XML. La lecture dans
+  la fenêtre de l'outil (repli décrit dans `AGENTS.md`) a fonctionné.
 
 ## Architecture
 
