@@ -24,8 +24,8 @@ class UpdateTest {
              "draft":false,"prerelease":false,
              "assets":[
                {"name":"notes.txt","size":12,"browser_download_url":"https://example.invalid/notes.txt"},
-               {"name":"Toque-0.2.0.apk","size":2345678,
-                "browser_download_url":"https://github.com/Wuki60/MrCuisineVibeConnect/releases/download/v0.2.0/Toque-0.2.0.apk"}
+               {"name":"MCC-285-Toque-0.2.0.apk","size":2345678,
+                "browser_download_url":"https://github.com/McSoda/MrCuisineVibeConnect/releases/download/v0.2.0/MCC-285-Toque-0.2.0.apk"}
              ]}
         """.trimIndent()
         val r = Releases.parse(json)
@@ -33,9 +33,30 @@ class UpdateTest {
         assertEquals("0.2.0", r.version)
         assertEquals("Toque 0.2.0", r.title)
         assertEquals("- Mises à jour depuis GitHub", r.notes)
-        assertEquals("Toque-0.2.0.apk", r.apkName)
+        assertEquals("MCC-285-Toque-0.2.0.apk", r.apkName)
         assertEquals(2345678L, r.apkSize)
-        assertTrue(r.apkUrl!!.endsWith("/v0.2.0/Toque-0.2.0.apk"))
+        assertTrue(r.apkUrl!!.endsWith("/v0.2.0/MCC-285-Toque-0.2.0.apk"))
+    }
+
+    @Test fun prefersTheMccApkOverAnyOtherApk() {
+        val json = """
+            {"tag_name":"v0.5.2","name":"","body":"","assets":[
+              {"name":"Toque-0.5.2.apk","size":1,"browser_download_url":"https://example.invalid/Toque-0.5.2.apk"},
+              {"name":"MCC-285-Toque-0.5.2.apk","size":2,"browser_download_url":"https://example.invalid/MCC-285-Toque-0.5.2.apk"}
+            ]}
+        """.trimIndent()
+        assertEquals("MCC-285-Toque-0.5.2.apk", Releases.parse(json).apkName)
+    }
+
+    @Test fun fallsBackToAnotherApkWhenThereIsNoMccOne() {
+        val json = """{"tag_name":"v0.5.2","assets":[{"name":"Toque-0.5.2.apk","size":1,"browser_download_url":"https://example.invalid/a.apk"}]}"""
+        assertEquals("Toque-0.5.2.apk", Releases.parse(json).apkName)
+    }
+
+    @Test fun updatesComeFromThisFork() {
+        assertEquals("McSoda/MrCuisineVibeConnect", Releases.REPO)
+        assertTrue(Releases.LATEST_URL.contains("/McSoda/MrCuisineVibeConnect/"))
+        assertTrue(Releases.APK_PREFIX.startsWith("MCC-285-Toque-"))
     }
 
     @Test fun releaseWithoutApk() {

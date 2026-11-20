@@ -15,7 +15,14 @@ data class Release(
 
 /** Lecture de l'API GitHub « dernière version » et comparaison de numéros de version. */
 object Releases {
-    const val REPO = "Wuki60/MrCuisineVibeConnect"
+    /** Dépôt dont Toque cherche les mises à jour : ce fork, validé sur l'appli d'origine en build 285. */
+    const val REPO = "McSoda/MrCuisineVibeConnect"
+
+    /**
+     * Préfixe des APK de ce fork (« MCC-285-Toque-X.Y.Z.apk ») : il les distingue de ceux du dépôt
+     * d'origine tant que la compatibilité avec le build 292 de l'appli d'origine n'est pas vérifiée.
+     */
+    const val APK_PREFIX = "MCC-285-Toque-"
     const val LATEST_URL = "https://api.github.com/repos/$REPO/releases/latest"
     const val PAGE_URL = "https://github.com/$REPO/releases"
 
@@ -45,7 +52,10 @@ object Releases {
         val tag = o["tag_name"] as? String ?: throw IllegalArgumentException("version sans numéro")
         @Suppress("UNCHECKED_CAST")
         val assets = (o["assets"] as? List<Any?>).orEmpty().mapNotNull { it as? Map<String, Any?> }
-        val apk = assets.firstOrNull { (it["name"] as? String)?.endsWith(".apk", ignoreCase = true) == true }
+        fun isApk(a: Map<String, Any?>) = (a["name"] as? String)?.endsWith(".apk", ignoreCase = true) == true
+        // L'APK de ce fork d'abord ; à défaut, le premier APK de la version.
+        val apk = assets.firstOrNull { isApk(it) && (it["name"] as String).startsWith(APK_PREFIX) }
+            ?: assets.firstOrNull { isApk(it) }
         return Release(
             tag = tag,
             version = versionOf(tag),

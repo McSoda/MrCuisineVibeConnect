@@ -2,6 +2,13 @@
 
 🇬🇧 **[English version](README.md)**
 
+> **Ce fork** (McSoda/MrCuisineVibeConnect) prolonge le projet d'origine de Wuki60
+> (https://github.com/Wuki60/MrCuisineVibeConnect). Ses APK s'appellent
+> **`MCC-285-Toque-X.Y.Z.apk`** : ils ont été essayés sur un robot dont l'appli d'origine est en
+> **build 285** (firmware 4922), alors que le protocole suivi par Toque vient du build 292. Tant que
+> la compatibilité avec le build 292 n'est pas confirmée, ce nom les distingue de l'APK du projet
+> d'origine. Les mises à jour de Toque viennent des versions de ce fork.
+
 **Toque**, une interface moderne et rapide pour le robot **Monsieur Cuisine Connect** (SKMC 1200),
 qui remplace l'appli d'origine sur la tablette du robot tout en gardant **les recettes Lidl**.
 
@@ -16,7 +23,7 @@ Le plus simple : confiez l'installation à un agent IA qui peut piloter votre PC
 ChatGPT, Copilot…). Donnez-lui ce message :
 
 > Installe Toque sur mon Monsieur Cuisine Connect en suivant le fichier AGENTS.md de
-> https://github.com/Wuki60/MrCuisineVibeConnect
+> https://github.com/McSoda/MrCuisineVibeConnect
 
 Le fichier [AGENTS.md](AGENTS.md) lui décrit toute la procédure, et le script
 [`tools/setup/toque-setup.ps1`](tools/setup/toque-setup.ps1) fait le travail étape par étape
@@ -58,7 +65,7 @@ Comptez 1 à 2 heures. Sans agent : [docs/INSTALLATION.fr.md](docs/INSTALLATION.
 - **Pensé pour un robot sans boutons Android** : Toque s'ouvre au démarrage, et un bouton
   **« Retour à Toque »** reste affiché par-dessus l'appli d'origine quand on l'ouvre.
 - **Mises à jour depuis GitHub** : Réglages › Mises à jour vérifie les
-  [versions publiées](https://github.com/Wuki60/MrCuisineVibeConnect/releases) de ce dépôt et installe
+  [versions publiées](https://github.com/McSoda/MrCuisineVibeConnect/releases) de ce dépôt et installe
   la nouvelle (sans rien demander sur un robot rooté, puis Toque redémarre). Refusé pendant un programme.
 
 ## Sécurité : ce qui change par rapport à l'appli d'origine
