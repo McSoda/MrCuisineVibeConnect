@@ -22,6 +22,7 @@ import app.toque.core.time.ZoneLookup
 import app.toque.core.update.Release
 import app.toque.recipes.LidlSync
 import app.toque.recipes.OnlineSync
+import app.toque.ui.ChooserActivity
 import app.toque.ui.Icon
 import app.toque.ui.MainActivity
 import app.toque.ui.Screen
@@ -153,6 +154,7 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         b2.addView(Ui.button(c, tr("Ouvrir l'appli d'origine"), Ui.Style.GHOST, Icon.Kind.LINK, height = 52) { a.openVendorApp() })
         lidl.addView(b2, Ui.lp(t = 6))
         lidl.addView(toggle(tr("Synchro automatique chaque nuit"), a.prefs.autoSync) { a.prefs.autoSync = it }, Ui.lp(t = 10))
+        lidl.addView(toggle(tr("Importer les recettes de l'appli d'origine à mon retour"), a.prefs.importOnReturn) { a.prefs.importOnReturn = it }, Ui.lp(t = 10))
 
         // ---- Mises à jour
         val updates = section(left, tr("Mises à jour"), Icon.Kind.INFO)
@@ -170,6 +172,10 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         tools.addView(link(tr("Journal")) { a.push(LogScreen(a)) })
         tools.addView(link(tr("Paramètres Android")) { a.openAndroidSettings() })
         tools.addView(link(tr("Revenir à l'appli d'origine")) { restoreVendor() })
+        tools.addView(link(tr("Ouvrir le menu de démarrage")) {
+            a.startActivity(Intent(a, ChooserActivity::class.java).putExtra(ChooserActivity.EXTRA_MANUAL, true))
+        })
+        tools.addView(toggle(tr("Menu au démarrage (appli Lidl ou Toque)"), a.prefs.bootChooser) { a.prefs.bootChooser = it }, Ui.lp(t = 8))
         val version = try { a.packageManager.getPackageInfo(a.packageName, 0).versionName } catch (_: Exception) { "?" }
         tools.addView(Ui.text(c, tr("Toque %s · protocole d'après le Monsieur Cuisine Developer SDK (licence MIT). " +
             "Projet indépendant, non affilié à Lidl ni à SilverCrest.", version), 14f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 12))
