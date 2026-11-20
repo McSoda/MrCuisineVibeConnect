@@ -259,4 +259,18 @@ class Prefs(context: Context) {
         set(v) {
             p.edit().putInt("guidedStep", v).commit()
         }
+
+    /** Réglages importés déjà vérifiés (« J'ai vérifié ce réglage »), clé = recette, étape et réglage. */
+    var reviewedSteps: Set<String>
+        get() = HashSet(p.getStringSet("reviewedSteps", emptySet()) ?: emptySet())
+        set(v) {
+            p.edit().putStringSet("reviewedSteps", HashSet(v)).commit()
+        }
+
+    /** Son joué quand la quantité à peser est atteinte (voir Sounds.WEIGH_SOUNDS). */
+    var weighSound: String
+        get() = p.getString("weighSound", "ding") ?: "ding"
+        set(v) {
+            p.edit().putString("weighSound", v).commit()
+        }
 }

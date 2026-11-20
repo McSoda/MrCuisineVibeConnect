@@ -1,6 +1,5 @@
 package app.toque.recipes
 
-import app.toque.Tls
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -188,7 +187,7 @@ class OnlineSync(private val context: Context, private val prefs: Prefs, private
         var attempt = 0
         while (true) {
             attempt++
-            val c = Tls.open(url)
+            val c = URL(url).openConnection() as HttpURLConnection
             try {
                 c.connectTimeout = 20_000
                 c.readTimeout = 30_000
