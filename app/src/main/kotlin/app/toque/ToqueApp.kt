@@ -26,6 +26,7 @@ class ToqueApp : Application() {
         prefs = Prefs(this)
         log = Logbook(this)
         LanguageFiles.install(this, log)
+        Tls.init(this, log)
         I18n.select(I18n.resolve(prefs.language, Locale.getDefault().language).code)
         if (!isMainProcess()) return
         val previous = Thread.getDefaultUncaughtExceptionHandler()

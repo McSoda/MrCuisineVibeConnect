@@ -1,5 +1,6 @@
 package app.toque.update
 
+import app.toque.Tls
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -164,7 +165,7 @@ class Updater(private val context: Context) {
     }
 
     private fun open(url: String, accept: String): HttpURLConnection {
-        val c = URL(url).openConnection() as HttpURLConnection
+        val c = Tls.open(url)
         c.connectTimeout = 15_000
         c.readTimeout = 30_000
         c.instanceFollowRedirects = true
