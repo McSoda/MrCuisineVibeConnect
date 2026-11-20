@@ -29,6 +29,8 @@ class MachineLoop(
     private val onSnapshot: (Snapshot) -> Unit = {},
     private val onEvent: (MachineEvent) -> Unit = {},
     private val log: (String) -> Unit = {},
+    /** Démarre sans ouvrir la liaison (jusqu'à [resumePort]) : le port reste libre le temps d'un choix. */
+    startSuspended: Boolean = false,
     /**
      * Silence de la boucle (hors ouverture de la liaison) à partir duquel le chien de garde intervient. Au-dessus de
      * `ControllerConfig.staleMs` (1,5 s) : une boucle vivante mais lente (ramasse-miettes…) reste l'affaire du
@@ -63,6 +65,7 @@ class MachineLoop(
 
     init {
         controller.listener = { e -> onEvent(e) }
+        suspended = startSuspended
     }
 
     fun start() {

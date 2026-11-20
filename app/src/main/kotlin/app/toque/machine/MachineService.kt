@@ -114,6 +114,8 @@ class MachineService : Service() {
             onSnapshot = { s -> main.post { publish(s) } },
             onEvent = { e -> main.post { broadcastEvent(e) } },
             log = { line -> log.write("machine", line) },
+            // Menu de démarrage en attente : on ne touche pas au port série avant le choix.
+            startSuspended = prefs.chooserPending && mode == Prefs.Mode.HARDWARE,
             // Boucle bloquée et rien ne la débloque : le chien de garde a déjà envoyé des STOP ; on abandonne le
             // processus. Android relance le service (START_STICKY) et la nouvelle boucle émet des trames STOP.
             onUnrecoverable = {

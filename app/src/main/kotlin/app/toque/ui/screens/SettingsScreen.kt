@@ -26,6 +26,7 @@ import app.toque.recipes.OnlineSync
 import app.toque.recipes.SyncProgress
 import app.toque.recipes.RecipeFiles
 import app.toque.core.recipes.UserRecipes
+import app.toque.ui.ChooserActivity
 import app.toque.ui.Icon
 import app.toque.ui.MainActivity
 import app.toque.ui.Screen
@@ -181,6 +182,7 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         }, Ui.lp(t = 10))
         lidl.addView(Ui.text(c, tr("Ajoute les recettes qui n'existent pas dans votre langue, prises en anglais, français, allemand, espagnol… Chacune n'apparaît qu'une fois, avec sa langue sur la vignette."),
             14f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 6))
+        lidl.addView(toggle(tr("Importer les recettes de l'appli d'origine à mon retour"), a.prefs.importOnReturn) { a.prefs.importOnReturn = it }, Ui.lp(t = 10))
 
         // ---- Mes recettes
         val mine = section(right, tr("Mes recettes"), Icon.Kind.EDIT)
@@ -234,6 +236,10 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         tools.addView(link(tr("Journal")) { a.push(LogScreen(a)) })
         tools.addView(link(tr("Paramètres Android")) { a.openAndroidSettings() })
         tools.addView(link(tr("Revenir à l'appli d'origine")) { restoreVendor() })
+        tools.addView(link(tr("Ouvrir le menu de démarrage")) {
+            a.startActivity(Intent(a, ChooserActivity::class.java).putExtra(ChooserActivity.EXTRA_MANUAL, true))
+        })
+        tools.addView(toggle(tr("Menu au démarrage (appli Lidl ou Toque)"), a.prefs.bootChooser) { a.prefs.bootChooser = it }, Ui.lp(t = 8))
         val version = try { a.packageManager.getPackageInfo(a.packageName, 0).versionName } catch (_: Exception) { "?" }
         tools.addView(Ui.text(c, tr("Toque %s · protocole d'après le Monsieur Cuisine Developer SDK (licence MIT). " +
             "Projet indépendant, non affilié à Lidl ni à SilverCrest.", version), 14f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 12))
