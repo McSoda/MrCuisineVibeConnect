@@ -47,6 +47,10 @@ cours de programme.
 7. **`tools/robot/setup-root.sh`** en root : autorise Toque dans Magisk sans fenêtre (politique
    écrite en base) et copie le busybox de Magisk dans `/data/adb/magisk/busybox`, dont Toque a besoin
    pour le port série.
+   Il installe aussi `/data/adb/service.d/toque-su-policy.sh`, qui refait cette autorisation à chaque
+   démarrage : au boot, la fenêtre Magisk expire sans réponse et la politique de Toque repasse en refus
+   (symptômes : « Toque s'est vu refuser les droits de super-utilisateur », badge « Base absente »).
+   Journal : `/data/local/tmp/toque-su-policy.log`. Vérifié sur deux redémarrages.
 
 ## Vérifications faites
 
