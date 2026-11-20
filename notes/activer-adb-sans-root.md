@@ -58,6 +58,37 @@ l'envoyer, une clé recopiée à la main avec une erreur est refusée sans messa
 - Le port 5555 est ouvert sur tout le réseau local ; seules les clés autorisées passent
   (`ro.adb.secure=1`). Ne pas l'exposer sur Internet.
 
+## Après un redémarrage de Home Assistant : connexion bloquée (2026-11-20)
+
+Constat : Home Assistant (HA OS) a redémarré (arrêté puis relancé en environ 4 min 30 s). Au moment de
+l'arrêt, tous ses appareils ADB ont expiré en même temps. Après le redémarrage, trois appareils se
+sont reconnectés seuls ; le robot (Android 6) et une tablette (Android 7) sont restés en
+`setup_retry` avec « Reading from <IP>:5555 timed out (9.0 seconds) » : la connexion TCP s'ouvre mais
+`adbd` ne répond pas à HA (côté robot, ses sockets restent en `CLOSE_WAIT` avec 45 octets non lus).
+
+- Pendant ce temps, `adb connect` depuis le PC fonctionnait, et le robot était sain (journal de
+  Toque propre, Wi-Fi connecté, pas de redémarrage).
+- La clé ADB de HA n'avait **pas** changé : la clé publique récupérée par `scp`
+  (`/config/.storage/androidtv_adbkey.pub`) était identique à celle autorisée sur le robot.
+- Recharger l'entrée dans HA (la désactiver puis la réactiver) n'a pas suffi.
+- **Ce qui a débloqué** : relancer `adbd` sur le robot, puis recharger l'entrée ; HA s'est reconnecté
+  dans la minute :
+
+  ```
+  adb shell su -c 'setprop ctl.restart adbd'
+  ```
+
+  (la connexion du PC tombe, c'est normal, le port 5555 revient). La coïncidence est forte mais la
+  cause n'est pas démontrée : hypothèse, une connexion de HA morte (hôte redémarré sans fermer ses
+  sockets) qui monopolise l'unique client d'`adbd`.
+- À prévoir si cela se reproduit : relance d'`adbd` programmée (script Magisk) ou alerte dans HA
+  quand l'entité reste indisponible.
+
+Astuce : le service `androidtv.adb_command` de HA exécute une commande shell **par la connexion déjà
+ouverte de HA**, sans prendre l'unique client réseau, par exemple
+`input keyevent 223` pour éteindre l'écran. Le résultat se lit dans l'attribut `adb_response` de
+l'entité (vide pour une commande sans sortie).
+
 ## Écueils rencontrés
 
 - Le mode console de SP Flash Tool (`flash_tool.exe -i`) échoue sur Windows 11 (code -3, aucune
