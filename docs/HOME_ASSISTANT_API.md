@@ -5,8 +5,13 @@ Statut : **proposition, rien n'est implémenté**. Décisions prises : transport
 
 ## 1. Principes
 
-- Le serveur vit dans le **service machine** de Toque (pas dans l'activité) : il continue quand l'écran change.
-- Aucune dépendance : `ServerSocket` + JSON maison (`core/json`). Un seul fil d'écoute, quelques connexions.
+- Le serveur vit dans le **processus principal** de Toque, rattaché à `ToqueApp` (pas à l'activité : il continue quand
+  l'écran change). Le service machine tourne dans un autre processus et ne connaît ni les recettes, ni la session de
+  cuisson, ni les préférences ; le serveur lit l'état de la machine par `MachineClient`, comme l'interface.
+- Aucune dépendance : `ServerSocket` + JSON maison (`core/json`). Un fil d'écoute, 8 connexions simultanées au plus
+  (au-delà : `503`), une réponse par connexion (`Connection: close`), sauf le flux SSE.
+- Le code est dans `core` (routage, JSON, cadence, serveur : testables sans Android) ; seule la liaison avec l'appli
+  (recettes, préférences, mDNS) est dans `app`.
 - **Lecture seule** : toute méthode autre que `GET` renvoie `405`. Aucun endpoint ne touche au moteur,
   à la chauffe ou à la session. Les règles de `Safety.kt` ne sont donc pas concernées.
 - Désactivé par défaut. Réglages › Intégrations › Home Assistant : interrupteur, port, jeton.
@@ -108,7 +113,8 @@ plus `machineSteps`, `ingredientCount` et `imageUrl` (voir §8). `404` si inconn
 
 ### `GET /events` (SSE)
 Flux `text/event-stream`, un commentaire `:` de maintien toutes les 15 s, `id:` croissant, reprise par `Last-Event-ID`
-(rejeu des 50 derniers événements au plus).
+(rejeu des 50 derniers événements au plus). À la connexion, le flux envoie d'abord l'état courant (`state` puis
+`session`, sans `id:`), pour que le client n'ait pas à interroger l'API en plus.
 
 | `event:` | Quand | `data:` |
 |---|---|---|
@@ -122,15 +128,17 @@ Flux `text/event-stream`, un commentaire `:` de maintien toutes les 15 s, `id:` 
 ## 4. Cadence (protéger la base de HA)
 
 Le `Snapshot` interne sort à ~10 Hz ; l'API n'en expose pas le détail.
-- Température : à la volée seulement si l'écart ≥ 1 °C ; tr/min : écart ≥ 50 ; poids : écart ≥ 2 g.
-- Pendant un job : un `state` par seconde au plus. Au repos : un toutes les 30 s (cela sert aussi de signal de vie).
-- Les changements de `status`, couvercle, bol, défaut et étape partent immédiatement.
+- Température : seulement si l'écart ≥ 1 °C ; tr/min : écart ≥ 50 ; poids : écart ≥ 2 g. Au plus un `state` par
+  seconde pour ces variations.
+- Signal de vie : un `state` au moins toutes les 5 s pendant un job (le temps restant avance), toutes les 30 s sinon.
+- Les changements de `status`, couvercle, bol, moteur, chauffe, défaut, job, phase, session et écran partent
+  immédiatement.
 
 ## 5. Modèle interne à créer dans `core`
 
-Une `CookSession` pure Kotlin (recette, `stepIndex`, étapes faites, `awaiting`, `startedAt`, `rev`), pilotée par
-`CookScreen` et enregistrée par le service. `prefs.guidedRecipe` / `guidedStep` en deviennent une simple persistance.
-Tests dans `core` : calcul de `lastManual` / `nextManual`, `awaiting`, `rev`, seuils de cadence.
+`CookSession` / `CookSessions` (pur Kotlin : recette, `stepIndex`, étapes faites, `awaiting`, `startedAt`, `rev`),
+pilotées par `CookScreen` et enregistrées dans `prefs.cookSession` par `ToqueApp` : **fait** (commit `cecc9a2`).
+Reste à tester dans `core` : le routage, les formats JSON, les seuils de cadence et le serveur (sockets locales).
 
 ## 6. Entités Home Assistant (dépôt `toque-homeassistant`)
 

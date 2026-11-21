@@ -80,6 +80,10 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
     /** Point sur « Avancé » et phrase au-dessus de « Machine » : tant que Toque ne pilote pas le vrai moteur. */
     private lateinit var modeDot: View
     private lateinit var modeText: TextView
+    private lateinit var haName: EditText
+    private lateinit var haPort: EditText
+    private lateinit var haStatus: TextView
+    private lateinit var haTokenText: TextView
     private var settingTime = false
     private var mode = a.prefs.mode
 
@@ -524,6 +528,32 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         renderModes()
         line(p)
 
+        // Home Assistant : API locale en lecture seule.
+        group(p, tr("Home Assistant"))
+        p.addView(hint(tr("Permet à Home Assistant de lire l'état du robot et les recettes, sur le réseau local. Lecture seule : rien ne peut être commandé à distance.")), Ui.lp(t = 8))
+        p.addView(toggle(tr("Activer l'API pour Home Assistant"), a.prefs.haEnabled) { on ->
+            a.prefs.haEnabled = on
+            a.app.homeAssistant.apply()
+            renderHa()
+        }, Ui.lp(t = 10))
+        val haRow = Ui.horizontal(c)
+        haName = field(a.prefs.haName, tr("Nom du robot"))
+        haPort = field(a.prefs.haPort.toString(), "Port").apply { inputType = InputType.TYPE_CLASS_NUMBER }
+        haRow.addView(haName, LinearLayout.LayoutParams(0, Ui.u(52), 1f).apply { rightMargin = Ui.u(10) })
+        haRow.addView(haPort, LinearLayout.LayoutParams(Ui.u(120), Ui.u(52)))
+        p.addView(haRow, Ui.lp(t = 12))
+        p.addView(Ui.button(c, tr("Appliquer"), Ui.Style.SECONDARY, Icon.Kind.CHECK, height = 52, textSize = 18f) { applyHa() }, Ui.lp(Ui.WRAP, Ui.WRAP, t = 10))
+        haStatus = Ui.text(c, "", 16f, Ui.TEXT).apply { setLineSpacing(0f, 1.15f) }
+        p.addView(haStatus, Ui.lp(t = 12))
+        haTokenText = Ui.text(c, "", 14f, Ui.TEXT2).apply {
+            setLineSpacing(0f, 1.1f)
+            typeface = android.graphics.Typeface.MONOSPACE
+        }
+        p.addView(haTokenText, Ui.lp(t = 8))
+        p.addView(Ui.button(c, tr("Nouveau jeton"), Ui.Style.GHOST, Icon.Kind.SYNC, height = 52, textSize = 18f) { newHaToken() }, Ui.lp(Ui.WRAP, Ui.WRAP, t = 8))
+        renderHa()
+        line(p)
+
         // Les outils, deux par ligne.
         val tools = listOf<Pair<String, () -> Unit>>(
             tr("Diagnostic de la base moteur") to { a.push(DiagnosticsScreen(a)) },
@@ -817,6 +847,41 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
                 } else save()
             }
         }.start()
+    }
+
+    private fun applyHa() {
+        val port = haPort.text.toString().trim().toIntOrNull()
+        if (port == null || port !in 1024..65535) {
+            a.toast(tr("Port invalide (1024 à 65535)"), Ui.WARN)
+            return
+        }
+        a.prefs.haName = haName.text.toString().take(40)
+        a.prefs.haPort = port
+        haName.setText(a.prefs.haName)
+        a.app.homeAssistant.apply()
+        renderHa()
+    }
+
+    private fun newHaToken() {
+        a.confirm(tr("Nouveau jeton ?"), tr("L'ancien jeton cessera de fonctionner : il faudra saisir le nouveau dans Home Assistant."),
+            tr("Générer"), icon = Icon.Kind.SYNC) {
+            a.app.homeAssistant.regenerateToken()
+            renderHa()
+        }
+    }
+
+    private fun renderHa() {
+        val api = a.app.homeAssistant
+        val failed = a.prefs.haEnabled && api.error.isNotEmpty()
+        haStatus.text = when {
+            !a.prefs.haEnabled -> tr("API désactivée")
+            failed -> tr("Impossible d'ouvrir le port %d : %s", a.prefs.haPort, api.error)
+            else -> tr("Adresse : %s", api.baseUrl())
+        }
+        haStatus.setTextColor(if (failed) Ui.WARN else Ui.TEXT)
+        val token = a.prefs.haToken
+        haTokenText.visibility = if (a.prefs.haEnabled && token.isNotEmpty()) View.VISIBLE else View.GONE
+        haTokenText.text = tr("Jeton d'accès à saisir dans Home Assistant :") + "\n" + token
     }
 
     private fun restoreVendor() {
