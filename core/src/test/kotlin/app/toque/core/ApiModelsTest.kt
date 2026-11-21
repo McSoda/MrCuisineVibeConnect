@@ -64,6 +64,42 @@ class ApiModelsTest {
         assertEquals(259L, (job["remainingS"] as Number).toLong())
     }
 
+    private fun machineOf(s: Snapshot) = Json.parse(Json.write(ApiModels.state(s, null, true, 1))).obj()["machine"].obj()
+
+    @Test
+    fun heaterIsOnOnlyWithATargetTemperature() {
+        // Relevé sur le robot : programme `STANDARD v3 t0`, la base répond « moteur + chauffe », consigne 0 °C.
+        val motorOnly = idle.copy(motorOn = true, heaterOn = true, targetTempC = 0)
+        assertEquals(false, machineOf(motorOnly)["heaterOn"])
+        assertEquals(true, machineOf(motorOnly.copy(targetTempC = 90))["heaterOn"])
+        assertEquals(false, machineOf(idle.copy(targetTempC = 90))["heaterOn"])
+        // Le signal brut, lui, reste disponible pour les contrôles de sécurité.
+        assertTrue(motorOnly.heaterOn)
+    }
+
+    @Test
+    fun weightIsUnknownWhileTheMotorRuns() {
+        assertEquals(null, machineOf(idle.copy(motorOn = true, weightG = 0))["weightG"])
+        assertEquals(1245, (machineOf(idle.copy(weightG = 1245))["weightG"] as Number).toInt())
+        assertEquals(0, (machineOf(idle.copy(weightG = 0))["weightG"] as Number).toInt())
+    }
+
+    @Test
+    fun targetSpeedIsReportedBesideTheMeasuredOne() {
+        val m = machineOf(idle.copy(motorOn = true, targetSpeedLevel = 3, rpm = 0, speedLevel = 0))
+        assertEquals(3, (m["targetSpeed"] as Number).toInt())
+        assertEquals(0, (m["speed"] as Number).toInt())
+    }
+
+    @Test
+    fun snapshotSurvivesTheMapRoundTripWithTheNewField() {
+        val s = idle.copy(targetSpeedLevel = 5, motorOn = true, heaterOn = true, targetTempC = 70, weightG = 12)
+        val back = Snapshot.fromMap(s.toMap())
+        assertEquals(s, back)
+        assertTrue(back.heating)
+        assertEquals(5, back.targetSpeedLevel)
+    }
+
     @Test
     fun stateReportsFault() {
         val m = ApiModels.state(idle.copy(faultCode = "E7", faultMessage = "Surchauffe"), null, true, 1)

@@ -16,6 +16,8 @@ data class Snapshot(
     val targetTempC: Int = 0,
     val rpm: Int = 0,
     val speedLevel: Int = 0,
+    /** Niveau de vitesse que la base annonce avoir reçu (0 à l'arrêt). Seul indicateur de vitesse fiable en marche. */
+    val targetSpeedLevel: Int = 0,
     val weightG: Int = 0,
     val scaleStable: Boolean = false,
     val scaleState: String = "",
@@ -70,11 +72,21 @@ data class Snapshot(
     val busy: Boolean get() = running || state == JobState.PAUSED || turboActive
     val hot: Boolean get() = hasSample && actualTempC >= Limits.HOT_C
 
+    /**
+     * Chauffe réelle : la base l'annonce ET vise une température. Sur le SKMC 1200, le « mode 1 » (lu comme moteur +
+     * chauffe) accompagne tout programme standard, y compris sans chauffe (constaté : commande `STANDARD v3 t0`,
+     * consigne 0 °C, fond du bol froid). [heaterOn] reste le signal brut, utilisé par les contrôles de sécurité.
+     */
+    val heating: Boolean get() = heaterOn && targetTempC > 0
+
+    /** La base renvoie un poids de 0 tant que le moteur tourne (constaté sur le robot) : il n'est pas lisible alors. */
+    val weightValid: Boolean get() = !motorOn
+
     fun toMap(): Map<String, Any> = linkedMapOf(
         "link" to link.name, "transportName" to transportName, "transportUp" to transportUp,
         "faultCode" to faultCode, "faultMessage" to faultMessage, "hasSample" to hasSample,
         "sampleAgeMs" to sampleAgeMs, "actualTempC" to actualTempC, "targetTempC" to targetTempC,
-        "rpm" to rpm, "speedLevel" to speedLevel, "weightG" to weightG, "scaleStable" to scaleStable,
+        "rpm" to rpm, "speedLevel" to speedLevel, "targetSpeedLevel" to targetSpeedLevel, "weightG" to weightG, "scaleStable" to scaleStable,
         "scaleState" to scaleState, "lidOpen" to lidOpen, "bowlDetected" to bowlDetected,
         "bowlRemoved" to bowlRemoved, "bowlSenseKnown" to bowlSenseKnown, "bowlSenseInverted" to bowlSenseInverted,
         "motorOn" to motorOn, "heaterOn" to heaterOn, "boardErrorCode" to boardErrorCode,
@@ -101,7 +113,7 @@ data class Snapshot(
                 transportName = s("transportName"), transportUp = b("transportUp"),
                 faultCode = s("faultCode"), faultMessage = s("faultMessage"), hasSample = b("hasSample"),
                 sampleAgeMs = l("sampleAgeMs"), actualTempC = i("actualTempC"), targetTempC = i("targetTempC"),
-                rpm = i("rpm"), speedLevel = i("speedLevel"), weightG = i("weightG"), scaleStable = b("scaleStable"),
+                rpm = i("rpm"), speedLevel = i("speedLevel"), targetSpeedLevel = i("targetSpeedLevel"), weightG = i("weightG"), scaleStable = b("scaleStable"),
                 scaleState = s("scaleState"), lidOpen = b("lidOpen"), bowlDetected = b("bowlDetected"),
                 bowlRemoved = b("bowlRemoved"), bowlSenseKnown = b("bowlSenseKnown"), bowlSenseInverted = b("bowlSenseInverted"),
                 motorOn = b("motorOn"), heaterOn = b("heaterOn"), boardErrorCode = i("boardErrorCode"),
