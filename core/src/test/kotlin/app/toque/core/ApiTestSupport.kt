@@ -31,6 +31,8 @@ class FakeBackend : ApiBackend {
             androidRelease = "6.0", androidSdk = 23, ip = "192.168.1.40", uptimeS = 100, lang = "fr",
         )
     override val snapshot: Snapshot get() = snap
+    @Volatile var snapAge = 120L
+    override val snapshotAgeMs: Long get() = snapAge
     override val screenOn: Boolean get() = screen
     override val session: CookSession? get() = sess
     override val recipeCount: Int get() = recipes.size

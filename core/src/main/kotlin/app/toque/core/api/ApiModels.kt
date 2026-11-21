@@ -61,8 +61,11 @@ object ApiModels {
         "recipesRev" to recipesRev,
     )
 
-    fun state(s: Snapshot, session: CookSession?, screenOn: Boolean, nowSec: Long): Map<String, Any?> = linkedMapOf(
+    fun state(
+        s: Snapshot, session: CookSession?, screenOn: Boolean, nowSec: Long, snapshotAgeMs: Long = -1,
+    ): Map<String, Any?> = linkedMapOf(
         "ts" to nowSec,
+        "snapshotAgeMs" to snapshotAgeMs,
         "status" to ApiStatus.of(s, session),
         "screenOn" to screenOn,
         "link" to s.link.name,
