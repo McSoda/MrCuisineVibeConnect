@@ -1,6 +1,9 @@
 package app.toque.core.api
 
+import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
+import java.io.FileInputStream
+import java.io.FileNotFoundException
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
@@ -11,7 +14,9 @@ import java.net.URLDecoder
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.Semaphore
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -30,6 +35,11 @@ class HttpServer(
      * disparu (une fermeture ne se voit qu'à l'écriture suivante) et où sa place est rendue.
      */
     private val pingIntervalS: Long = PING_INTERVAL_S,
+    /** Temps total accordé à un client pour envoyer sa requête (un client qui goutte à goutte ne retient pas un fil). */
+    private val requestDeadlineS: Long = REQUEST_DEADLINE_S,
+    /** Appelé (une fois) si l'écoute meurt toute seule : le serveur s'est arrêté, à l'appelant de décider de le relancer. */
+    private val onDied: (String) -> Unit = {},
+    private val socketFactory: () -> ServerSocket = { ServerSocket() },
 ) {
     private val threadNumber = AtomicInteger()
     private val workers = Executors.newCachedThreadPool { r ->
@@ -44,32 +54,59 @@ class HttpServer(
 
     @Volatile private var server: ServerSocket? = null
     @Volatile private var running = false
+    @Volatile private var stopped = false
 
     /** Démarre l'écoute sur [port] (0 : au choix) et renvoie le port réellement ouvert. */
     @Synchronized
     fun start(port: Int): Int {
+        check(!stopped) { "arrêté : un serveur arrêté ne redémarre pas, en créer un autre" }
         check(server == null) { "déjà démarré" }
-        val s = ServerSocket()
-        s.reuseAddress = true
-        s.bind(java.net.InetSocketAddress(port))
+        val s = socketFactory()
+        try {
+            s.reuseAddress = true
+            s.bind(java.net.InetSocketAddress(port))
+        } catch (e: IOException) {
+            try { s.close() } catch (_: IOException) {}
+            throw e
+        }
         server = s
         running = true
         Thread({ acceptLoop(s) }, "toque-api-accept").apply { isDaemon = true }.start()
         return s.localPort
     }
 
+    /** Arrête l'écoute, ferme toutes les connexions (flux SSE compris) et libère les fils. Définitif. */
     @Synchronized
     fun stop() {
         running = false
+        stopped = true
         try { server?.close() } catch (_: IOException) {}
         server = null
         for (c in open.toList()) try { c.close() } catch (_: IOException) {}
         open.clear()
+        workers.shutdownNow()
+        watchdog.shutdownNow()
+    }
+
+    private fun died(reason: String) {
+        log("écoute interrompue : $reason")
+        stop()
+        onDied(reason)
     }
 
     private fun acceptLoop(s: ServerSocket) {
+        var failures = 0
         while (running) {
-            val c = try { s.accept() } catch (_: IOException) { break }
+            val c = try {
+                s.accept().also { failures = 0 }
+            } catch (e: Exception) {
+                if (!running) break   // arrêt demandé : la fermeture de la prise est normale
+                // Panne passagère possible (trop de fichiers ouverts…) : quelques essais avant de renoncer.
+                if (++failures >= ACCEPT_MAX_FAILURES) { died(e.toString()); break }
+                log("accept en échec ($failures) : $e")
+                try { Thread.sleep(ACCEPT_RETRY_MS) } catch (_: InterruptedException) { break }
+                continue
+            }
             if (!slots.tryAcquire()) {
                 refuse(c)
                 continue
@@ -126,7 +163,15 @@ class HttpServer(
         try {
             c.soTimeout = READ_TIMEOUT_MS
             c.keepAlive = true
-            val req = try { readRequest(c.getInputStream()) } catch (_: IOException) { return }
+            // Délai total pour la requête : sans lui, un client qui envoie un octet toutes les 9 s retiendrait le fil.
+            val readTimer = deadline(c, requestDeadlineS)
+            val req = try {
+                readRequest(BufferedInputStream(c.getInputStream(), 2048))
+            } catch (_: IOException) {
+                return
+            } finally {
+                readTimer?.cancel(false)
+            }
             val out = BufferedOutputStream(c.getOutputStream(), 8192)
             if (req == null) {
                 writeResponse(out, ApiResponse.error(400, "bad_request", "Requête illisible"))
@@ -141,7 +186,7 @@ class HttpServer(
             }
             if (resp.events) { streamEvents(c, out, resp.lastEventId); return }
             // Un client bloqué ne doit pas retenir un fil (ni la barrière des images) indéfiniment.
-            val timer = watchdog.schedule({ try { c.close() } catch (_: IOException) {} }, RESPONSE_DEADLINE_S, TimeUnit.SECONDS)
+            val timer = deadline(c, RESPONSE_DEADLINE_S)
             try {
                 if (resp.file != null) {
                     if (!imageGate.tryAcquire()) {
@@ -152,12 +197,19 @@ class HttpServer(
                 } else writeResponse(out, resp)
                 lingerClose(c, LINGER_MS)
             } finally {
-                timer.cancel(false)
+                timer?.cancel(false)
             }
         } catch (_: SocketException) {
         } catch (e: IOException) {
             log("connexion interrompue : $e")
         }
+    }
+
+    /** Ferme [c] dans [seconds] s si personne n'annule avant ; null si le serveur est déjà arrêté. */
+    private fun deadline(c: Socket, seconds: Long): ScheduledFuture<*>? = try {
+        watchdog.schedule({ try { c.close() } catch (_: IOException) {} }, seconds, TimeUnit.SECONDS)
+    } catch (_: RejectedExecutionException) {
+        null
     }
 
     // ---- Lecture de la requête
@@ -213,8 +265,23 @@ class HttpServer(
     // ---- Écriture de la réponse
 
     private fun writeResponse(out: OutputStream, r: ApiResponse) {
-        val file = r.file
-        val length = file?.length() ?: r.body.size.toLong()
+        // Le fichier est ouvert d'abord et sa taille lue sur le flux ouvert : si une synchro le réécrit pendant
+        // l'envoi, `Content-Length` reste celui des octets réellement envoyés.
+        val stream = try {
+            r.file?.inputStream()
+        } catch (_: FileNotFoundException) {
+            writeResponse(out, ApiResponse.error(404, "no_image", "Image absente du robot"))
+            return
+        }
+        try {
+            writeHead(out, r, stream)
+        } finally {
+            stream?.close()
+        }
+    }
+
+    private fun writeHead(out: OutputStream, r: ApiResponse, file: FileInputStream?) {
+        val length = file?.channel?.size() ?: r.body.size.toLong()
         val head = StringBuilder()
         head.append("HTTP/1.1 ").append(r.status).append(' ').append(reason(r.status)).append("\r\n")
         head.append("Server: Toque\r\n")
@@ -225,13 +292,13 @@ class HttpServer(
         head.append("Connection: close\r\n\r\n")
         out.write(head.toString().toByteArray(Charsets.ISO_8859_1))
         if (file != null) {
-            file.inputStream().use { f ->
-                val buf = ByteArray(CHUNK)
-                while (true) {
-                    val n = f.read(buf)
-                    if (n < 0) break
-                    out.write(buf, 0, n)
-                }
+            val buf = ByteArray(CHUNK)
+            var left = length
+            while (left > 0) {
+                val n = file.read(buf, 0, minOf(buf.size.toLong(), left).toInt())
+                if (n < 0) throw IOException("fichier raccourci pendant l'envoi")   // la connexion se ferme, rien d'invalide n'est annoncé
+                out.write(buf, 0, n)
+                left -= n
             }
         } else if (r.status != 304) out.write(r.body)
         out.flush()
@@ -294,7 +361,10 @@ class HttpServer(
     companion object {
         const val MAX_CONNECTIONS = 8
         const val READ_TIMEOUT_MS = 10_000
+        const val REQUEST_DEADLINE_S = 10L
         const val RESPONSE_DEADLINE_S = 30L
+        const val ACCEPT_MAX_FAILURES = 5
+        const val ACCEPT_RETRY_MS = 200L
         const val LINGER_MS = 500
         const val REFUSE_LINGER_MS = 100
         const val LINGER_MAX_BYTES = 64 * 1024

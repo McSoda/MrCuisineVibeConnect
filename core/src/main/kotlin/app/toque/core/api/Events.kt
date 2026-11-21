@@ -8,7 +8,11 @@ import java.util.concurrent.CopyOnWriteArrayList
 class ApiEvent(val id: Long, val name: String, val data: String)
 
 /** Événements récents (pour `Last-Event-ID`) et abonnés du flux SSE. Sûr entre fils. */
-class EventBus(private val capacity: Int = 50) {
+class EventBus(
+    private val capacity: Int = 50,
+    /** Un abonné qui lève une exception ne prive pas les autres de l'événement. */
+    private val onListenerError: (Exception) -> Unit = {},
+) {
     private val recent = ArrayDeque<ApiEvent>()
     private val listeners = CopyOnWriteArrayList<(ApiEvent) -> Unit>()
     private var next = 1L
@@ -22,7 +26,9 @@ class EventBus(private val capacity: Int = 50) {
             while (recent.size > capacity) recent.removeFirst()
             ev
         }
-        for (l in listeners) l(e)
+        for (l in listeners) {
+            try { l(e) } catch (x: Exception) { onListenerError(x) }
+        }
         return e
     }
 

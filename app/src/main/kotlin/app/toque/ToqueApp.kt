@@ -36,7 +36,7 @@ class ToqueApp : Application() {
     val homeAssistant: HomeAssistantApi by lazy { HomeAssistantApi(this) }
 
     /** La cuisson guidée en cours (au plus une), enregistrée à chaque changement pour reprendre après un redémarrage. */
-    val cook = CookSessions()
+    val cook = CookSessions(onListenerError = { log.write("cuisine", "observateur en échec : $it") })
 
     /** Reprend la cuisson enregistrée, avec le même identifiant. À appeler une fois au démarrage de l'interface. */
     fun restoreCookSession() {

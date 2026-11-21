@@ -38,10 +38,10 @@ class HttpServerTest {
 
     private class Reply(val status: Int, val headers: Map<String, String>, val body: ByteArray)
 
-    private fun connect(): Socket = Socket("127.0.0.1", port).also { it.soTimeout = 5_000; sockets += it }
+    private fun connect(onPort: Int = port): Socket = Socket("127.0.0.1", onPort).also { it.soTimeout = 5_000; sockets += it }
 
-    private fun raw(request: String): Reply {
-        val s = connect()
+    private fun raw(request: String, onPort: Int = port): Reply {
+        val s = connect(onPort)
         s.getOutputStream().write(request.toByteArray())
         s.getOutputStream().flush()
         val all = ByteArrayOutputStream()
@@ -255,6 +255,88 @@ class HttpServerTest {
             Thread.sleep(100)
         }
         assertTrue("le serveur doit reprendre après la fermeture d'un flux", ok)
+    }
+
+    @Test
+    fun aClientThatTricklesItsRequestIsCutOffAtTheDeadline() {
+        val slow = HttpServer(ApiRouter(backend) { "secret" }, bus, requestDeadlineS = 1)
+        val p = slow.start(0)
+        try {
+            val s = connect(p)
+            val out = s.getOutputStream()
+            out.write("GET /api/v1/info HTTP/1.1\r\nX-Slow: ".toByteArray())
+            val t0 = System.nanoTime()
+            // Un octet toutes les 300 ms : le délai par lecture (10 s) ne se déclencherait jamais.
+            var cut = false
+            for (i in 1..30) {
+                try { out.write('a'.code); out.flush() } catch (_: java.io.IOException) { cut = true; break }
+                Thread.sleep(300)
+            }
+            val seconds = (System.nanoTime() - t0) / 1e9
+            assertTrue("le client lent doit être coupé (écrit pendant ${"%.1f".format(seconds)} s)", cut)
+            assertTrue("coupé trop tard : $seconds s", seconds < 4.0)
+            // Le serveur reste disponible pour les autres.
+            assertEquals(200, raw("GET /api/v1/info HTTP/1.1\r\n\r\n", p).status)
+        } finally {
+            slow.stop()
+        }
+    }
+
+    @Test
+    fun aStoppedServerCannotBeRestartedAndReleasesItsThreads() {
+        fun watchdogs() = Thread.getAllStackTraces().keys.count { it.name == "toque-api-watchdog" && it.isAlive }
+        val baseline = watchdogs()
+        repeat(5) {
+            val s = HttpServer(ApiRouter(backend) { "secret" }, bus)
+            val p = s.start(0)
+            assertEquals(200, raw("GET /api/v1/info HTTP/1.1\r\n\r\n", p).status)   // crée le fil du chien de garde
+            s.stop()
+            try {
+                s.start(0)
+                org.junit.Assert.fail("un serveur arrêté ne doit pas redémarrer")
+            } catch (_: IllegalStateException) {
+            }
+        }
+        var left = watchdogs()
+        for (i in 1..30) { if (left <= baseline) break; Thread.sleep(100); left = watchdogs() }
+        assertTrue("fils de chien de garde restants : $left (avant : $baseline)", left <= baseline)
+    }
+
+    @Test
+    fun aDeadListenerStopsTheServerAndReportsIt() {
+        val died = java.util.concurrent.CountDownLatch(1)
+        var reason = ""
+        val failing = object : java.net.ServerSocket() {
+            override fun accept(): Socket = throw java.io.IOException("boum")
+        }
+        val s = HttpServer(ApiRouter(backend) { "secret" }, bus, onDied = { reason = it; died.countDown() }, socketFactory = { failing })
+        s.start(0)
+        assertTrue("l'arrêt de l'écoute doit être signalé", died.await(5, java.util.concurrent.TimeUnit.SECONDS))
+        assertTrue(reason, reason.contains("boum"))
+        try {
+            s.start(0)
+            org.junit.Assert.fail("le serveur mort ne redémarre pas")
+        } catch (_: IllegalStateException) {
+        }
+    }
+
+    @Test
+    fun stoppingOnPurposeDoesNotReportADeath() {
+        var died = false
+        val s = HttpServer(ApiRouter(backend) { "secret" }, bus, onDied = { died = true })
+        s.start(0)
+        s.stop()
+        Thread.sleep(500)
+        assertEquals(false, died)
+    }
+
+    @Test
+    fun anImageThatVanishesIsReportedAs404() {
+        backend.recipes += sampleRecipe("a", "Alpha")
+        backend.images["a"] = java.io.File(tmp.root, "disparue.jpg")   // jamais créé
+        val r = get("/api/v1/recipes/a/image")
+        assertEquals(404, r.status)
+        assertEquals("no_image", jsonObj(r.body)["error"])
     }
 
     @Test

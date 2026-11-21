@@ -220,6 +220,21 @@ class CookSessionTest {
     }
 
     @Test
+    fun aFailingObserverDoesNotDeprivTheOthers() {
+        val errors = ArrayList<Exception>()
+        val hub = CookSessions(clock = { 1L }, newId = { "id" }, onListenerError = { errors += it })
+        val seen = ArrayList<CookEvent>()
+        hub.addListener { throw IllegalStateException("boum") }
+        hub.addListener { seen += it }
+        hub.start(recipe)
+        hub.goTo(2)
+        assertEquals("les deux événements de goTo et celui de start", 3, seen.size)
+        assertEquals(3, errors.size)
+        assertEquals("boum", errors[0].message)
+        assertEquals(2, hub.current!!.stepIndex)
+    }
+
+    @Test
     fun anObserverCanReadTheHubWithoutDeadlock() {
         val hub = sessions()
         var stepSeen = -1

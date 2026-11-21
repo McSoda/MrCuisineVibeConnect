@@ -97,11 +97,15 @@ sealed class CookEvent {
  * La session de cuisson courante (au plus une). Sûr entre fils : les changements sont sérialisés et les
  * observateurs appelés ensuite, hors verrou.
  *
+ * Un observateur qui lève une exception n'empêche pas les suivants de recevoir l'événement (l'enregistrement de la
+ * session et l'API Home Assistant sont deux observateurs indépendants) ; l'erreur est remise à [onListenerError].
+ *
  * @param clock heure en secondes depuis 1970 ; @param newId fabrique d'identifiants (injectables pour les tests).
  */
 class CookSessions(
     private val clock: () -> Long = { System.currentTimeMillis() / 1000 },
     private val newId: () -> String = { java.util.UUID.randomUUID().toString() },
+    private val onListenerError: (Exception) -> Unit = {},
 ) {
     @Volatile
     var current: CookSession? = null
@@ -195,6 +199,8 @@ class CookSessions(
     }
 
     private fun dispatch(events: List<CookEvent>) {
-        for (e in events) for (l in listeners) l(e)
+        for (e in events) for (l in listeners) {
+            try { l(e) } catch (x: Exception) { onListenerError(x) }
+        }
     }
 }

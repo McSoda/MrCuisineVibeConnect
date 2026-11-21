@@ -7,6 +7,8 @@ import android.content.IntentFilter
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.os.SystemClock
 import app.toque.ToqueApp
@@ -35,8 +37,9 @@ import java.security.SecureRandom
  * [apply] est à appeler sur le fil principal (écoute de la machine) à chaque changement des préférences.
  */
 class HomeAssistantApi(private val app: ToqueApp) : ApiBackend {
-    private val bus = EventBus()
+    private val bus = EventBus(onListenerError = { app.log.write("api", "abonné en échec : $it") })
     private val publisher = ApiPublisher(this, bus)
+    private val main = Handler(Looper.getMainLooper())
     private var server: HttpServer? = null
     private var nsd: NsdManager.RegistrationListener? = null
     private val stops = ArrayList<() -> Unit>()
@@ -54,8 +57,15 @@ class HomeAssistantApi(private val app: ToqueApp) : ApiBackend {
 
     val running: Boolean get() = server != null
 
+    /**
+     * État de l'écran, tenu à jour par le récepteur : l'interroger à chaque instantané (~10 par seconde) coûterait
+     * un appel au service d'alimentation d'Android sur le fil principal.
+     */
+    @Volatile private var screen = true
+
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
+            screen = intent?.action != Intent.ACTION_SCREEN_OFF
             publisher.onScreenChanged()
         }
     }
@@ -65,10 +75,18 @@ class HomeAssistantApi(private val app: ToqueApp) : ApiBackend {
     fun apply() {
         stop()
         val prefs = app.prefs
-        if (!prefs.haEnabled) return
+        if (!prefs.haEnabled) {
+            error = ""
+            return
+        }
         if (prefs.haToken.isEmpty()) prefs.haToken = newToken()
         try {
-            val s = HttpServer(ApiRouter(this) { app.prefs.haToken }, bus, { app.log.write("api", it) })
+            var created: HttpServer? = null
+            val s = HttpServer(
+                ApiRouter(this) { app.prefs.haToken }, bus, { app.log.write("api", it) },
+                onDied = { reason -> created?.let { serverDied(it, reason) } },
+            )
+            created = s
             val bound = s.start(prefs.haPort)
             server = s
             port = bound
@@ -80,6 +98,20 @@ class HomeAssistantApi(private val app: ToqueApp) : ApiBackend {
             error = e.message ?: e.toString()
             app.log.write("api", "démarrage impossible : $e")
             stop()
+        }
+    }
+
+    /**
+     * L'écoute du serveur est morte toute seule. On défait tout (sur le fil principal, comme [apply], car l'écoute de
+     * la machine n'est pas sûre entre fils), on garde la raison pour les Réglages, puis on retente un peu plus tard.
+     */
+    private fun serverDied(dead: HttpServer, reason: String) {
+        main.post {
+            synchronized(this) { if (server !== dead) return@post }   // un [apply] l'a déjà remplacé
+            app.log.write("api", "serveur arrêté : $reason ; nouvel essai dans ${RESTART_DELAY_MS / 1000} s")
+            stop()
+            error = reason
+            main.postDelayed({ if (app.prefs.haEnabled && server == null) apply() }, RESTART_DELAY_MS)
         }
     }
 
@@ -106,6 +138,7 @@ class HomeAssistantApi(private val app: ToqueApp) : ApiBackend {
     /** Abonnements aux sources de changements ; le fil principal suffit pour l'écoute de la machine. */
     private fun listen() {
         snap = app.machine.snapshot
+        screen = (app.getSystemService(Context.POWER_SERVICE) as PowerManager).isInteractive
         stops += app.machine.onSnapshot { s ->
             snap = s
             publisher.onSnapshot()
@@ -189,8 +222,7 @@ class HomeAssistantApi(private val app: ToqueApp) : ApiBackend {
 
     override val snapshot: Snapshot get() = snap
 
-    override val screenOn: Boolean
-        get() = (app.getSystemService(Context.POWER_SERVICE) as PowerManager).isInteractive
+    override val screenOn: Boolean get() = screen
 
     override val session: CookSession? get() = app.cook.current
 
@@ -221,4 +253,8 @@ class HomeAssistantApi(private val app: ToqueApp) : ApiBackend {
 
     /** Adresse de base à saisir dans Home Assistant (pour l'affichage). */
     fun baseUrl(): String = if (port == 0) "" else "http://${localIp().ifEmpty { "?" }}:$port"
+
+    private companion object {
+        const val RESTART_DELAY_MS = 5_000L
+    }
 }
