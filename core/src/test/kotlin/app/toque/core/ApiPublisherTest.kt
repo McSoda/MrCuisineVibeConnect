@@ -89,12 +89,27 @@ class ApiPublisherTest {
         backend.snap = backend.snap.copy(motorOn = true)
         pub.onSnapshot()
         now += 10
-        backend.snap = backend.snap.copy(heaterOn = true)
+        backend.snap = backend.snap.copy(heaterOn = true, targetTempC = 80)
         pub.onSnapshot()
         now += 10
         backend.screen = false
         pub.onSnapshot()
         assertEquals(6, states().size)
+    }
+
+    @Test
+    fun theRawHeaterFlagWithoutATargetTemperatureIsNotAChange() {
+        pub.onSnapshot()
+        now += 10
+        // La base annonce « mode 1 » pendant tout programme standard, sans chauffe demandée.
+        backend.snap = backend.snap.copy(heaterOn = true, targetTempC = 0)
+        pub.onSnapshot()
+        assertEquals(1, states().size)
+        now += 10
+        backend.snap = backend.snap.copy(targetTempC = 60)
+        pub.onSnapshot()
+        assertEquals(2, states().size)
+        assertEquals(true, Json.parse(states().last().data).obj()["machine"].obj()["heaterOn"])
     }
 
     @Test

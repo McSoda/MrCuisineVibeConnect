@@ -642,6 +642,7 @@ class MachineController(
             targetTempC = t?.targetTemperature ?: 0,
             rpm = t?.actualRpm ?: 0,
             speedLevel = t?.actualSpeedLevel ?: 0,
+            targetSpeedLevel = t?.targetSpeedLevel ?: 0,
             weightG = t?.weight ?: 0,
             scaleStable = t?.scaleStable ?: false,
             scaleState = t?.androidScaleState ?: "",
