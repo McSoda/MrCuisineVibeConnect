@@ -13,6 +13,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.Message
 import android.os.Messenger
+import android.os.Process
 import android.os.RemoteException
 import app.toque.Logbook
 import app.toque.Prefs
@@ -115,6 +116,12 @@ class MachineService : Service() {
             log = { line -> log.write("machine", line) },
             // Menu de démarrage en attente : on ne touche pas au port série avant le choix.
             startSuspended = prefs.chooserPending && mode == Prefs.Mode.HARDWARE,
+            // Boucle bloquée et rien ne la débloque : le chien de garde a déjà envoyé des STOP ; on abandonne le
+            // processus. Android relance le service (START_STICKY) et la nouvelle boucle émet des trames STOP.
+            onUnrecoverable = {
+                log.write("machine", "boucle bloquée : le processus machine est abandonné pour repartir proprement")
+                Process.killProcess(Process.myPid())
+            },
         )
         loop = l
         l.start()

@@ -494,5 +494,6 @@
   "Nouveau jeton ?": "New token?",
   "L'ancien jeton cessera de fonctionner : il faudra saisir le nouveau dans Home Assistant.": "The old token will stop working: you will need to enter the new one in Home Assistant.",
   "Générer": "Generate",
+  "La boucle de la base moteur ne répond plus : arrêt d'urgence": "The motor base loop is not responding: emergency stop",
   "… et %d autres": "… and %d more"
 }
