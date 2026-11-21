@@ -97,6 +97,12 @@ class ApiRouterTest {
     }
 
     @Test
+    fun stateExposesTheSnapshotAge() {
+        backend.snapAge = 777
+        assertEquals(777, (get("/api/v1/state").obj()["snapshotAgeMs"] as Number).toInt())
+    }
+
+    @Test
     fun eventsAskForAStreamAndReadLastEventId() {
         val r = get("/api/v1/events", extra = mapOf("last-event-id" to " 12 "))
         assertTrue(r.events)

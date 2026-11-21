@@ -143,6 +143,16 @@ class HomeAssistantApi(private val app: ToqueApp) : ApiBackend {
             snap = s
             publisher.onSnapshot()
         }
+        // Le signal de vie ne doit pas dépendre de l'arrivée d'instantanés : si le service machine se tait, l'API
+        // continue d'annoncer l'état (hors ligne) avec un `snapshotAgeMs` qui grandit.
+        val beat = object : Runnable {
+            override fun run() {
+                publisher.onSnapshot()
+                main.postDelayed(this, 1_000)
+            }
+        }
+        main.postDelayed(beat, 1_000)
+        stops += { main.removeCallbacks(beat) }
         val cookListener: (app.toque.core.recipes.CookEvent) -> Unit = { publisher.onCookEvent(it) }
         app.cook.addListener(cookListener)
         stops += { app.cook.removeListener(cookListener) }
@@ -221,6 +231,8 @@ class HomeAssistantApi(private val app: ToqueApp) : ApiBackend {
         )
 
     override val snapshot: Snapshot get() = snap
+
+    override val snapshotAgeMs: Long get() = app.machine.snapshotAgeMs
 
     override val screenOn: Boolean get() = screen
 
