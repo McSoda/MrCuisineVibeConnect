@@ -74,6 +74,25 @@ Pendant la réinstallation, Android relance l'appli d'origine (elle aussi applic
 elle peut afficher « MC2 s'est arrêté » en échouant à joindre son serveur. C'est sans effet pour
 Toque ; fermer la fenêtre.
 
+### Cas observé une fois : « Base non détectée » après le retour en Machine réelle
+
+Le 2026-11-21, après une réinstallation (Démo, `adb install -r`, puis Machine réelle environ trois
+minutes plus tard), le badge est resté sur « Base non détectée » jusqu'à un arrêt/relance du robot.
+Le journal (Réglages › Outils › Journal, ou `su -c 'tail /data/data/app.toque/files/journal.txt'`)
+montrait « liaison ouverte : Base moteur », mais aucun évènement `LINK_CHANGED Connexion…` ni
+`Prête` ensuite, alors qu'ils suivent l'ouverture d'une seconde dans les cas normaux. Aucune erreur
+n'était journalisée : la boucle machine semble s'être figée après l'ouverture.
+
+**Non reproduit** : deux essais le même jour (Réel, Démo, Réel ; puis Réel, Démo, réinstallation,
+trois minutes d'attente avec l'appli d'origine relancée par Android, Réel) ont donné « Prête » en
+11 secondes, sans pont série orphelin. La réinstallation et l'appli d'origine ne suffisent donc pas.
+Pistes non vérifiées : un état du port série `/dev/ttyMT0` après une longue veille, ou une course
+au moment de l'arrêt de l'ancienne boucle (elle tente de rouvrir le port pendant son arrêt :
+« ouverture impossible … : null » dans le journal, sans conséquence constatée).
+
+Si cela se reproduit, **ne pas redémarrer tout de suite** : relever d'abord `ps | grep -E ' (cat|su)$|app.toque'`,
+les processus en état `D`, les dernières lignes du journal et les porteurs de `/dev/ttyMT0`.
+
 ## Publier
 
 Un `push` sur `main` lance `.github/workflows/release.yml` : tests, compilation, puis création de la
