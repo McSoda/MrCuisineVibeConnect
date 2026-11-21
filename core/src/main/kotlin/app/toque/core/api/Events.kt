@@ -1,0 +1,144 @@
+package app.toque.core.api
+
+import app.toque.core.json.Json
+import app.toque.core.recipes.CookEvent
+import app.toque.core.recipes.SessionResult
+import java.util.concurrent.CopyOnWriteArrayList
+
+class ApiEvent(val id: Long, val name: String, val data: String)
+
+/** Événements récents (pour `Last-Event-ID`) et abonnés du flux SSE. Sûr entre fils. */
+class EventBus(private val capacity: Int = 50) {
+    private val recent = ArrayDeque<ApiEvent>()
+    private val listeners = CopyOnWriteArrayList<(ApiEvent) -> Unit>()
+    private var next = 1L
+
+    val lastId: Long get() = synchronized(this) { next - 1 }
+
+    fun publish(name: String, data: Any?): ApiEvent {
+        val e = synchronized(this) {
+            val ev = ApiEvent(next++, name, Json.write(data))
+            recent.addLast(ev)
+            while (recent.size > capacity) recent.removeFirst()
+            ev
+        }
+        for (l in listeners) l(e)
+        return e
+    }
+
+    /** Abonne [l] ; renvoie la fonction qui désabonne. */
+    fun subscribe(l: (ApiEvent) -> Unit): () -> Unit {
+        listeners.add(l)
+        return { listeners.remove(l) }
+    }
+
+    /** Événements d'identifiant strictement supérieur à [lastId], dans l'ordre. */
+    fun since(lastId: Long): List<ApiEvent> = synchronized(this) { recent.filter { it.id > lastId } }
+}
+
+/**
+ * Transforme ce que voit l'application (instantanés de la machine, session de cuisson, écran, catalogue) en
+ * événements de l'API, en respectant la cadence décrite dans la spécification (§4) : les changements
+ * discrets partent tout de suite, les variations analogiques au plus une fois par seconde, et un signal de vie
+ * régulier.
+ */
+class ApiPublisher(
+    private val backend: ApiBackend,
+    private val bus: EventBus,
+    private val clockMs: () -> Long = { System.currentTimeMillis() },
+) {
+    private class Key(
+        val status: String, val link: String, val faultCode: String, val screenOn: Boolean, val sessionId: String?,
+        val lidOpen: Boolean, val bowl: Boolean, val motor: Boolean, val heater: Boolean,
+        val jobActive: Boolean, val jobKind: String, val jobState: String, val jobLabel: String,
+        val phase: Int, val phaseCount: Int,
+        val tempC: Int, val rpm: Int, val weightG: Int,
+    ) {
+        fun sameDiscrete(o: Key) = status == o.status && link == o.link && faultCode == o.faultCode &&
+            screenOn == o.screenOn && sessionId == o.sessionId && lidOpen == o.lidOpen && bowl == o.bowl &&
+            motor == o.motor && heater == o.heater && jobActive == o.jobActive && jobKind == o.jobKind &&
+            jobState == o.jobState && jobLabel == o.jobLabel && phase == o.phase && phaseCount == o.phaseCount
+
+        fun analogMoved(o: Key) = kotlin.math.abs(tempC - o.tempC) >= TEMP_DELTA_C ||
+            kotlin.math.abs(rpm - o.rpm) >= RPM_DELTA || kotlin.math.abs(weightG - o.weightG) >= WEIGHT_DELTA_G
+    }
+
+    private var last: Key? = null
+    private var lastAtMs = 0L
+    private var lastFault = ""
+
+    private fun key(): Key {
+        val s = backend.snapshot
+        val session = backend.session
+        return Key(
+            ApiStatus.of(s, session), s.link.name, s.faultCode, backend.screenOn, session?.id,
+            s.lidOpen, s.bowlDetected, s.motorOn, s.heaterOn,
+            s.jobActive, s.jobKind, s.jobState, s.jobLabel, s.phaseIndex, s.phaseCount,
+            s.actualTempC, s.rpm, s.weightG,
+        )
+    }
+
+    private fun publishState(k: Key, now: Long) {
+        bus.publish("state", ApiModels.state(backend.snapshot, backend.session, backend.screenOn, now / 1000))
+        last = k
+        lastAtMs = now
+    }
+
+    /** À appeler à chaque instantané de la machine (~10 fois par seconde). */
+    @Synchronized
+    fun onSnapshot() {
+        val s = backend.snapshot
+        if (s.faultCode != lastFault) {
+            val code = if (s.faultCode.isEmpty()) lastFault else s.faultCode
+            bus.publish("fault", linkedMapOf("code" to code, "message" to s.faultMessage, "active" to s.hasFault))
+            lastFault = s.faultCode
+        }
+        val now = clockMs()
+        val k = key()
+        val prev = last
+        val publish = when {
+            prev == null -> true
+            !k.sameDiscrete(prev) -> true
+            k.analogMoved(prev) && now - lastAtMs >= MIN_ANALOG_INTERVAL_MS -> true
+            else -> now - lastAtMs >= (if (k.jobActive) HEARTBEAT_JOB_MS else HEARTBEAT_IDLE_MS)
+        }
+        if (publish) publishState(k, now)
+    }
+
+    /** L'écran s'est allumé ou éteint. */
+    @Synchronized
+    fun onScreenChanged() = publishState(key(), clockMs())
+
+    /** Un changement de la session de cuisson. */
+    @Synchronized
+    fun onCookEvent(e: CookEvent) {
+        when (e) {
+            is CookEvent.Changed -> bus.publish("session", ApiModels.session(e.session))
+            is CookEvent.StepChanged -> bus.publish("step", ApiModels.stepEvent(e.session))
+            is CookEvent.Ended -> {
+                bus.publish("done", linkedMapOf(
+                    "sessionId" to e.sessionId, "recipeId" to e.recipeId,
+                    "result" to if (e.result == SessionResult.FINISHED) "finished" else "aborted",
+                ))
+                bus.publish("session", ApiModels.session(null))
+            }
+        }
+        // La session change `status` et `sessionId` : l'état part tout de suite.
+        publishState(key(), clockMs())
+    }
+
+    /** Le catalogue de recettes a changé. */
+    @Synchronized
+    fun onRecipesChanged() {
+        bus.publish("recipes", linkedMapOf("rev" to backend.recipesRev, "total" to backend.recipeCount))
+    }
+
+    companion object {
+        const val TEMP_DELTA_C = 1
+        const val RPM_DELTA = 50
+        const val WEIGHT_DELTA_G = 2
+        const val MIN_ANALOG_INTERVAL_MS = 1_000L
+        const val HEARTBEAT_JOB_MS = 5_000L
+        const val HEARTBEAT_IDLE_MS = 30_000L
+    }
+}

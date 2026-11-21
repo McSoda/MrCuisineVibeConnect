@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Process
+import app.toque.api.HomeAssistantApi
 import app.toque.core.i18n.I18n
 import app.toque.core.json.Json
 import app.toque.core.json.obj
@@ -27,6 +28,9 @@ class ToqueApp : Application() {
         private set
     val machine: MachineClient by lazy { MachineClient(this) }
     val recipes: RecipeRepo by lazy { RecipeRepo(this) }
+
+    /** L'API locale pour Home Assistant (désactivée tant que l'utilisateur ne l'active pas dans les Réglages). */
+    val homeAssistant: HomeAssistantApi by lazy { HomeAssistantApi(this) }
 
     /** La cuisson guidée en cours (au plus une), enregistrée à chaque changement pour reprendre après un redémarrage. */
     val cook = CookSessions()
@@ -98,6 +102,7 @@ class ToqueApp : Application() {
         }
         log.write("interface", "démarrage")
         TimeSync.start(this, prefs, log)
+        if (prefs.haEnabled) homeAssistant.apply()
     }
 
     private fun isMainProcess(): Boolean {

@@ -40,6 +40,10 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
     private lateinit var bowlText: TextView
     private lateinit var linkText: TextView
     private lateinit var timeText: TextView
+    private lateinit var haName: EditText
+    private lateinit var haPort: EditText
+    private lateinit var haStatus: TextView
+    private lateinit var haTokenText: TextView
     private var settingTime = false
     private var mode = a.prefs.mode
     private var syncing = false
@@ -180,6 +184,32 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         Updater.onInstallError = { msg -> updateFailed(msg) }
         renderUpdate()
 
+        // ---- Home Assistant (API locale en lecture seule)
+        val ha = section(left, tr("Home Assistant"), Icon.Kind.LINK)
+        ha.addView(Ui.text(c, tr("Permet à Home Assistant de lire l'état du robot et les recettes, sur le réseau local. Lecture seule : rien ne peut être commandé à distance."),
+            16f, Ui.TEXT2).apply { setLineSpacing(0f, 1.15f) })
+        ha.addView(toggle(tr("Activer l'API pour Home Assistant"), a.prefs.haEnabled) { on ->
+            a.prefs.haEnabled = on
+            a.app.homeAssistant.apply()
+            renderHa()
+        }, Ui.lp(t = 10))
+        val haRow = Ui.horizontal(c)
+        haName = field(a.prefs.haName, tr("Nom du robot"))
+        haPort = field(a.prefs.haPort.toString(), "Port").apply { inputType = InputType.TYPE_CLASS_NUMBER }
+        haRow.addView(haName, LinearLayout.LayoutParams(0, Ui.u(58), 1f).apply { rightMargin = Ui.u(10) })
+        haRow.addView(haPort, LinearLayout.LayoutParams(Ui.u(120), Ui.u(58)))
+        ha.addView(haRow, Ui.lp(t = 12))
+        ha.addView(Ui.button(c, tr("Appliquer"), Ui.Style.SECONDARY, Icon.Kind.CHECK, height = 52) { applyHa() }, Ui.lp(Ui.WRAP, Ui.WRAP, t = 10))
+        haStatus = Ui.text(c, "", 16f, Ui.TEXT).apply { setLineSpacing(0f, 1.15f) }
+        ha.addView(haStatus, Ui.lp(t = 12))
+        haTokenText = Ui.text(c, "", 14f, Ui.TEXT2).apply {
+            setLineSpacing(0f, 1.1f)
+            typeface = android.graphics.Typeface.MONOSPACE
+        }
+        ha.addView(haTokenText, Ui.lp(t = 8))
+        ha.addView(Ui.button(c, tr("Nouveau jeton"), Ui.Style.GHOST, Icon.Kind.SYNC, height = 52) { newHaToken() }, Ui.lp(Ui.WRAP, Ui.WRAP, t = 8))
+        renderHa()
+
         // ---- Outils
         val tools = section(right, tr("Outils"), Icon.Kind.SETTINGS)
         tools.addView(link(tr("Diagnostic de la base moteur")) { a.push(DiagnosticsScreen(a)) })
@@ -196,6 +226,41 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
             "Projet indépendant, non affilié à Lidl ni à SilverCrest.", version), 14f, Ui.TEXT3).apply { setLineSpacing(0f, 1.1f) }, Ui.lp(t = 12))
 
         return Ui.scroll(c, col)
+    }
+
+    private fun applyHa() {
+        val port = haPort.text.toString().trim().toIntOrNull()
+        if (port == null || port !in 1024..65535) {
+            a.toast(tr("Port invalide (1024 à 65535)"), Ui.WARN)
+            return
+        }
+        a.prefs.haName = haName.text.toString().take(40)
+        a.prefs.haPort = port
+        haName.setText(a.prefs.haName)
+        a.app.homeAssistant.apply()
+        renderHa()
+    }
+
+    private fun newHaToken() {
+        a.confirm(tr("Nouveau jeton ?"), tr("L'ancien jeton cessera de fonctionner : il faudra saisir le nouveau dans Home Assistant."),
+            tr("Générer"), icon = Icon.Kind.SYNC) {
+            a.app.homeAssistant.regenerateToken()
+            renderHa()
+        }
+    }
+
+    private fun renderHa() {
+        val api = a.app.homeAssistant
+        val failed = a.prefs.haEnabled && api.error.isNotEmpty()
+        haStatus.text = when {
+            !a.prefs.haEnabled -> tr("API désactivée")
+            failed -> tr("Impossible d'ouvrir le port %d : %s", a.prefs.haPort, api.error)
+            else -> tr("Adresse : %s", api.baseUrl())
+        }
+        haStatus.setTextColor(if (failed) Ui.WARN else Ui.TEXT)
+        val token = a.prefs.haToken
+        haTokenText.visibility = if (a.prefs.haEnabled && token.isNotEmpty()) View.VISIBLE else View.GONE
+        haTokenText.text = tr("Jeton d'accès à saisir dans Home Assistant :") + "\n" + token
     }
 
     private fun section(parent: LinearLayout, title: String, icon: Icon.Kind): LinearLayout {

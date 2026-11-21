@@ -261,6 +261,44 @@ class Prefs(context: Context) {
             p.edit().putString("cookSession", v).commit()
         }
 
+    /** API locale pour Home Assistant (voir docs/HOME_ASSISTANT_API.md) : désactivée tant que l'utilisateur ne l'active pas. */
+    var haEnabled: Boolean
+        get() = p.getBoolean("haEnabled", false)
+        set(v) {
+            p.edit().putBoolean("haEnabled", v).commit()
+        }
+
+    var haPort: Int
+        get() = p.getInt("haPort", DEFAULT_HA_PORT)
+        set(v) {
+            p.edit().putInt("haPort", v).commit()
+        }
+
+    /** Jeton d'accès de l'API ; vide tant qu'elle n'a jamais été activée. */
+    var haToken: String
+        get() = p.getString("haToken", "") ?: ""
+        set(v) {
+            p.edit().putString("haToken", v).commit()
+        }
+
+    /** Nom du robot dans Home Assistant (le nom d'appareil, modifiable sans changer l'identifiant). */
+    var haName: String
+        get() = p.getString("haName", DEFAULT_HA_NAME)?.ifBlank { DEFAULT_HA_NAME } ?: DEFAULT_HA_NAME
+        set(v) {
+            p.edit().putString("haName", v.trim()).commit()
+        }
+
+    /** Identifiant stable du robot pour Home Assistant, créé au premier besoin. */
+    val deviceId: String
+        get() {
+            val saved = p.getString("deviceId", "") ?: ""
+            if (saved.isNotEmpty()) return saved
+            val bytes = ByteArray(6).also { java.security.SecureRandom().nextBytes(it) }
+            val id = "toque-" + bytes.joinToString("") { "%02x".format(it) }
+            p.edit().putString("deviceId", id).commit()
+            return id
+        }
+
     /** Ancien format (recette + étape), lu une seule fois pour migrer vers [cookSession], puis effacé. */
     fun takeLegacyGuided(): Pair<String, Int>? {
         val id = p.getString("guidedRecipe", "") ?: ""
@@ -283,4 +321,9 @@ class Prefs(context: Context) {
         set(v) {
             p.edit().putString("weighSound", v).commit()
         }
+
+    companion object {
+        const val DEFAULT_HA_PORT = 8765
+        const val DEFAULT_HA_NAME = "Monsieur Cuisine"
+    }
 }
