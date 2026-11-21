@@ -8,10 +8,16 @@ import android.content.Context
 import android.content.Intent
 import android.os.Process
 import app.toque.core.i18n.I18n
+import app.toque.core.json.Json
+import app.toque.core.json.obj
+import app.toque.core.recipes.CookEvent
+import app.toque.core.recipes.CookSession
+import app.toque.core.recipes.CookSessions
 import app.toque.machine.MachineClient
 import app.toque.recipes.RecipeRepo
 import app.toque.ui.MainActivity
 import java.util.Locale
+import java.util.UUID
 import javax.net.ssl.HttpsURLConnection
 
 class ToqueApp : Application() {
@@ -21,6 +27,35 @@ class ToqueApp : Application() {
         private set
     val machine: MachineClient by lazy { MachineClient(this) }
     val recipes: RecipeRepo by lazy { RecipeRepo(this) }
+
+    /** La cuisson guidée en cours (au plus une), enregistrée à chaque changement pour reprendre après un redémarrage. */
+    val cook = CookSessions()
+
+    /** Reprend la cuisson enregistrée, avec le même identifiant. À appeler une fois au démarrage de l'interface. */
+    fun restoreCookSession() {
+        if (cook.current != null) return
+        try {
+            val text = prefs.cookSession
+            val saved = if (text.isNotBlank()) {
+                CookSession.fromMap(Json.parse(text).obj()) { recipes.getAdjusted(it) }
+            } else {
+                // Ancien format : recette + étape, sans identifiant de session.
+                prefs.takeLegacyGuided()?.let { (id, step) ->
+                    recipes.getAdjusted(id)?.let { r ->
+                        CookSession(
+                            UUID.randomUUID().toString(), r,
+                            stepIndex = step.coerceIn(0, maxOf(0, r.steps.size - 1)),
+                            startedAt = System.currentTimeMillis() / 1000,
+                        )
+                    }
+                }
+            }
+            if (saved != null) cook.resume(saved) else prefs.cookSession = ""
+        } catch (e: Exception) {
+            log.write("cuisine", "reprise de la recette impossible : $e")
+            prefs.cookSession = ""
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -51,6 +86,13 @@ class ToqueApp : Application() {
                 System.exit(10)
             } catch (_: Throwable) {
                 previous?.uncaughtException(thread, error)
+            }
+        }
+        cook.addListener { e ->
+            when (e) {
+                is CookEvent.Changed -> prefs.cookSession = Json.write(e.session.toMap())
+                is CookEvent.Ended -> prefs.cookSession = ""
+                is CookEvent.StepChanged -> Unit
             }
         }
         log.write("interface", "démarrage")

@@ -20,6 +20,9 @@ captures/
 Thumbs.db
 # Ne jamais publier de contenu Lidl (recettes, images, bases)
 Recipes
+# Mais pas les paquets de sources « recipes » (la casse n'est pas distinguée sous Windows)
+!/app/src/main/kotlin/app/toque/recipes/
+!/core/src/main/kotlin/app/toque/core/recipes/
 Recipes-journal
 recipe_images/
 diagnostic-recettes.txt
