@@ -39,6 +39,12 @@ class ApiModelsTest {
     }
 
     @Test
+    fun stateCarriesTheSnapshotAge() {
+        assertEquals(-1L, ApiModels.state(idle, null, true, 1)["snapshotAgeMs"])
+        assertEquals(4_200L, ApiModels.state(idle, null, true, 1, snapshotAgeMs = 4_200)["snapshotAgeMs"])
+    }
+
+    @Test
     fun stateReportsMachineJobAndSession() {
         val s = running.copy(
             actualTempC = 82, targetTempC = 90, rpm = 1200, speedLevel = 4, weightG = 350, lidOpen = true,

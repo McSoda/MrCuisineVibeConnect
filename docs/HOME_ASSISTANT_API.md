@@ -49,9 +49,16 @@ Statut : **proposition, rien n'est implémenté**. Décisions prises : transport
 Instantané complet. `status` est calculé côté robot :
 `fault` (défaut actif) › `recipe` (session guidée active) › `running` (job ou Turbo actif, en pause compris) › `standby`.
 L'état « indisponible » n'existe pas côté robot : HA le déduit quand le robot ne répond plus.
+
+**Fraîcheur.** `snapshotAgeMs` est l'âge (ms) du dernier instantané reçu de la base moteur (`-1` : aucun reçu).
+Le service machine en émet au moins un par seconde ; au-delà de 3 s de silence, l'application passe `link` à
+`OFFLINE` et publie un `state` immédiatement, puis continue le signal de vie (5 s pendant un travail, 30 s sinon,
+avec un `snapshotAgeMs` qui grandit). HA doit donc considérer l'état comme inexploitable si `link` vaut
+`OFFLINE` ou `snapshotAgeMs` dépasse 5 s, et le robot comme indisponible si aucun `state` n'est reçu en 2× le
+signal de vie.
 ```json
 {
-  "ts": 1763700000, "status": "recipe", "screenOn": true,
+  "ts": 1763700000, "snapshotAgeMs": 120, "status": "recipe", "screenOn": true,
   "link": "READY", "fault": null,
   "machine": {
     "tempC": 82, "targetTempC": 90, "rpm": 1200, "speed": 4, "weightG": 350, "scaleStable": true,

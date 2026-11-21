@@ -19,6 +19,8 @@ class RecipePage(val total: Int, val recipes: List<Recipe>)
 interface ApiBackend {
     val device: DeviceInfo
     val snapshot: Snapshot
+    /** Âge du dernier instantané reçu de la machine (ms), -1 si aucun : mesure la fraîcheur de `snapshot`. */
+    val snapshotAgeMs: Long
     val screenOn: Boolean
     val session: CookSession?
     val recipeCount: Int
@@ -103,7 +105,9 @@ class ApiRouter(private val backend: ApiBackend, private val token: () -> String
     )
 
     private fun currentState() =
-        ApiModels.state(backend.snapshot, backend.session, backend.screenOn, System.currentTimeMillis() / 1000)
+        ApiModels.state(
+            backend.snapshot, backend.session, backend.screenOn, System.currentTimeMillis() / 1000, backend.snapshotAgeMs,
+        )
 
     private fun notFound() = ApiResponse.error(404, "not_found", "Adresse inconnue")
 

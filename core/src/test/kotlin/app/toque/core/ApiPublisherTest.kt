@@ -121,6 +121,19 @@ class ApiPublisherTest {
     }
 
     @Test
+    fun heartbeatReportsTheGrowingSnapshotAgeWhenTheMachineIsSilent() {
+        backend.snap = backend.snap.copy(link = app.toque.core.machine.LinkState.OFFLINE)
+        backend.snapAge = 3_500
+        pub.onSnapshot()
+        now += 30_000
+        backend.snapAge = 33_500
+        pub.onSnapshot()   // aucun instantané nouveau, mais le signal de vie part
+        val ages = states().map { (Json.parse(it.data).obj()["snapshotAgeMs"] as Number).toLong() }
+        assertEquals(listOf(3_500L, 33_500L), ages)
+        assertEquals("OFFLINE", Json.parse(states().last().data).obj()["link"])
+    }
+
+    @Test
     fun heartbeatIsFiveSecondsDuringAJob() {
         backend.snap = backend.snap.copy(jobActive = true, jobState = "RUNNING", jobKind = "MANUAL")
         pub.onSnapshot()

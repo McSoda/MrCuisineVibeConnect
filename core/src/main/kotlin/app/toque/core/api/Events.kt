@@ -85,7 +85,9 @@ class ApiPublisher(
     }
 
     private fun publishState(k: Key, now: Long) {
-        bus.publish("state", ApiModels.state(backend.snapshot, backend.session, backend.screenOn, now / 1000))
+        bus.publish("state", ApiModels.state(
+            backend.snapshot, backend.session, backend.screenOn, now / 1000, backend.snapshotAgeMs,
+        ))
         last = k
         lastAtMs = now
     }

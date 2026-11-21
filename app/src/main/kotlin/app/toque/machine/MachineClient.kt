@@ -15,6 +15,7 @@ import app.toque.core.i18n.I18n
 import app.toque.core.i18n.tr
 import app.toque.core.machine.Accessory
 import app.toque.core.machine.EventType
+import app.toque.core.machine.Freshness
 import app.toque.core.machine.JobSpec
 import app.toque.core.machine.LinkState
 import app.toque.core.machine.MachineEvent
@@ -27,6 +28,13 @@ class MachineClient(private val context: Context) {
         private set
     val connected: Boolean get() = service != null
 
+    private val fresh = Freshness()
+    /** Âge du dernier instantané reçu du service (-1 : aucun). */
+    val snapshotAgeMs: Long get() = fresh.ageMs
+    /** Vrai tant que le service est silencieux : l'instantané affiché a été remplacé par « hors ligne ». */
+    var silent = false
+        private set
+
     private val snapshotListeners = ArrayList<(Snapshot) -> Unit>()
     private val eventListeners = ArrayList<(MachineEvent) -> Unit>()
     private val pending = HashMap<Int, (Verdict) -> Unit>()
@@ -38,6 +46,8 @@ class MachineClient(private val context: Context) {
     private val incoming = Messenger(Handler(Looper.getMainLooper()) { msg ->
         when (msg.what) {
             Ipc.SNAPSHOT -> {
+                fresh.touch()
+                silent = false
                 snapshot = Ipc.bundleToSnapshot(msg.data)
                 for (l in ArrayList(snapshotListeners)) l(snapshot)
             }
@@ -56,6 +66,7 @@ class MachineClient(private val context: Context) {
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
             service = Messenger(binder)
+            fresh.touch()
             sendRaw(Ipc.REGISTER, null, null)
         }
 
@@ -72,6 +83,35 @@ class MachineClient(private val context: Context) {
         val intent = Intent(context, MachineService::class.java)
         context.startService(intent)
         bound = context.bindService(intent, connection, Context.BIND_AUTO_CREATE or Context.BIND_IMPORTANT)
+        if (!watching) {
+            watching = true
+            main.postDelayed(watchdog, WATCH_PERIOD_MS)
+        }
+    }
+
+    private var watching = false
+
+    /**
+     * Le service est lié mais ne dit plus rien (boucle bloquée, processus gelé) : l'interface ne doit pas continuer à
+     * montrer le dernier état comme s'il était vivant. L'instantané passe à « hors ligne » (une fois), et on se
+     * réinscrit auprès du service, qui renvoie alors un instantané complet.
+     */
+    private val watchdog = object : Runnable {
+        override fun run() {
+            if (service != null && fresh.stale) {
+                if (!silent) {
+                    silent = true
+                    snapshot = snapshot.copy(link = LinkState.OFFLINE, transportUp = false)
+                    for (l in ArrayList(snapshotListeners)) l(snapshot)
+                }
+                sendRaw(Ipc.REGISTER, null, null)
+            }
+            main.postDelayed(this, WATCH_PERIOD_MS)
+        }
+    }
+
+    private companion object {
+        const val WATCH_PERIOD_MS = 1_000L
     }
 
     fun onSnapshot(l: (Snapshot) -> Unit): () -> Unit {
