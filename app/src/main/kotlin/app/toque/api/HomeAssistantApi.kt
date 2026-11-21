@@ -70,6 +70,9 @@ class HomeAssistantApi(private val app: ToqueApp) : ApiBackend {
         }
     }
 
+    /** La veille de Toque a changé : l'état (`screenOn`) part tout de suite. */
+    fun onScreenChanged() = publisher.onScreenChanged()
+
     /** Démarre, arrête ou relance le serveur selon les préférences. */
     @Synchronized
     fun apply() {
@@ -234,7 +237,8 @@ class HomeAssistantApi(private val app: ToqueApp) : ApiBackend {
 
     override val snapshotAgeMs: Long get() = app.machine.snapshotAgeMs
 
-    override val screenOn: Boolean get() = screen
+    /** Écran allumé ET pas en veille de Toque (qui noircit l'écran sans qu'Android s'endorme). */
+    override val screenOn: Boolean get() = screen && !app.standbyAsleep
 
     override val session: CookSession? get() = app.cook.current
 

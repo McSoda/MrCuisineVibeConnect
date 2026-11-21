@@ -61,8 +61,8 @@ signal de vie.
   "ts": 1763700000, "snapshotAgeMs": 120, "status": "recipe", "screenOn": true,
   "link": "READY", "fault": null,
   "machine": {
-    "tempC": 82, "targetTempC": 90, "rpm": 1200, "speed": 4, "weightG": 350, "scaleStable": true,
-    "lidOpen": false, "bowlDetected": true, "motorOn": true, "heaterOn": true
+    "tempC": 82, "targetTempC": 90, "rpm": 1200, "speed": 4, "targetSpeed": 4, "weightG": 350,
+    "scaleStable": true, "lidOpen": false, "bowlDetected": true, "motorOn": true, "heaterOn": true
   },
   "job": {
     "kind": "MANUAL", "label": "Étape 3", "state": "RUNNING", "pauseReason": "",
@@ -73,8 +73,18 @@ signal de vie.
 }
 ```
 `job` vaut `null` sans travail en cours ; `fault` vaut `{"code":"…","message":"…"}` en cas de défaut ;
-`sessionId` vaut `null` hors recette. `screenOn` : état de l'écran Android (« veille » côté utilisateur
-= `status: standby`, combiné à `screenOn` ; voir §7).
+`sessionId` vaut `null` hors recette. `screenOn` : `false` quand l'écran est éteint ou que Toque est en veille
+(« veille » côté utilisateur = `status: standby` et `screenOn: false` ; voir §7).
+
+**Particularités de la base du SKMC 1200** (relevées sur un robot réel, firmware 4922) :
+- `heaterOn` vaut `true` seulement si la base annonce la chauffe **et** vise une température (`targetTempC > 0`). La
+  base répond « moteur + chauffe » à tout programme standard, même sans chauffe demandée (commande `STANDARD v3 t0`,
+  consigne 0 °C, fond du bol froid).
+- `weightG` vaut `null` tant que le moteur tourne : la base renvoie alors 0, et la valeur revient à l'arrêt.
+- `rpm` (mesuré) et `speed` (niveau déduit du régime mesuré) restent à 0 en marche, `tempC` aussi sans chauffe
+  (constaté, lames vérifiées en rotation) : la base ne renvoie pas ces mesures dans ce mode. Le comportement de
+  `tempC` pendant une vraie chauffe n'a pas encore été relevé. Utiliser `targetSpeed`, le niveau de vitesse que la base annonce avoir
+  reçu (0 à l'arrêt), pour savoir à quelle vitesse tourne le moteur.
 
 ### `GET /session`
 `{"active": false}` hors recette. Sinon :
@@ -170,8 +180,10 @@ Diagnostics (firmware, version d'Android, uptime, adresse IP) : catégorie `diag
 
 ## 7. Décisions
 
-- **`screenOn`** : champ de `/state` (valeur de `PowerManager.isInteractive` lue depuis le service). « Veille » côté
-  utilisateur = `status: standby` ; HA combine avec `screenOn` pour l'affichage.
+- **`screenOn`** : champ de `/state`, faux quand l'écran Android est éteint **ou** quand Toque est en veille (écran
+  noir avec l'heure, rétroéclairage au minimum : Android, lui, reste éveillé, donc `PowerManager.isInteractive` seul
+  ne voit jamais cette veille — constaté sur le robot). « Veille » côté utilisateur = `status: standby` et
+  `screenOn: false`. Un événement `state` part à chaque entrée ou sortie de veille.
 - **Images** : servies par le robot, `GET /recipes/{id}/image`. Voir §8.
 - **Nom éditable** : Réglages › Intégrations › Home Assistant › Nom du robot (défaut : « Monsieur Cuisine »).
   Il apparaît dans `/info.name`, dans le TXT mDNS `name` et comme nom d'appareil HA. L'`id` reste stable et

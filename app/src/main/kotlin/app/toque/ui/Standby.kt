@@ -118,6 +118,7 @@ class Standby(private val a: MainActivity, private val root: FrameLayout) {
         box = b
         clock = t
         hot = h
+        a.app.setStandbyAsleep(true)
         refresh()
         v.alpha = 0f
         v.animate().alpha(1f).setDuration(800).start()
@@ -135,6 +136,7 @@ class Standby(private val a: MainActivity, private val root: FrameLayout) {
         v.animate().cancel()
         root.removeView(v)
         view = null
+        a.app.setStandbyAsleep(false)
         box = null
         clock = null
         hot = null

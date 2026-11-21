@@ -32,6 +32,20 @@ class ToqueApp : Application() {
     /** L'API locale pour Home Assistant (désactivée tant que l'utilisateur ne l'active pas dans les Réglages). */
     val homeAssistant: HomeAssistantApi by lazy { HomeAssistantApi(this) }
 
+    /**
+     * Veille de Toque (écran noir avec l'heure, rétroéclairage au minimum). Android, lui, reste éveillé : c'est ce
+     * qui fait la « veille » que voit la personne, et l'API Home Assistant la publie via `screenOn`.
+     */
+    @Volatile var standbyAsleep = false
+        private set
+
+    /** À appeler (fil principal) quand la veille de Toque commence ou finit. */
+    fun setStandbyAsleep(asleep: Boolean) {
+        if (standbyAsleep == asleep) return
+        standbyAsleep = asleep
+        if (prefs.haEnabled) homeAssistant.onScreenChanged()
+    }
+
     /** La cuisson guidée en cours (au plus une), enregistrée à chaque changement pour reprendre après un redémarrage. */
     val cook = CookSessions(onListenerError = { log.write("cuisine", "observateur en échec : $it") })
 

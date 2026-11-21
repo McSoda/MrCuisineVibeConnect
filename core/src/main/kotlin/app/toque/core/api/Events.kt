@@ -78,7 +78,7 @@ class ApiPublisher(
         val session = backend.session
         return Key(
             ApiStatus.of(s, session), s.link.name, s.faultCode, backend.screenOn, session?.id,
-            s.lidOpen, s.bowlDetected, s.motorOn, s.heaterOn,
+            s.lidOpen, s.bowlDetected, s.motorOn, s.heating,
             s.jobActive, s.jobKind, s.jobState, s.jobLabel, s.phaseIndex, s.phaseCount,
             s.actualTempC, s.rpm, s.weightG,
         )
