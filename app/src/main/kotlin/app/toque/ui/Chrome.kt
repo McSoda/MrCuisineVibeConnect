@@ -12,6 +12,7 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import app.toque.Prefs
+import app.toque.TimeSync
 import app.toque.core.i18n.tr
 import app.toque.core.machine.JobState
 import app.toque.core.machine.LinkState
@@ -52,8 +53,12 @@ class TopBar(private val a: MainActivity) : LinearLayout(a) {
     private val handler = Handler(Looper.getMainLooper())
     private val tick = object : Runnable {
         override fun run() {
-            Ui.chipText(clock).text = MainActivity.now()
-            handler.postDelayed(this, 10_000)
+            // Pastille masquée tant que l'heure n'est pas réglée ou que le Wi-Fi est coupé : une heure
+            // fausse (2010, 01:00 au démarrage) trompe plus qu'une heure absente.
+            val show = TimeSync.showClock(a)
+            if (show) Ui.chipText(clock).text = MainActivity.now()
+            clock.visibility = if (show) View.VISIBLE else View.GONE
+            handler.postDelayed(this, if (show) 10_000 else 2_000)
         }
     }
     private var adminTaps = 0
