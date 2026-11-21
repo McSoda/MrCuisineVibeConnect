@@ -122,6 +122,7 @@ class MainActivity : Activity() {
         }
 
         app.recipes.load()
+        app.restoreCookSession()
         SyncService.schedule(this)
         push(HomeScreen(this))
         if (reopenSettings) {

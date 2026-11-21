@@ -8,6 +8,7 @@ import app.toque.core.i18n.I18n
 import app.toque.core.i18n.tr
 import app.toque.core.machine.Snapshot
 import app.toque.core.recipes.CommunityRecipes
+import app.toque.core.recipes.SessionResult
 import app.toque.core.recipes.UserRecipes
 import app.toque.ui.Icon
 import app.toque.ui.MachineBar
@@ -33,8 +34,6 @@ class HomeScreen(a: MainActivity) : Screen(a) {
     private lateinit var resumeText: TextView
     private lateinit var knobChip: LinearLayout
     private lateinit var searchHint: TextView
-    /** Titre de la recette guidée cherché dans la base (catalogue pas encore chargé) : une fois par recette. */
-    private var titleLookup = ""
     /** Éléments que la molette parcourt, dans l'ordre de lecture, avec le rayon de leurs coins. */
     private val knobTargets = ArrayList<Pair<View, Float>>()
     private lateinit var recipesTile: View
@@ -108,8 +107,8 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         resumeCard.addView(cancel, LinearLayout.LayoutParams(Ui.u(56), Ui.u(56)).apply { leftMargin = Ui.u(8) })
         resumeCard.isClickable = true
         resumeCard.setOnClickListener {
-            val r = a.app.recipes.getAdjusted(a.prefs.guidedRecipe)
-            if (r != null) a.push(CookScreen(a, r, a.prefs.guidedStep)) else { a.prefs.guidedRecipe = ""; refresh() }
+            val s = a.app.cook.current
+            if (s != null) a.push(CookScreen(a, s.recipe, s.stepIndex, resume = true)) else refresh()
         }
         knobTargets += search to 36f
         knobTargets += recent to 28f
@@ -271,9 +270,9 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         val update = a.updates.available
         settingsSub.text = if (update != null) tr("Version %s disponible", update.version) else ""
         settingsSub.visibility = if (update != null) View.VISIBLE else View.GONE
-        val title = guidedTitle()
-        resumeCard.visibility = if (title != null) View.VISIBLE else View.GONE
-        if (title != null) resumeText.text = tr("Reprendre « %s » — étape %d", title, a.prefs.guidedStep + 1)
+        val guided = a.app.cook.current
+        resumeCard.visibility = if (guided != null) View.VISIBLE else View.GONE
+        if (guided != null) resumeText.text = tr("Reprendre « %s » — étape %d", guided.recipe.title, guided.stepIndex + 1)
     }
 
     /**
@@ -281,30 +280,6 @@ class HomeScreen(a: MainActivity) : Screen(a) {
      * encore chargé : le titre gardé dans les préférences, sinon lu dans la base à part (une ligne),
      * pour que la carte « Reprendre » soit là tout de suite.
      */
-    private fun guidedTitle(): String? {
-        val guided = a.prefs.guidedRecipe
-        if (guided.isEmpty()) return null
-        val repo = a.app.recipes
-        if (repo.loaded) {
-            val title = repo.index.entries.firstOrNull { it.id == guided }?.title ?: return null
-            if (a.prefs.guidedTitle != "$guided\t$title") a.prefs.guidedTitle = "$guided\t$title"
-            return title
-        }
-        val kept = a.prefs.guidedTitle
-        if (kept.startsWith("$guided\t")) return kept.substring(guided.length + 1)
-        if (titleLookup != guided) {
-            titleLookup = guided
-            Thread {
-                val title = try { repo.get(guided)?.title } catch (_: Exception) { null }
-                if (title != null) {
-                    a.prefs.guidedTitle = "$guided\t$title"
-                    view.post { if (a.current === this) refresh() }
-                }
-            }.apply { name = "toque-reprise" }.start()
-        }
-        return null
-    }
-
     override fun onShow() {
         refreshClock()
         refresh()
@@ -330,8 +305,7 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         }
         a.confirm(tr("Abandonner la recette"), tr("Elle ne sera plus proposée sur l'accueil. Vous pourrez la recommencer depuis les recettes."),
             tr("Abandonner"), icon = Icon.Kind.CLOSE) {
-            a.prefs.guidedRecipe = ""
-            a.prefs.guidedStep = 0
+            a.app.cook.end(SessionResult.ABORTED)
             refresh()
         }
     }

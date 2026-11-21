@@ -283,25 +283,21 @@ class Prefs(context: Context) {
             p.edit().putInt("builtinVersion", v).commit()
         }
 
-    /** Recette guidée en cours (id + étape), pour reprendre après un redémarrage. */
-    var guidedRecipe: String
-        get() = p.getString("guidedRecipe", "") ?: ""
+    /** Cuisson guidée en cours (JSON de `CookSession.toMap`), pour reprendre après un redémarrage ; vide : aucune. */
+    var cookSession: String
+        get() = p.getString("cookSession", "") ?: ""
         set(v) {
-            p.edit().putString("guidedRecipe", v).commit()
+            p.edit().putString("cookSession", v).commit()
         }
 
-    var guidedStep: Int
-        get() = p.getInt("guidedStep", 0)
-        set(v) {
-            p.edit().putInt("guidedStep", v).commit()
-        }
-
-    /** Titre connu de la recette guidée, « id⇥titre » : l'accueil le montre avant le chargement du catalogue. */
-    var guidedTitle: String
-        get() = p.getString("guidedTitle", "") ?: ""
-        set(v) {
-            p.edit().putString("guidedTitle", v).apply()
-        }
+    /** Ancien format (recette + étape), lu une seule fois pour migrer vers [cookSession], puis effacé. */
+    fun takeLegacyGuided(): Pair<String, Int>? {
+        val id = p.getString("guidedRecipe", "") ?: ""
+        val step = p.getInt("guidedStep", 0)
+        if (!p.contains("guidedRecipe") && !p.contains("guidedStep")) return null
+        p.edit().remove("guidedRecipe").remove("guidedStep").commit()
+        return if (id.isEmpty()) null else id to step
+    }
 
     /** Réglages importés déjà vérifiés (« J'ai vérifié ce réglage »), clé = recette, étape et réglage. */
     var reviewedSteps: Set<String>
