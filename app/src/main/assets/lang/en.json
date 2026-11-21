@@ -567,5 +567,18 @@
   "Étapes %d à %d · %s": "Steps %d to %d · %s",
   "Éteinte": "Off",
   "écriture impossible": "write failed",
+  "Home Assistant": "Home Assistant",
+  "Permet à Home Assistant de lire l'état du robot et les recettes, sur le réseau local. Lecture seule : rien ne peut être commandé à distance.": "Lets Home Assistant read the robot's status and the recipes over your local network. Read-only: nothing can be controlled remotely.",
+  "Activer l'API pour Home Assistant": "Enable the API for Home Assistant",
+  "Nom du robot": "Robot name",
+  "Port invalide (1024 à 65535)": "Invalid port (1024 to 65535)",
+  "API désactivée": "API disabled",
+  "Impossible d'ouvrir le port %d : %s": "Cannot open port %d: %s",
+  "Adresse : %s": "Address: %s",
+  "Jeton d'accès à saisir dans Home Assistant :": "Access token to enter in Home Assistant:",
+  "Nouveau jeton": "New token",
+  "Nouveau jeton ?": "New token?",
+  "L'ancien jeton cessera de fonctionner : il faudra saisir le nouveau dans Home Assistant.": "The old token will stop working: you will need to enter the new one in Home Assistant.",
+  "Générer": "Generate",
   "… et %d autres": "… and %d more"
 }
