@@ -34,6 +34,7 @@ class ToqueApp : Application() {
         } catch (e: Exception) {
             log.write("tls", "racines supplémentaires non chargées : $e")
         }
+        app.toque.ui.Ui.setAccent(prefs.accentColor)
         if (!isMainProcess()) return
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, error ->
