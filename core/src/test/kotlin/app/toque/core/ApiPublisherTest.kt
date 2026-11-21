@@ -205,6 +205,19 @@ class ApiPublisherTest {
     }
 
     @Test
+    fun aFailingSubscriberDoesNotBlockTheOthersNorThePublisher() {
+        val errors = ArrayList<Exception>()
+        val b = EventBus(onListenerError = { errors += it })
+        val seen = ArrayList<String>()
+        b.subscribe { throw IllegalStateException("boum") }
+        b.subscribe { seen += it.name }
+        val e = b.publish("x", null)
+        assertEquals(listOf("x"), seen)
+        assertEquals(1, errors.size)
+        assertEquals(e.id, b.lastId)
+    }
+
+    @Test
     fun busKeepsOnlyTheLastEventsAndSubscribersGetLiveOnes() {
         val small = EventBus(capacity = 3)
         val seen = ArrayList<String>()
