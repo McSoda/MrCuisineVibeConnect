@@ -93,6 +93,7 @@ class MainActivity : Activity() {
 
         app.machine.connect()
         app.recipes.load()
+        app.restoreCookSession()
         SyncService.schedule(this)
         push(HomeScreen(this))
         if (reopenSettings) {

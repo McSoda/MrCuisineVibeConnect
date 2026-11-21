@@ -15,7 +15,9 @@ import app.toque.core.machine.MachineEvent
 import app.toque.core.machine.SafetyPolicy
 import app.toque.core.machine.Snapshot
 import app.toque.core.protocol.Mcc
+import app.toque.core.recipes.CookSession
 import app.toque.core.recipes.Recipe
+import app.toque.core.recipes.SessionResult
 import app.toque.core.recipes.StepProgram
 import app.toque.ui.HoldButton
 import app.toque.ui.Icon
@@ -30,9 +32,13 @@ import app.toque.ui.Ui
  * eux partent ensemble, en un seul programme : la machine passe de l'un à l'autre sans arrêter
  * la lame (sauf changement de sens). La progression est mémorisée (reprise après coupure).
  */
-class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : Screen(a) {
+class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int, resume: Boolean = false) : Screen(a) {
     override val title = recipe.title
-    private var index = startStep.coerceIn(0, maxOf(0, recipe.steps.size - 1))
+    private val cook = a.app.cook
+    /** [resume] : reprend la session en cours (même identifiant) ; sinon une nouvelle cuisson commence à [startStep]. */
+    private val initial: CookSession = (if (resume) cook.current?.takeIf { it.recipe.id == recipe.id } else null)
+        ?: cook.start(recipe, startStep)
+    private var index = initial.stepIndex
     private val reviewed = HashSet<Int>().apply {
         // Réglages importés déjà vérifiés lors d'une cuisson précédente de cette recette.
         val known = a.prefs.reviewedSteps
@@ -48,7 +54,7 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
         counted = true
         a.app.recipes.markCooked(recipe.id)
     }
-    private val done = HashSet<Int>()
+    private val done = HashSet<Int>(initial.doneSteps)
     private var launchedStep = -1
     /** Étapes couvertes par le programme lancé (plusieurs quand elles sont enchaînées). */
     private var launchedCount = 1
@@ -121,7 +127,7 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
     private fun next() {
         if (index >= recipe.steps.size - 1) {
             countCooked()
-            a.prefs.guidedRecipe = ""
+            cook.end(SessionResult.FINISHED)
             a.chime(1)
             a.toast(tr("Bon appétit !"), Ui.OK)
             a.back()
@@ -132,8 +138,7 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
         if (i < 0 || i >= recipe.steps.size) return
         index = i
         weighArmed = false
-        a.prefs.guidedRecipe = recipe.id
-        a.prefs.guidedStep = index
+        cook.goTo(index)
         render()
     }
 
@@ -287,8 +292,6 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
         val series = series(first)
         val job = series ?: m.toJob(tr("Étape %d · %s", first + 1, recipe.title), hotBlendConfirmed = hotBlendOk) ?: return
         val count = series?.phases?.size ?: 1
-        a.prefs.guidedRecipe = recipe.id
-        a.prefs.guidedStep = first
         a.startJob(job, onHotConfirmed = { hotBlendOk = true }) { v ->
             if (v.ok) {
                 countCooked()
@@ -365,6 +368,7 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
             seenPhase = s.phaseIndex
             val current = launchedStep + s.phaseIndex.coerceIn(0, launchedCount - 1)
             for (k in launchedStep until current) done += k
+            cook.markDone(launchedStep, current - launchedStep)
             reviewed += current
             if (current != index) {
                 go(current)
@@ -422,6 +426,7 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
         if (e.type == EventType.JOB_FINISHED && launchedStep >= 0 && index >= launchedStep && index < launchedStep + launchedCount) {
             val finished = launchedStep + launchedCount - 1
             for (k in launchedStep..finished) done += k
+            cook.markDone(launchedStep, finished - launchedStep + 1)
             launchedStep = -1
             launchedCount = 1
             if (index != finished) go(finished)

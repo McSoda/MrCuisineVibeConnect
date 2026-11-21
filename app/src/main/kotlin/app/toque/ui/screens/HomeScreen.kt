@@ -6,6 +6,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import app.toque.core.i18n.I18n
 import app.toque.core.i18n.tr
+import app.toque.core.recipes.SessionResult
 import app.toque.ui.Icon
 import app.toque.ui.MainActivity
 import app.toque.ui.Screen
@@ -85,8 +86,8 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         resumeCard.addView(cancel, LinearLayout.LayoutParams(Ui.u(56), Ui.u(56)).apply { leftMargin = Ui.u(8) })
         resumeCard.isClickable = true
         resumeCard.setOnClickListener {
-            val r = a.app.recipes.getAdjusted(a.prefs.guidedRecipe)
-            if (r != null) a.push(CookScreen(a, r, a.prefs.guidedStep)) else { a.prefs.guidedRecipe = ""; refresh() }
+            val s = a.app.cook.current
+            if (s != null) a.push(CookScreen(a, s.recipe, s.stepIndex, resume = true)) else refresh()
         }
         left.addView(resumeCard, Ui.lp(Ui.MATCH, Ui.WRAP, t = 16))
         root.addView(left, LinearLayout.LayoutParams(0, Ui.MATCH, 0.42f).apply { rightMargin = Ui.u(28) })
@@ -156,10 +157,9 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         val favs = repo.index.entries.count { it.favorite }
         favSub.text = if (favs == 0) tr("Aucun favori") else if (favs == 1) tr("1 favori") else tr("%d favoris", favs)
         knobChip.visibility = if (a.prefs.knobReady) View.GONE else View.VISIBLE
-        val guided = a.prefs.guidedRecipe
-        val title = if (guided.isEmpty()) null else repo.index.entries.firstOrNull { it.id == guided }?.title
-        resumeCard.visibility = if (title != null) View.VISIBLE else View.GONE
-        if (title != null) resumeText.text = tr("Reprendre « %s » — étape %d", title, a.prefs.guidedStep + 1)
+        val guided = a.app.cook.current
+        resumeCard.visibility = if (guided != null) View.VISIBLE else View.GONE
+        if (guided != null) resumeText.text = tr("Reprendre « %s » — étape %d", guided.recipe.title, guided.stepIndex + 1)
     }
 
     override fun onShow() {
@@ -183,8 +183,7 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         }
         a.confirm(tr("Abandonner la recette"), tr("Elle ne sera plus proposée sur l'accueil. Vous pourrez la recommencer depuis les recettes."),
             tr("Abandonner"), icon = Icon.Kind.CLOSE) {
-            a.prefs.guidedRecipe = ""
-            a.prefs.guidedStep = 0
+            a.app.cook.end(SessionResult.ABORTED)
             refresh()
         }
     }
