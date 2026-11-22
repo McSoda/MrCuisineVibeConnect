@@ -50,7 +50,7 @@ class HttpServer(
     }
     private val slots = Semaphore(MAX_CONNECTIONS)
     private val imageGate = Semaphore(1)
-    private class Conn(val remote: String, val since: Long = System.currentTimeMillis()) {
+    private class Conn(val remote: String, val host: String, val since: Long = System.currentTimeMillis()) {
         @Volatile var path = ""
         @Volatile var stream = false
     }
@@ -138,7 +138,7 @@ class HttpServer(
                 refuse(c)
                 continue
             }
-            val conn = Conn(c.remoteSocketAddress?.toString()?.removePrefix("/") ?: "?")
+            val conn = Conn(c.remoteSocketAddress?.toString()?.removePrefix("/") ?: "?", c.inetAddress?.hostAddress ?: "?")
             open[c] = conn
             try {
                 workers.execute {
@@ -213,7 +213,7 @@ class HttpServer(
                 log("erreur interne : $e")
                 ApiResponse.error(500, "internal", "Erreur interne")
             }
-            if (resp.events) { conn.stream = true; streamEvents(c, out, resp.lastEventId); return }
+            if (resp.events) { conn.stream = true; closeOldStreams(c, conn); streamEvents(c, out, resp.lastEventId); return }
             // Un client bloqué ne doit pas retenir un fil (ni la barrière des images) indéfiniment.
             val timer = deadline(c, RESPONSE_DEADLINE_S)
             try {
@@ -231,6 +231,20 @@ class HttpServer(
         } catch (_: SocketException) {
         } catch (e: IOException) {
             log("connexion interrompue : $e")
+        }
+    }
+
+    /**
+     * Un client qui rouvre un flux sans fermer le précédent (délai de lecture, réseau coupé) retiendrait une place à
+     * chaque fois jusqu'à saturer le serveur : au-delà de [MAX_STREAMS_PER_CLIENT] flux pour une même adresse, les plus
+     * anciens sont fermés.
+     */
+    private fun closeOldStreams(c: Socket, conn: Conn) {
+        val same = open.entries.filter { it.value.stream && it.value.host == conn.host && it.key !== c }
+            .sortedBy { it.value.since }
+        for ((old, _) in same.take((same.size + 1 - MAX_STREAMS_PER_CLIENT).coerceAtLeast(0))) {
+            log("flux ${conn.host} fermé : trop de flux ouverts par ce client")
+            try { old.close() } catch (_: IOException) {}
         }
     }
 
@@ -363,14 +377,19 @@ class HttpServer(
                 lastSent = e.id
             }
             out.flush()
+            var lastWrite = System.nanoTime()
             while (running && !c.isClosed) {
-                val e = queue.poll(pingIntervalS, TimeUnit.SECONDS)
-                if (e == null) out.write(": ping\n\n".toByteArray())
-                else if (e.id > lastSent) {
+                // Réveil fréquent : une prise fermée (client parti, flux évincé) rend sa place sans attendre le prochain ping.
+                val e = queue.poll(STREAM_WAKE_MS, TimeUnit.MILLISECONDS)
+                if (e == null) {
+                    if (System.nanoTime() - lastWrite < TimeUnit.SECONDS.toNanos(pingIntervalS)) continue
+                    out.write(": ping\n\n".toByteArray())
+                } else if (e.id > lastSent) {
                     out.write(frame(e.id, e.name, e.data))
                     lastSent = e.id
                 }
                 out.flush()
+                lastWrite = System.nanoTime()
             }
         } catch (_: IOException) {
         } catch (_: InterruptedException) {
@@ -389,6 +408,8 @@ class HttpServer(
 
     companion object {
         const val MAX_CONNECTIONS = 8
+        const val MAX_STREAMS_PER_CLIENT = 3
+        const val STREAM_WAKE_MS = 500L
         const val READ_TIMEOUT_MS = 10_000
         const val REQUEST_DEADLINE_S = 10L
         const val RESPONSE_DEADLINE_S = 30L
