@@ -371,8 +371,11 @@ class HttpServer(
             out.write(": connected\n\n".toByteArray())
             for ((name, data) in router.initialEvents()) out.write(frame(null, name, data))
             out.flush()
-            var lastSent = lastEventId ?: bus.lastId
-            if (lastEventId != null) for (e in bus.since(lastEventId)) {
+            // Un identifiant plus grand que le dernier émis vient d'avant un redémarrage (les identifiants repartent de 1) :
+            // le suivre ferait ignorer tous les événements jusqu'à ce que le compteur le rattrape.
+            val resume = lastEventId?.takeIf { it <= bus.lastId }
+            var lastSent = resume ?: bus.lastId
+            if (resume != null) for (e in bus.since(resume)) {
                 out.write(frame(e.id, e.name, e.data))
                 lastSent = e.id
             }
@@ -387,7 +390,7 @@ class HttpServer(
                 } else if (e.id > lastSent) {
                     out.write(frame(e.id, e.name, e.data))
                     lastSent = e.id
-                }
+                } else continue   // déjà envoyé : rien n'est écrit, le signal de vie ne doit pas être repoussé
                 out.flush()
                 lastWrite = System.nanoTime()
             }
