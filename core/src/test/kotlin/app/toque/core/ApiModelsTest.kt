@@ -101,6 +101,16 @@ class ApiModelsTest {
     }
 
     @Test
+    fun jobIsOnlyShownWhileItIsOngoing() {
+        fun jobOf(state: String) = Json.parse(Json.write(ApiModels.state(
+            idle.copy(jobActive = true, jobKind = "MANUAL", jobState = state), null, true, 1,
+        ))).obj()["job"]
+        for (st in listOf("STARTING", "RUNNING", "STOPPING", "PAUSED")) assertEquals(st, jobOf(st).obj()["state"])
+        assertNull(jobOf("FINISHED"))
+        assertNull(jobOf("ABORTED"))
+    }
+
+    @Test
     fun stateReportsFault() {
         val m = ApiModels.state(idle.copy(faultCode = "E7", faultMessage = "Surchauffe"), null, true, 1)
         assertEquals("fault", m["status"])
