@@ -132,7 +132,12 @@ class ManualScreen(a: MainActivity, preset: app.toque.core.recipes.StepMachine? 
                 if (reverse && max > Limits.MAX_SPEED_REVERSE) { max = Limits.MAX_SPEED_REVERSE; why = trKey("En sens inverse, vitesse %d maximum") }
                 if (accessory.maxSpeed < max) { max = accessory.maxSpeed; why = trKey("Avec le fouet, vitesse %d maximum") }
                 val next = (speed + dir).coerceIn(1, 10)
-                if (next > max) a.toast(tr(why, max)) else speed = next
+                // Baisser est toujours permis : au-dessus du maximum on y descend d'un coup (sinon une vitesse
+                // préremplie trop haute, 5 en chauffe par exemple, ne pourrait plus être réduite).
+                if (next > max) {
+                    a.toast(tr(why, max))
+                    if (dir < 0) speed = max
+                } else speed = next
             }
         }
         val maxS = ((if (speed > 6) Limits.MAX_MS_HIGH_SPEED else Limits.MAX_MS_DEFAULT) / 1000).toInt()

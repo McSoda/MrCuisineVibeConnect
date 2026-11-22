@@ -31,6 +31,17 @@ class RecipesTest {
         assertEquals("é\n\"x\"", (v as Map<*, *>)["a"].let { (it as List<*>)[2] })
     }
 
+    /** La recette d'essai du robot (tools/robot/recette-test.json) doit passer les règles de sécurité. */
+    @Test fun robotTestRecipeIsSafe() {
+        val text = java.io.File("../tools/robot/recette-test.json").readText()
+        val (list, bad) = RecipeCodec.decodeFile(text, RecipeSource.USER)
+        assertEquals(0, bad)
+        assertEquals(1, list.size)
+        for (s in list.single().steps) s.machine?.let { m ->
+            assertTrue("${s.text} : ${m.violations().map { it.message }}", m.valid)
+        }
+    }
+
     @Test fun fixtureRecipesAreValidAndSafe() {
         val list = builtin()
         assertTrue(list.size >= 12)
