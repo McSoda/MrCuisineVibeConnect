@@ -73,6 +73,15 @@ data class Snapshot(
     val hot: Boolean get() = hasSample && actualTempC >= Limits.HOT_C
 
     /**
+     * Un travail est encore en cours (démarrage, marche, arrêt, pause). Un travail terminé ou arrêté reste dans le
+     * snapshot jusqu'à la fermeture de l'écran de fin, mais n'est plus « en cours ».
+     */
+    val jobOngoing: Boolean get() = jobActive && state != JobState.FINISHED && state != JobState.ABORTED
+
+    /** Le travail affiché est terminé ou arrêté (écran de fin non encore fermé). */
+    val jobEnded: Boolean get() = jobActive && (state == JobState.FINISHED || state == JobState.ABORTED)
+
+    /**
      * Chauffe réelle : la base l'annonce ET vise une température. Sur le SKMC 1200, le « mode 1 » (lu comme moteur +
      * chauffe) accompagne tout programme standard, y compris sans chauffe (constaté : commande `STANDARD v3 t0`,
      * consigne 0 °C, fond du bol froid). [heaterOn] reste le signal brut, utilisé par les contrôles de sécurité.
