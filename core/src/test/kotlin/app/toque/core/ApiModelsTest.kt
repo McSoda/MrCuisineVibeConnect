@@ -67,23 +67,29 @@ class ApiModelsTest {
     private fun machineOf(s: Snapshot) = Json.parse(Json.write(ApiModels.state(s, null, true, 1))).obj()["machine"].obj()
 
     @Test
-    fun heaterIsOnOnlyWithATargetTemperature() {
-        // Relevé sur le robot : programme `STANDARD v3 t0`, la base répond « moteur + chauffe », consigne 0 °C.
-        val motorOnly = idle.copy(motorOn = true, heaterOn = true, targetTempC = 0)
+    fun heaterIsOnOnlyWhenTheJobAsksForHeat() {
+        // Relevé sur le robot : programme `STANDARD v3 t0`, la base répond « moteur + chauffe », consigne 0 °C ;
+        // elle garde même la consigne précédente (51 °C) pendant une étape sans chauffe.
+        val motorOnly = idle.copy(motorOn = true, heaterOn = true, targetTempC = 51,
+            jobActive = true, jobState = "RUNNING", jobTempLevel = 0)
         assertEquals(false, machineOf(motorOnly)["heaterOn"])
-        assertEquals(true, machineOf(motorOnly.copy(targetTempC = 90))["heaterOn"])
+        assertEquals(true, machineOf(motorOnly.copy(jobTempLevel = 11))["heaterOn"])
         assertEquals(false, machineOf(idle.copy(targetTempC = 90))["heaterOn"])
         // Le signal brut, lui, reste disponible pour les contrôles de sécurité.
         assertTrue(motorOnly.heaterOn)
     }
 
     @Test
-    fun targetTemperatureIsOnlyReportedDuringAJob() {
-        // Relevé sur le robot : la base garde 97 °C après l'arrêt de l'étape.
-        val stopped = idle.copy(targetTempC = 97)
-        assertEquals(0, (machineOf(stopped)["targetTempC"] as Number).toInt())
-        assertEquals(0, (machineOf(stopped.copy(jobActive = true, jobState = "ABORTED"))["targetTempC"] as Number).toInt())
-        assertEquals(97, (machineOf(stopped.copy(jobActive = true, jobState = "RUNNING"))["targetTempC"] as Number).toInt())
+    fun targetTemperatureIsWhatTheJobAsksNotTheBaseEcho() {
+        // Relevé sur le robot : la base annonce 97 pour une recette à 95 °C, garde 97 après l'arrêt et 51 °C
+        // pendant une étape sans chauffe.
+        fun target(s: Snapshot) = (machineOf(s)["targetTempC"] as Number).toInt()
+        val echo = idle.copy(targetTempC = 97)
+        assertEquals(0, target(echo))
+        assertEquals(0, target(echo.copy(jobActive = true, jobState = "ABORTED", jobTempLevel = 12)))
+        assertEquals(0, target(echo.copy(jobActive = true, jobState = "RUNNING", jobTempLevel = 0)))
+        assertEquals(95, target(echo.copy(jobActive = true, jobState = "RUNNING", jobTempLevel = 12)))
+        assertEquals(65, target(echo.copy(jobActive = true, jobState = "PAUSED", jobTempLevel = 6, targetTempC = 72)))
     }
 
     @Test
@@ -102,7 +108,8 @@ class ApiModelsTest {
 
     @Test
     fun snapshotSurvivesTheMapRoundTripWithTheNewField() {
-        val s = idle.copy(targetSpeedLevel = 5, motorOn = true, heaterOn = true, targetTempC = 70, weightG = 12)
+        val s = idle.copy(targetSpeedLevel = 5, motorOn = true, heaterOn = true, targetTempC = 70, weightG = 12,
+            jobActive = true, jobState = "RUNNING", jobTempLevel = 7)
         val back = Snapshot.fromMap(s.toMap())
         assertEquals(s, back)
         assertTrue(back.heating)

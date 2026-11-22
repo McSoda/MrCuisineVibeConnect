@@ -72,8 +72,8 @@ object ApiModels {
         "fault" to if (s.hasFault) linkedMapOf("code" to s.faultCode, "message" to s.faultMessage) else null,
         "machine" to linkedMapOf(
             "tempC" to s.actualTempC,
-            // La base garde sa dernière consigne après l'arrêt : on ne l'annonce que pendant un travail.
-            "targetTempC" to if (s.jobOngoing) s.targetTempC else 0,
+            // Ce que Toque demande, pas l'écho de la base (elle ajuste sa consigne et garde la dernière).
+            "targetTempC" to s.commandedTempC,
             "rpm" to s.rpm,
             "speed" to s.speedLevel,
             "targetSpeed" to s.targetSpeedLevel,
