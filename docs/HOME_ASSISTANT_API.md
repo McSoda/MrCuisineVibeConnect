@@ -83,6 +83,9 @@ de fin affiché jusqu'à sa fermeture, ce que l'API ne montre pas) : la fin est 
 - `heaterOn` vaut `true` seulement si la base annonce la chauffe **et** vise une température (`targetTempC > 0`). La
   base répond « moteur + chauffe » à tout programme standard, même sans chauffe demandée (commande `STANDARD v3 t0`,
   consigne 0 °C, fond du bol froid).
+- `targetTempC` est la consigne **de la base**, pas celle de la recette : pendant la montée en température elle
+  compense l'inertie de chauffe (relevé : recette à 95 °C, consigne annoncée 103 puis redescendue à 97). Après l'arrêt
+  la base garde sa dernière consigne ; l'API la ramène à 0 dès qu'aucun travail n'est en cours.
 - `weightG` vaut `null` tant que le moteur tourne : la base renvoie alors 0, et la valeur revient à l'arrêt.
 - `rpm` (mesuré) et `speed` (niveau déduit du régime mesuré) restent à 0 en marche, `tempC` aussi sans chauffe
   (constaté, lames vérifiées en rotation) : la base ne renvoie pas ces mesures dans ce mode. Le comportement de

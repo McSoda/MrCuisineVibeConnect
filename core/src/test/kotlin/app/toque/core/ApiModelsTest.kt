@@ -78,6 +78,15 @@ class ApiModelsTest {
     }
 
     @Test
+    fun targetTemperatureIsOnlyReportedDuringAJob() {
+        // Relevé sur le robot : la base garde 97 °C après l'arrêt de l'étape.
+        val stopped = idle.copy(targetTempC = 97)
+        assertEquals(0, (machineOf(stopped)["targetTempC"] as Number).toInt())
+        assertEquals(0, (machineOf(stopped.copy(jobActive = true, jobState = "ABORTED"))["targetTempC"] as Number).toInt())
+        assertEquals(97, (machineOf(stopped.copy(jobActive = true, jobState = "RUNNING"))["targetTempC"] as Number).toInt())
+    }
+
+    @Test
     fun weightIsUnknownWhileTheMotorRuns() {
         assertEquals(null, machineOf(idle.copy(motorOn = true, weightG = 0))["weightG"])
         assertEquals(1245, (machineOf(idle.copy(weightG = 1245))["weightG"] as Number).toInt())
