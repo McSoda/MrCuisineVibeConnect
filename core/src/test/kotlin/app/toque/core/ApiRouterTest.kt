@@ -51,8 +51,27 @@ class ApiRouterTest {
     }
 
     @Test
+    fun diagnosticsShowTheRawBaseValuesAndNeedTheToken() {
+        assertEquals(401, get("/api/v1/diagnostics", auth = null).status)
+        // Brut : ni la correction du poids ni celle de la chauffe de /state.
+        backend.snap = backend.snap.copy(motorOn = true, heaterOn = true, targetTempC = 51, weightG = 0, rpm = 0,
+            wireOperation = "STANDARD", wireSpeed = 4, wireTempLevel = 0, rxHex = "AA55")
+        val r = get("/api/v1/diagnostics")
+        assertEquals(200, r.status)
+        val base = r.obj()["base"].obj()
+        assertEquals(51, (base["targetTempC"] as Number).toInt())
+        assertEquals(true, base["heaterOn"])
+        assertEquals(0, (base["weightG"] as Number).toInt())
+        assertEquals("AA55", base["rxHex"])
+        val sent = r.obj()["sent"].obj()
+        assertEquals("STANDARD", sent["operation"])
+        assertEquals(4, (sent["speed"] as Number).toInt())
+        assertEquals(false, r.obj()["job"].obj()["ongoing"])
+    }
+
+    @Test
     fun everythingElseNeedsTheToken() {
-        for (p in listOf("/api/v1/state", "/api/v1/session", "/api/v1/recipes", "/api/v1/recipes/x", "/api/v1/events", "/api/v1/nothing")) {
+        for (p in listOf("/api/v1/state","/api/v1/session", "/api/v1/recipes", "/api/v1/recipes/x", "/api/v1/events", "/api/v1/nothing")) {
             assertEquals(p, 401, get(p, auth = null).status)
             assertEquals(p, 401, get(p, auth = "Bearer wrong").status)
             assertEquals(p, 401, get(p, auth = "Basic c2VjcmV0").status)
