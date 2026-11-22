@@ -40,6 +40,8 @@ class RecipesTest {
         for (s in list.single().steps) s.machine?.let { m ->
             assertTrue("${s.text} : ${m.violations().map { it.message }}", m.valid)
         }
+        // Les étapes machine sans texte s'enchaînent à la précédente (voir CookScreen.continues) : 4 le sont ici.
+        assertEquals(4, list.single().steps.count { it.machine != null && it.text.isBlank() })
     }
 
     @Test fun fixtureRecipesAreValidAndSafe() {
