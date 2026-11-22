@@ -106,9 +106,20 @@ object ApiModels {
      * comparaison de versions du robot (le contenu peut évoluer sans changer la version de l'API) : `/state` en
      * donne la lecture corrigée, ici rien n'est interprété.
      */
-    fun diagnostics(s: Snapshot, nowSec: Long, snapshotAgeMs: Long = -1): Map<String, Any?> = linkedMapOf(
+    fun diagnostics(
+        s: Snapshot, nowSec: Long, snapshotAgeMs: Long = -1, connections: List<ConnectionInfo>? = null, maxConnections: Int = 0,
+        refusals: RefusalInfo? = null,
+    ): Map<String, Any?> = linkedMapOf(
         "ts" to nowSec,
         "snapshotAgeMs" to snapshotAgeMs,
+        "server" to linkedMapOf(
+            "open" to connections?.size,
+            "max" to maxConnections,
+            "connections" to connections?.map(::connection),
+            "refused" to refusals?.let {
+                linkedMapOf("count" to it.count, "lastAgoMs" to it.lastAgoMs, "connections" to it.connections.map(::connection))
+            },
+        ),
         "base" to linkedMapOf(
             "firmware" to s.firmware,
             "hasSample" to s.hasSample,
@@ -142,6 +153,9 @@ object ApiModels {
         ),
         "frames" to linkedMapOf("tx" to s.txFrames, "rx" to s.rxFrames, "invalid" to s.invalidFrames),
     )
+
+    private fun connection(c: ConnectionInfo): Map<String, Any?> =
+        linkedMapOf("remote" to c.remote, "ageMs" to c.ageMs, "path" to c.path, "stream" to c.stream)
 
     /** Texte affiché pour une étape : celui de la recette, ou à défaut le résumé du réglage machine. */
     fun stepText(step: Step): String = step.text.ifBlank { step.machine?.summary ?: "" }

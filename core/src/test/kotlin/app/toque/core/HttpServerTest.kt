@@ -101,6 +101,48 @@ class HttpServerTest {
     }
 
     @Test
+    fun diagnosticsListTheOpenConnections() {
+        val s = connect()
+        s.getOutputStream().write("GET /api/v1/events HTTP/1.1\r\nHost: robot\r\nAuthorization: Bearer secret\r\n\r\n".toByteArray())
+        s.getOutputStream().flush()
+        val reader = BufferedReader(InputStreamReader(s.getInputStream()))
+        while (reader.readLine()?.startsWith("event:") == false) { /* attend l'état initial : le flux est enregistré */ }
+        val server = jsonObj(get("/api/v1/diagnostics").body)["server"].obj()
+        assertEquals(HttpServer.MAX_CONNECTIONS, (server["max"] as Number).toInt())
+        val list = (server["connections"] as List<*>).map { it.obj() }
+        assertEquals(2, (server["open"] as Number).toInt())
+        val stream = list.single { it["stream"] == true }
+        assertEquals("/api/v1/events", stream["path"])
+        assertTrue((stream["remote"] as String).startsWith("127.0.0.1:"))
+        assertEquals("/api/v1/diagnostics", list.single { it["stream"] == false }["path"])
+    }
+
+    @Test
+    fun diagnosticsRememberWhoFilledTheServer() {
+        val streams = (1..HttpServer.MAX_CONNECTIONS).map {
+            val s = connect()
+            s.getOutputStream().write("GET /api/v1/events HTTP/1.1\r\nHost: robot\r\nAuthorization: Bearer secret\r\n\r\n".toByteArray())
+            s.getOutputStream().flush()
+            BufferedReader(InputStreamReader(s.getInputStream())).also { r -> while (r.readLine()?.startsWith("event:") == false) {} }
+            s
+        }
+        assertEquals(503, get("/api/v1/state").status)
+        streams.forEach { it.close() }
+        var refused: Map<*, *>? = null
+        val limit = System.currentTimeMillis() + 10_000
+        while (refused == null && System.currentTimeMillis() < limit) {
+            val r = get("/api/v1/diagnostics")
+            if (r.status == 200) refused = jsonObj(r.body)["server"].obj()["refused"].obj()
+            else Thread.sleep(200)
+        }
+        assertNotNull("les places n'ont pas été rendues", refused)
+        assertTrue((refused!!["count"] as Number).toInt() >= 1)
+        val who = (refused["connections"] as List<*>).map { it.obj() }
+        assertEquals(HttpServer.MAX_CONNECTIONS, who.size)
+        assertTrue(who.all { it["stream"] == true && it["path"] == "/api/v1/events" })
+    }
+
+    @Test
     fun writesAreRefused() {
         for (m in listOf("POST", "PUT", "DELETE")) {
             val r = get("/api/v1/state", method = m, extra = "Content-Length: 2\r\n")

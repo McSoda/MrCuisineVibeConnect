@@ -103,6 +103,11 @@ corrigé : `/state` en donne la lecture interprétée (chauffe, poids, consigne)
 ou de la base (`tools/robot/verifier-recette.py`). Son contenu peut évoluer sans changer la version de l'API ;
 jeton obligatoire, lecture seule comme le reste.
 
+`server` décrit les connexions du serveur (8 au plus ; au-delà, 503 `too_many_connections`) : `open` et `max`,
+`connections` (adresse distante, âge en ms, chemin demandé, `stream` pour le flux d'événements), et `refused` : le nombre
+de refus depuis le démarrage, l'ancienneté du dernier (`lastAgoMs`) et la liste des connexions qui tenaient alors les
+places. Quand le serveur est plein plus rien ne répond : `refused` se lit une fois une place libérée.
+
 ### `GET /session`
 `{"active": false}` hors recette. Sinon :
 ```json
