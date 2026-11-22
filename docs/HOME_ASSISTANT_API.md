@@ -158,6 +158,10 @@ Flux `text/event-stream`, un commentaire `:` de maintien toutes les 15 s, `id:` 
 (rejeu des 50 derniers événements au plus). À la connexion, le flux envoie d'abord l'état courant (`state` puis
 `session`, sans `id:`), pour que le client n'ait pas à interroger l'API en plus.
 
+Les `id:` repartent de 1 quand l'application du robot redémarre (mise à jour, arrêt). Un `Last-Event-ID` plus grand que le
+dernier identifiant émis vient donc d'avant ce redémarrage : le robot l'ignore (pas de rejeu) et envoie tous les événements
+suivants. Le client n'a rien à faire de plus.
+
 | `event:` | Quand | `data:` |
 |---|---|---|
 | `state` | changement de `status`, de job, de défaut ; sinon cadence réduite (voir §4) | même forme que `/state` |

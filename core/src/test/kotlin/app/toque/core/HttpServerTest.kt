@@ -282,6 +282,20 @@ class HttpServerTest {
         assertEquals("four", r.frame().event)
     }
 
+    @Test(timeout = 30_000)
+    fun aLastEventIdFromBeforeARestartIsIgnored() {
+        // Après un redémarrage du robot les identifiants repartent de 1 : un client qui rappelle son ancien identifiant
+        // (plus grand) doit recevoir les événements suivants, pas un silence.
+        bus.publish("one", null)
+        val (_, r) = openStream("Last-Event-ID: 999999\r\n")
+        assertEquals("state", r.frame().event)
+        assertEquals("session", r.frame().event)
+        val e = bus.publish("fresh", null)
+        val got = r.frame()
+        assertEquals("fresh", got.event)
+        assertEquals(e.id.toString(), got.id)
+    }
+
     @Test
     fun aNewStreamDoesNotReplayOldEvents() {
         bus.publish("old", null)
