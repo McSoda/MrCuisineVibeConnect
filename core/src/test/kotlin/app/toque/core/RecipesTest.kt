@@ -63,8 +63,15 @@ class RecipesTest {
 
     @Test fun textNormalisation() {
         assertEquals("creme brulee", TextNorm.normalize("Crème  Brûlée !"))
+        assertEquals("тісто", TextNorm.normalize("Тісто"))
+        assertEquals("мясо", TextNorm.normalize("М'ясо"))
+        assertEquals("pina colada", TextNorm.normalize("Piña colada"))
+        assertEquals("bulka z maslem", TextNorm.normalize("Bułka z masłem"))
+        assertEquals("grosse sosse", TextNorm.normalize("Große Soße"))
         assertEquals(listOf("pomme", "terre"), TextNorm.tokens("Pommes de terre"))
         assertEquals(listOf("gateau"), TextNorm.tokens("gâteaux"))
+        assertEquals(listOf("тісто", "піци"), TextNorm.tokens("Тісто для піци"))
+        assertEquals(listOf("ei", "ol"), TextNorm.tokens("Ei und Öl"))
         assertEquals(1, TextNorm.distance("bechamel", "bechamle", 2))
         assertEquals(1, TextNorm.distance("risoto", "risotto", 2))
     }
