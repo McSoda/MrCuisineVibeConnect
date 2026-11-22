@@ -80,12 +80,15 @@ de fin affiché jusqu'à sa fermeture, ce que l'API ne montre pas) : la fin est 
 (« veille » côté utilisateur = `status: standby` et `screenOn: false` ; voir §7).
 
 **Particularités de la base du SKMC 1200** (relevées sur un robot réel, firmware 4922) :
-- `heaterOn` vaut `true` seulement si la base annonce la chauffe **et** vise une température (`targetTempC > 0`). La
-  base répond « moteur + chauffe » à tout programme standard, même sans chauffe demandée (commande `STANDARD v3 t0`,
-  consigne 0 °C, fond du bol froid).
-- `targetTempC` est la consigne **de la base**, pas celle de la recette : pendant la montée en température elle
-  compense l'inertie de chauffe (relevé : recette à 95 °C, consigne annoncée 103 puis redescendue à 97). Après l'arrêt
-  la base garde sa dernière consigne ; l'API la ramène à 0 dès qu'aucun travail n'est en cours.
+- `targetTempC` est la température que **Toque demande** pour le travail en cours (celle de l'étape ou du réglage),
+  0 sans chauffe ou sans travail. Ce n'est pas l'écho de la base : elle ajuste sa consigne pendant la montée (relevé :
+  étape à 95 °C, consigne renvoyée 103 puis 97 ; à 45 °C, 51 ; à 65 °C, 72) et garde la dernière après l'arrêt ou
+  pendant une étape sans chauffe (51 °C restés pendant une étape à 0 °C).
+- `heaterOn` vaut `true` seulement si la base annonce la chauffe **et** que le travail demande une température
+  (`targetTempC > 0`). La base répond « moteur + chauffe » à tout programme standard, même sans chauffe demandée
+  (commande `STANDARD v3 t0`, fond du bol froid).
+- `tempC` plafonne bas : 0 tant que le contenu est sous 37 °C, puis la mesure suit (relevé : 37 → 55 °C en 1 min 30
+  avec 600 g d'eau, à 65 °C demandés).
 - `weightG` vaut `null` tant que le moteur tourne : la base renvoie alors 0, et la valeur revient à l'arrêt.
 - `rpm` (mesuré) et `speed` (niveau déduit du régime mesuré) restent à 0 en marche, `tempC` aussi sans chauffe
   (constaté, lames vérifiées en rotation) : la base ne renvoie pas ces mesures dans ce mode. Le comportement de

@@ -1,5 +1,7 @@
 package app.toque.core.machine
 
+import app.toque.core.protocol.Mcc
+
 /**
  * État complet et immuable de la machine, envoyé à l'interface ~10 fois par seconde.
  * [toMap]/[fromMap] servent au passage entre processus (Bundle Android).
@@ -76,7 +78,14 @@ data class Snapshot(
      * chauffe) accompagne tout programme standard, y compris sans chauffe (constaté : commande `STANDARD v3 t0`,
      * consigne 0 °C, fond du bol froid). [heaterOn] reste le signal brut, utilisé par les contrôles de sécurité.
      */
-    val heating: Boolean get() = heaterOn && targetTempC > 0
+    val heating: Boolean get() = heaterOn && commandedTempC > 0
+
+    /**
+     * Température que Toque demande à la base pour le travail en cours (0 sans chauffe ni travail). Ce n'est pas
+     * [targetTempC], la consigne que la base renvoie : elle l'ajuste pendant la montée (recette à 95 °C : 97 à 103) et
+     * garde la dernière après l'arrêt ou pour un travail sans chauffe (relevé : 51 °C restés pendant une étape à 0 °C).
+     */
+    val commandedTempC: Int get() = if (jobOngoing && jobTempLevel > 0) Mcc.celsiusForLevel(jobTempLevel) else 0
 
     /** La base renvoie un poids de 0 tant que le moteur tourne (constaté sur le robot) : il n'est pas lisible alors. */
     val weightValid: Boolean get() = !motorOn
