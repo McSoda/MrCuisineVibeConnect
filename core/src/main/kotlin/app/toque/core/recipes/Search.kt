@@ -19,14 +19,14 @@ object TextNorm {
         // Polski (PL)
         "w", "z", "na", "do", "dla", "i", "oraz", "o", "po", "ze", "za", "od", "pod", "nad", "przepis", "przepisy",
         // Українська (UK)
-        "і", "й", "та", "в", "у", "на", "з", "із", "зі", "до", "для", "по", "за", "про", "від", "під", "над",
+        "і", "та", "в", "у", "на", "з", "із", "зі", "до", "для", "по", "за", "про", "від", "під", "над",
         "як", "що", "або", "чи", "не", "це", "рецепт", "рецепти",
     )
 
     fun normalize(s: String): String {
         var t = s.lowercase().replace("œ", "oe").replace("æ", "ae").replace("ß", "ss")
             .replace("ł", "l")
-            .replace("'", "").replace("’", "").replace("ʼ", "")
+            .replace(Regex("""(?<=\p{IsCyrillic})['’ʼ`](?=\p{IsCyrillic})"""), "")
         t = Normalizer.normalize(t, Normalizer.Form.NFD)
         t = MARKS.replace(t, "")
         t = NON_ALNUM.replace(t, " ")
