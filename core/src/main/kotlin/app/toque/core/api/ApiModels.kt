@@ -83,7 +83,7 @@ object ApiModels {
             "motorOn" to s.motorOn,
             "heaterOn" to s.heating,
         ),
-        "job" to if (s.jobActive) linkedMapOf(
+        "job" to if (s.jobOngoing) linkedMapOf(
             "kind" to s.jobKind,
             "label" to s.jobLabel,
             "state" to s.jobState,

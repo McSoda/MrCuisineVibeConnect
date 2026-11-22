@@ -64,7 +64,30 @@ class ApiPublisherTest {
     }
 
     @Test
+    fun restingScaleDriftIsThrottled() {
+        pub.onSnapshot()
+        now += 2_000
+        backend.snap = backend.snap.copy(weightG = 4)
+        pub.onSnapshot()
+        assertEquals("sous 5 g", 1, states().size)
+        backend.snap = backend.snap.copy(weightG = 6)
+        pub.onSnapshot()
+        assertEquals("pas avant 10 s", 1, states().size)
+        now += 10_000
+        pub.onSnapshot()
+        assertEquals(2, states().size)
+        now += 2_000
+        backend.snap = backend.snap.copy(weightG = 12)
+        pub.onSnapshot()
+        assertEquals("trop tôt après la dernière", 2, states().size)
+        now += 8_000
+        pub.onSnapshot()
+        assertEquals(3, states().size)
+    }
+
+    @Test
     fun weightAndRpmThresholds() {
+        backend.snap = backend.snap.copy(jobActive = true, jobState = "RUNNING", jobKind = "MANUAL")
         pub.onSnapshot()
         now += 2_000
         backend.snap = backend.snap.copy(weightG = 2)
@@ -110,6 +133,62 @@ class ApiPublisherTest {
         pub.onSnapshot()
         assertEquals(2, states().size)
         assertEquals(true, Json.parse(states().last().data).obj()["machine"].obj()["heaterOn"])
+    }
+
+    private fun job(state: String) = backend.snap.copy(
+        jobActive = true, jobState = state, jobKind = "MANUAL", jobLabel = "Cuisson manuelle", totalMs = 30_000,
+        endReason = if (state == "FINISHED") "Terminé" else if (state == "ABORTED") "Arrêté" else "",
+    )
+
+    private fun jobDone() = bus.since(0).filter { it.name == "job_done" }
+
+    @Test
+    fun aJobThatEndsPublishesJobDoneOnceAndLeavesTheState() {
+        pub.onSnapshot()
+        for (st in listOf("STARTING", "RUNNING", "STOPPING")) {
+            now += 10; backend.snap = job(st); pub.onSnapshot()
+        }
+        assertEquals(0, jobDone().size)
+        now += 10; backend.snap = job("FINISHED"); pub.onSnapshot()
+        // L'écran de fin reste affiché un moment : le snapshot garde le travail terminé.
+        repeat(5) { now += 100; pub.onSnapshot() }
+        now += 10; backend.snap = backend.snap.copy(jobActive = false, jobState = "")   // écran de fin fermé
+        pub.onSnapshot()
+        val e = Json.parse(jobDone().single().data).obj()
+        assertEquals("finished", e["result"])
+        assertEquals("MANUAL", e["kind"])
+        assertEquals("Cuisson manuelle", e["label"])
+        assertEquals("Terminé", e["reason"])
+        assertEquals(30, (e["totalS"] as Number).toInt())
+        assertEquals("pas de job dans le dernier état", null, Json.parse(states().last().data).obj()["job"])
+    }
+
+    @Test
+    fun anAbortedJobIsReportedAsAborted() {
+        pub.onSnapshot()
+        now += 10; backend.snap = job("RUNNING"); pub.onSnapshot()
+        now += 10; backend.snap = job("ABORTED"); pub.onSnapshot()
+        assertEquals("aborted", Json.parse(jobDone().single().data).obj()["result"])
+    }
+
+    @Test
+    fun aJobAlreadyEndedAtTheFirstSnapshotProducesNoEvent() {
+        backend.snap = job("FINISHED")   // redémarrage de l'application : l'écran de fin était déjà là
+        pub.onSnapshot()
+        now += 100; pub.onSnapshot()
+        assertEquals(0, jobDone().size)
+        assertEquals(null, Json.parse(states().single().data).obj()["job"])
+    }
+
+    @Test
+    fun closingTheEndScreenIsNotAStateChange() {
+        pub.onSnapshot()
+        now += 10; backend.snap = job("RUNNING"); pub.onSnapshot()
+        now += 10; backend.snap = job("FINISHED"); pub.onSnapshot()
+        val before = states().size
+        now += 10; backend.snap = backend.snap.copy(jobActive = false, jobState = "", jobKind = "", jobLabel = "")
+        pub.onSnapshot()
+        assertEquals(before, states().size)
     }
 
     @Test

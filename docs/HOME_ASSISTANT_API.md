@@ -72,7 +72,10 @@ signal de vie.
   "sessionId": "c1d2…"
 }
 ```
-`job` vaut `null` sans travail en cours ; `fault` vaut `{"code":"…","message":"…"}` en cas de défaut ;
+`job` vaut `null` sans travail en cours, **y compris une fois le travail terminé ou arrêté** (le robot garde l'écran
+de fin affiché jusqu'à sa fermeture, ce que l'API ne montre pas) : la fin est annoncée une fois par l'événement
+`job_done` (§3, `/events`). Un travail déjà terminé quand l'application démarre ne produit pas d'événement.
+`fault` vaut `{"code":"…","message":"…"}` en cas de défaut ;
 `sessionId` vaut `null` hors recette. `screenOn` : `false` quand l'écran est éteint ou que Toque est en veille
 (« veille » côté utilisateur = `status: standby` et `screenOn: false` ; voir §7).
 
@@ -139,6 +142,7 @@ Flux `text/event-stream`, un commentaire `:` de maintien toutes les 15 s, `id:` 
 | `session` | début, fin, changement d'étape ou de `awaiting` | même forme que `/session` |
 | `step` | passage à une nouvelle étape | `{"sessionId","index","kind","text"}` |
 | `done` | fin de recette ou abandon | `{"sessionId","recipeId","result":"finished|aborted"}` |
+| `job_done` | un travail machine en cours se termine ou est arrêté (une fois) | `{"kind","label","result":"finished|aborted","reason","totalS"}` |
 | `fault` | défaut apparu ou levé | `{"code","message","active"}` |
 | `recipes` | catalogue modifié (synchro, import) | `{"rev":8,"total":315}` |
 
@@ -147,6 +151,8 @@ Flux `text/event-stream`, un commentaire `:` de maintien toutes les 15 s, `id:` 
 Le `Snapshot` interne sort à ~10 Hz ; l'API n'en expose pas le détail.
 - Température : seulement si l'écart ≥ 1 °C ; tr/min : écart ≥ 50 ; poids : écart ≥ 2 g. Au plus un `state` par
   seconde pour ces variations.
+- Poids au repos (ni travail ni recette en cours) : la balance dérive de quelques grammes, donc écart ≥ 5 g et au plus
+  un `state` toutes les 10 s pour le poids seul. Pendant un travail ou une recette, le seuil reste 2 g.
 - Signal de vie : un `state` au moins toutes les 5 s pendant un job (le temps restant avance), toutes les 30 s sinon.
 - Les changements de `status`, couvercle, bol, moteur, chauffe, défaut, job, phase, session et écran partent
   immédiatement.
@@ -171,7 +177,7 @@ toutes les 60 s en repli ; indisponible si plus de réponse.
 | `sensor` Recette en cours (titre), Étape (`n/N`) | `session` |
 | `sensor` Étape en cours, Dernière étape manuelle, Prochaine étape manuelle | `session` ; **état = 255 caractères au plus, texte complet en attribut** |
 | attribut `ingredients` de la recette en cours | `session.ingredients` (à exclure du recorder) |
-| `event` Cuisine (`step`, `action_requise`, `done`, `fault`) | `/events` |
+| `event` Cuisine (`step`, `action_requise`, `done`, `job_done`, `fault`) | `/events` |
 | `sensor` Nombre de recettes (diagnostic) | `recipeCount` |
 | Services avec réponse `toque.list_recipes`, `toque.get_recipe` | `/recipes`, `/recipes/{id}` |
 | Action `todo` : ajouter les ingrédients d'une recette à une liste de courses | `/recipes/{id}` |
