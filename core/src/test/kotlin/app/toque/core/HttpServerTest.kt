@@ -124,7 +124,7 @@ class HttpServerTest {
         return BufferedReader(InputStreamReader(s.getInputStream())).also { r -> while (r.readLine()?.startsWith("event:") == false) {} }
     }
 
-    @Test
+    @Test(timeout = 60_000)
     fun aClientReopeningStreamsKeepsOnlyTheLatest() {
         val n = HttpServer.MAX_STREAMS_PER_CLIENT
         val streams = (1..n + 2).map { streamReader() }
@@ -142,7 +142,7 @@ class HttpServerTest {
         for (old in streams.take(2)) { while (old.readLine() != null) {} }
     }
 
-    @Test
+    @Test(timeout = 60_000)
     fun diagnosticsRememberWhoFilledTheServer() {
         val quick = HttpServer(ApiRouter(backend) { "secret" }, bus, requestDeadlineS = 1)
         try {
@@ -306,10 +306,13 @@ class HttpServerTest {
         assertTrue("le flux doit se fermer, reçu : $end", end == null)
     }
 
-    @Test
+    @Test(timeout = 60_000)
     fun connectionsAreLimited() {
-        val streams = (1..HttpServer.MAX_CONNECTIONS).map { openStream() }
+        // Un client n'a que MAX_STREAMS_PER_CLIENT flux : le reste des places est tenu par des connexions muettes.
+        val streams = (1..HttpServer.MAX_STREAMS_PER_CLIENT).map { openStream() }
         streams.forEach { it.second.frame() }
+        repeat(HttpServer.MAX_CONNECTIONS - HttpServer.MAX_STREAMS_PER_CLIENT) { connect() }
+        Thread.sleep(300)
         val r = get("/api/v1/info", token = null)
         assertEquals(503, r.status)
         assertEquals("2", r.headers["retry-after"])
