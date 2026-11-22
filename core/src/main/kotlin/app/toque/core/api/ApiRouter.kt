@@ -9,6 +9,12 @@ import java.net.URLDecoder
 import java.net.URLEncoder
 import java.security.MessageDigest
 
+/** Une connexion ouverte du serveur : [path] est vide tant que la requête n'est pas lue ; [stream] pour le flux SSE. */
+class ConnectionInfo(val remote: String, val ageMs: Long, val path: String, val stream: Boolean)
+
+/** Refus pour saturation : leur nombre, l'ancienneté du dernier et les connexions qui tenaient alors les places. */
+class RefusalInfo(val count: Int, val lastAgoMs: Long?, val connections: List<ConnectionInfo>)
+
 /** Page de résultats de `GET /recipes`. */
 class RecipePage(val total: Int, val recipes: List<Recipe>)
 
@@ -73,6 +79,10 @@ class ApiResponse private constructor(
  * (`Authorization: Bearer …`). Aucune route n'agit sur la machine ni sur la session.
  */
 class ApiRouter(private val backend: ApiBackend, private val token: () -> String) {
+    /** Connexions ouvertes du serveur, renseignées par [HttpServer] (diagnostic des 503 `too_many_connections`). */
+    @Volatile var connections: (() -> List<ConnectionInfo>)? = null
+    @Volatile var maxConnections: Int = 0
+    @Volatile var refusals: (() -> RefusalInfo)? = null
 
     fun handle(req: HttpRequest): ApiResponse {
         if (req.method != "GET") {
@@ -91,7 +101,8 @@ class ApiRouter(private val backend: ApiBackend, private val token: () -> String
         return when {
             rest == "/state" -> ApiResponse.json(currentState())
             rest == "/diagnostics" -> ApiResponse.json(
-                ApiModels.diagnostics(backend.snapshot, System.currentTimeMillis() / 1000, backend.snapshotAgeMs),
+                ApiModels.diagnostics(backend.snapshot, System.currentTimeMillis() / 1000, backend.snapshotAgeMs,
+                    connections?.invoke(), maxConnections, refusals?.invoke()),
             )
             rest == "/session" -> ApiResponse.json(ApiModels.session(backend.session))
             rest == "/events" -> ApiResponse.events(req.headers["last-event-id"]?.trim()?.toLongOrNull())

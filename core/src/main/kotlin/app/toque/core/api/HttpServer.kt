@@ -50,7 +50,29 @@ class HttpServer(
     }
     private val slots = Semaphore(MAX_CONNECTIONS)
     private val imageGate = Semaphore(1)
-    private val open: MutableSet<Socket> = ConcurrentHashMap.newKeySet()
+    private class Conn(val remote: String, val since: Long = System.currentTimeMillis()) {
+        @Volatile var path = ""
+        @Volatile var stream = false
+    }
+    private val open = ConcurrentHashMap<Socket, Conn>()
+
+    private val refusedCount = AtomicInteger()
+    /** Les connexions qui occupaient toutes les places au dernier refus (la liste n'est plus lisible une fois saturé). */
+    @Volatile private var lastRefusal: Pair<Long, List<ConnectionInfo>>? = null
+
+    private fun snapshotConnections(): List<ConnectionInfo> {
+        val now = System.currentTimeMillis()
+        return open.values.map { ConnectionInfo(it.remote, now - it.since, it.path, it.stream) }.sortedByDescending { it.ageMs }
+    }
+
+    init {
+        router.maxConnections = MAX_CONNECTIONS
+        router.connections = ::snapshotConnections
+        router.refusals = {
+            val last = lastRefusal
+            RefusalInfo(refusedCount.get(), last?.let { System.currentTimeMillis() - it.first }, last?.second.orEmpty())
+        }
+    }
 
     @Volatile private var server: ServerSocket? = null
     @Volatile private var running = false
@@ -82,7 +104,7 @@ class HttpServer(
         stopped = true
         try { server?.close() } catch (_: IOException) {}
         server = null
-        for (c in open.toList()) try { c.close() } catch (_: IOException) {}
+        for (c in open.keys.toList()) try { c.close() } catch (_: IOException) {}
         open.clear()
         workers.shutdownNow()
         watchdog.shutdownNow()
@@ -108,20 +130,26 @@ class HttpServer(
                 continue
             }
             if (!slots.tryAcquire()) {
+                refusedCount.incrementAndGet()
+                val last = lastRefusal
+                if (last == null || System.currentTimeMillis() - last.first >= 2_000) {
+                    lastRefusal = System.currentTimeMillis() to snapshotConnections()
+                }
                 refuse(c)
                 continue
             }
-            open += c
+            val conn = Conn(c.remoteSocketAddress?.toString()?.removePrefix("/") ?: "?")
+            open[c] = conn
             try {
                 workers.execute {
-                    try { serve(c) } finally {
-                        open -= c
+                    try { serve(c, conn) } finally {
+                        open.remove(c)
                         try { c.close() } catch (_: IOException) {}
                         slots.release()
                     }
                 }
             } catch (_: Exception) {
-                open -= c
+                open.remove(c)
                 try { c.close() } catch (_: IOException) {}
                 slots.release()
             }
@@ -159,7 +187,7 @@ class HttpServer(
         } catch (_: IOException) {}
     }
 
-    private fun serve(c: Socket) {
+    private fun serve(c: Socket, conn: Conn) {
         try {
             c.soTimeout = READ_TIMEOUT_MS
             c.keepAlive = true
@@ -178,13 +206,14 @@ class HttpServer(
                 lingerClose(c, LINGER_MS)
                 return
             }
+            conn.path = req.path
             val resp = try {
                 router.handle(req)
             } catch (e: Exception) {
                 log("erreur interne : $e")
                 ApiResponse.error(500, "internal", "Erreur interne")
             }
-            if (resp.events) { streamEvents(c, out, resp.lastEventId); return }
+            if (resp.events) { conn.stream = true; streamEvents(c, out, resp.lastEventId); return }
             // Un client bloqué ne doit pas retenir un fil (ni la barrière des images) indéfiniment.
             val timer = deadline(c, RESPONSE_DEADLINE_S)
             try {
