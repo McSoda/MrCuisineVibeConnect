@@ -1,0 +1,116 @@
+{
+  "recipe": "test-robot",
+  "robot": {
+    "toque": "0.5.10",
+    "build": 17,
+    "firmware": 4922,
+    "android": "6.0"
+  },
+  "steps": {
+    "2": {
+      "moteur": true,
+      "chauffe": true,
+      "consigne": 45,
+      "vitesse": 2,
+      "inverse": false,
+      "poidsIllisible": true
+    },
+    "3": {
+      "moteur": true,
+      "chauffe": true,
+      "consigne": 45,
+      "vitesse": 3,
+      "inverse": false,
+      "poidsIllisible": true
+    },
+    "4": {
+      "moteur": true,
+      "chauffe": true,
+      "consigne": 45,
+      "vitesse": 2,
+      "inverse": true,
+      "poidsIllisible": true
+    },
+    "6": {
+      "moteur": true,
+      "chauffe": false,
+      "consigne": 0,
+      "vitesse": 4,
+      "inverse": false,
+      "poidsIllisible": true
+    },
+    "7": {
+      "moteur": true,
+      "chauffe": false,
+      "consigne": 0,
+      "vitesse": 5,
+      "inverse": false,
+      "poidsIllisible": true
+    },
+    "9": {
+      "moteur": true,
+      "chauffe": true,
+      "consigne": 65,
+      "vitesse": 3,
+      "inverse": false,
+      "poidsIllisible": true
+    },
+    "10": {
+      "moteur": true,
+      "chauffe": true,
+      "consigne": 65,
+      "vitesse": 3,
+      "inverse": false,
+      "poidsIllisible": true
+    },
+    "base": {
+      "2": {
+        "rpmRemonte": false,
+        "vitesseMesureeRemonte": false,
+        "poidsAZeroMoteurEnMarche": true,
+        "chauffeBrute": true,
+        "echoConsigneEgaleDemande": false
+      },
+      "3": {
+        "rpmRemonte": false,
+        "vitesseMesureeRemonte": false,
+        "poidsAZeroMoteurEnMarche": true,
+        "chauffeBrute": true,
+        "echoConsigneEgaleDemande": false
+      },
+      "4": {
+        "rpmRemonte": false,
+        "vitesseMesureeRemonte": false,
+        "poidsAZeroMoteurEnMarche": true,
+        "chauffeBrute": true,
+        "echoConsigneEgaleDemande": false
+      },
+      "6": {
+        "rpmRemonte": false,
+        "vitesseMesureeRemonte": false,
+        "poidsAZeroMoteurEnMarche": true,
+        "chauffeBrute": true,
+        "echoConsigneEgaleDemande": false
+      },
+      "7": {
+        "rpmRemonte": false,
+        "vitesseMesureeRemonte": false,
+        "poidsAZeroMoteurEnMarche": true,
+        "chauffeBrute": true,
+        "echoConsigneEgaleDemande": false
+      },
+      "9": {
+        "rpmRemonte": false,
+        "vitesseMesureeRemonte": false,
+        "poidsAZeroMoteurEnMarche": true,
+        "chauffeBrute": true,
+        "echoConsigneEgaleDemande": false
+      },
+      "apresFin": {
+        "echoConsigneRestee": true,
+        "chauffeBruteRestee": false,
+        "moteurBrutRestee": false
+      }
+    }
+  }
+}

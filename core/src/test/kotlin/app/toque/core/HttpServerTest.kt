@@ -117,29 +117,53 @@ class HttpServerTest {
         assertEquals("/api/v1/diagnostics", list.single { it["stream"] == false }["path"])
     }
 
+    private fun streamReader(onPort: Int = port): BufferedReader {
+        val s = connect(onPort)
+        s.getOutputStream().write("GET /api/v1/events HTTP/1.1\r\nHost: robot\r\nAuthorization: Bearer secret\r\n\r\n".toByteArray())
+        s.getOutputStream().flush()
+        return BufferedReader(InputStreamReader(s.getInputStream())).also { r -> while (r.readLine()?.startsWith("event:") == false) {} }
+    }
+
+    @Test
+    fun aClientReopeningStreamsKeepsOnlyTheLatest() {
+        val n = HttpServer.MAX_STREAMS_PER_CLIENT
+        val streams = (1..n + 2).map { streamReader() }
+        var count = -1
+        val limit = System.currentTimeMillis() + 5_000
+        while (System.currentTimeMillis() < limit) {
+            val r = get("/api/v1/diagnostics"); if (r.status != 200) { Thread.sleep(100); continue }
+            val list = ((jsonObj(r.body)["server"].obj()["connections"]) as List<*>).map { it.obj() }
+            count = list.count { it["stream"] == true }
+            if (count == n) break
+            Thread.sleep(100)
+        }
+        assertEquals(n, count)
+        // Les plus anciens sont fermés par le robot : leur lecture se termine.
+        for (old in streams.take(2)) { while (old.readLine() != null) {} }
+    }
+
     @Test
     fun diagnosticsRememberWhoFilledTheServer() {
-        val streams = (1..HttpServer.MAX_CONNECTIONS).map {
-            val s = connect()
-            s.getOutputStream().write("GET /api/v1/events HTTP/1.1\r\nHost: robot\r\nAuthorization: Bearer secret\r\n\r\n".toByteArray())
-            s.getOutputStream().flush()
-            BufferedReader(InputStreamReader(s.getInputStream())).also { r -> while (r.readLine()?.startsWith("event:") == false) {} }
-            s
+        val quick = HttpServer(ApiRouter(backend) { "secret" }, bus, requestDeadlineS = 1)
+        try {
+            val p = quick.start(0)
+            // Des clients qui se connectent sans rien dire tiennent une place jusqu'au délai de la requête.
+            repeat(HttpServer.MAX_CONNECTIONS) { connect(p) }
+            Thread.sleep(300)
+            val full = raw("GET /api/v1/state HTTP/1.1\r\nHost: robot\r\nAuthorization: Bearer secret\r\n\r\n", p)
+            assertEquals(503, full.status)
+            var refused: Map<*, *>? = null
+            val limit = System.currentTimeMillis() + 10_000
+            while (refused == null && System.currentTimeMillis() < limit) {
+                val r = raw("GET /api/v1/diagnostics HTTP/1.1\r\nHost: robot\r\nAuthorization: Bearer secret\r\n\r\n", p)
+                if (r.status == 200) refused = jsonObj(r.body)["server"].obj()["refused"].obj() else Thread.sleep(200)
+            }
+            assertNotNull("les places n'ont pas été rendues", refused)
+            assertTrue((refused!!["count"] as Number).toInt() >= 1)
+            assertEquals(HttpServer.MAX_CONNECTIONS, (refused["connections"] as List<*>).size)
+        } finally {
+            quick.stop()
         }
-        assertEquals(503, get("/api/v1/state").status)
-        streams.forEach { it.close() }
-        var refused: Map<*, *>? = null
-        val limit = System.currentTimeMillis() + 10_000
-        while (refused == null && System.currentTimeMillis() < limit) {
-            val r = get("/api/v1/diagnostics")
-            if (r.status == 200) refused = jsonObj(r.body)["server"].obj()["refused"].obj()
-            else Thread.sleep(200)
-        }
-        assertNotNull("les places n'ont pas été rendues", refused)
-        assertTrue((refused!!["count"] as Number).toInt() >= 1)
-        val who = (refused["connections"] as List<*>).map { it.obj() }
-        assertEquals(HttpServer.MAX_CONNECTIONS, who.size)
-        assertTrue(who.all { it["stream"] == true && it["path"] == "/api/v1/events" })
     }
 
     @Test
