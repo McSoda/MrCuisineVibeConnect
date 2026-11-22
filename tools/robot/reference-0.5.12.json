@@ -1,8 +1,8 @@
 {
   "recipe": "test-robot",
   "robot": {
-    "toque": "0.5.10",
-    "build": 17,
+    "toque": "0.5.12",
+    "build": 19,
     "firmware": 4922,
     "android": "6.0"
   },
@@ -100,6 +100,13 @@
         "echoConsigneEgaleDemande": false
       },
       "9": {
+        "rpmRemonte": false,
+        "vitesseMesureeRemonte": false,
+        "poidsAZeroMoteurEnMarche": true,
+        "chauffeBrute": true,
+        "echoConsigneEgaleDemande": false
+      },
+      "10": {
         "rpmRemonte": false,
         "vitesseMesureeRemonte": false,
         "poidsAZeroMoteurEnMarche": true,
