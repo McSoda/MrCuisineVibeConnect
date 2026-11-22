@@ -72,7 +72,8 @@ object ApiModels {
         "fault" to if (s.hasFault) linkedMapOf("code" to s.faultCode, "message" to s.faultMessage) else null,
         "machine" to linkedMapOf(
             "tempC" to s.actualTempC,
-            "targetTempC" to s.targetTempC,
+            // La base garde sa dernière consigne après l'arrêt : on ne l'annonce que pendant un travail.
+            "targetTempC" to if (s.jobOngoing) s.targetTempC else 0,
             "rpm" to s.rpm,
             "speed" to s.speedLevel,
             "targetSpeed" to s.targetSpeedLevel,
