@@ -101,6 +101,48 @@ object ApiModels {
         "sessionId" to session?.id,
     )
 
+    /**
+     * `GET /diagnostics` : ce que la base renvoie, brut, et ce que Toque lui envoie. Pour le développement et la
+     * comparaison de versions du robot (le contenu peut évoluer sans changer la version de l'API) : `/state` en
+     * donne la lecture corrigée, ici rien n'est interprété.
+     */
+    fun diagnostics(s: Snapshot, nowSec: Long, snapshotAgeMs: Long = -1): Map<String, Any?> = linkedMapOf(
+        "ts" to nowSec,
+        "snapshotAgeMs" to snapshotAgeMs,
+        "base" to linkedMapOf(
+            "firmware" to s.firmware,
+            "hasSample" to s.hasSample,
+            "tempC" to s.actualTempC,
+            "targetTempC" to s.targetTempC,
+            "rpm" to s.rpm,
+            "speed" to s.speedLevel,
+            "targetSpeed" to s.targetSpeedLevel,
+            "weightG" to s.weightG,
+            "scaleStable" to s.scaleStable,
+            "scaleState" to s.scaleState,
+            "lidOpen" to s.lidOpen,
+            "bowlDetected" to s.bowlDetected,
+            "motorOn" to s.motorOn,
+            "heaterOn" to s.heaterOn,
+            "errorCode" to s.boardErrorCode,
+            "rxHex" to s.rxHex,
+        ),
+        "sent" to linkedMapOf(
+            "operation" to s.wireOperation,
+            "speed" to s.wireSpeed,
+            "tempLevel" to s.wireTempLevel,
+            "txHex" to s.txHex,
+        ),
+        "job" to linkedMapOf(
+            "ongoing" to s.jobOngoing,
+            "state" to s.jobState,
+            "tempLevel" to s.jobTempLevel,
+            "speed" to s.jobSpeed,
+            "reverse" to s.jobReverse,
+        ),
+        "frames" to linkedMapOf("tx" to s.txFrames, "rx" to s.rxFrames, "invalid" to s.invalidFrames),
+    )
+
     /** Texte affiché pour une étape : celui de la recette, ou à défaut le résumé du réglage machine. */
     fun stepText(step: Step): String = step.text.ifBlank { step.machine?.summary ?: "" }
 
