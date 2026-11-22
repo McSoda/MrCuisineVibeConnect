@@ -90,6 +90,9 @@ class ApiRouter(private val backend: ApiBackend, private val token: () -> String
         }
         return when {
             rest == "/state" -> ApiResponse.json(currentState())
+            rest == "/diagnostics" -> ApiResponse.json(
+                ApiModels.diagnostics(backend.snapshot, System.currentTimeMillis() / 1000, backend.snapshotAgeMs),
+            )
             rest == "/session" -> ApiResponse.json(ApiModels.session(backend.session))
             rest == "/events" -> ApiResponse.events(req.headers["last-event-id"]?.trim()?.toLongOrNull())
             rest == "/recipes" -> recipes(req)

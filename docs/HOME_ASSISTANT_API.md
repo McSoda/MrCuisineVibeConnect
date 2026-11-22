@@ -95,6 +95,14 @@ de fin affiché jusqu'à sa fermeture, ce que l'API ne montre pas) : la fin est 
   `tempC` pendant une vraie chauffe n'a pas encore été relevé. Utiliser `targetSpeed`, le niveau de vitesse que la base annonce avoir
   reçu (0 à l'arrêt), pour savoir à quelle vitesse tourne le moteur.
 
+### `GET /diagnostics`
+Pour le développement, pas pour Home Assistant : ce que la base renvoie **brut** (`base` : `tempC`, `targetTempC`,
+`rpm`, `speed`, `targetSpeed`, `weightG`, `motorOn`, `heaterOn`, trame `rxHex`…), ce que Toque lui envoie (`sent` :
+opération, vitesse, niveau de température, `txHex`), le travail (`job`) et les compteurs de trames. Rien n'y est
+corrigé : `/state` en donne la lecture interprétée (chauffe, poids, consigne). Sert à comparer deux versions du robot
+ou de la base (`tools/robot/verifier-recette.py`). Son contenu peut évoluer sans changer la version de l'API ;
+jeton obligatoire, lecture seule comme le reste.
+
 ### `GET /session`
 `{"active": false}` hors recette. Sinon :
 ```json
