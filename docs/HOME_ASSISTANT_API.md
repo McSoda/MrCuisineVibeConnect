@@ -108,6 +108,9 @@ jeton obligatoire, lecture seule comme le reste.
 de refus depuis le démarrage, l'ancienneté du dernier (`lastAgoMs`) et la liste des connexions qui tenaient alors les
 places. Quand le serveur est plein plus rien ne répond : `refused` se lit une fois une place libérée.
 
+Un même client (adresse IP) garde au plus 3 flux `/events` : quand il en ouvre un de plus, le robot ferme les plus
+anciens. Un client qui reconnecte sans fermer l'ancien flux ne peut donc pas saturer le serveur.
+
 ### `GET /session`
 `{"active": false}` hors recette. Sinon :
 ```json
