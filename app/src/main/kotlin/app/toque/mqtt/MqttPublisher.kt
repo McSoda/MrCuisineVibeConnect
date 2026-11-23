@@ -6,6 +6,7 @@ import android.os.HandlerThread
 import android.provider.Settings
 import app.toque.Logbook
 import app.toque.Prefs
+import app.toque.core.api.MqttState
 import app.toque.core.i18n.tr
 import app.toque.core.machine.Snapshot
 import java.nio.charset.Charset
@@ -25,6 +26,7 @@ class MqttPublisher(
     private val thread = HandlerThread("toque-mqtt").apply { start() }
     private val handler = Handler(thread.looper)
     private val lastJson = AtomicReference<String?>(null)
+    private val lastState = AtomicReference<MqttState?>(null)
     @Volatile private var client: MqttClient? = null
     @Volatile private var status: Status = Status.OFF
     @Volatile private var statusDetail: String = ""
@@ -54,8 +56,9 @@ class MqttPublisher(
     fun onSnapshot(snapshot: Snapshot) {
         if (!prefs.mqttEnabled) return
         val state = MqttState.from(snapshot)
+        if (!state.needsPublishAfter(lastState.get())) return
         val json = state.toJson()
-        if (json == lastJson.get()) return
+        lastState.set(state)
         lastJson.set(json)
         handler.post { publishState(json) }
     }
@@ -71,6 +74,7 @@ class MqttPublisher(
     private fun runSession(gen: Int) {
         disconnectClient()
         lastJson.set(null)
+        lastState.set(null)
         if (!prefs.mqttEnabled) {
             setStatus(Status.OFF, "")
             return

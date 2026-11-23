@@ -1,11 +1,16 @@
-package app.toque.mqtt
+package app.toque.core.api
 
 import app.toque.core.json.Json
 import app.toque.core.machine.Snapshot
+import kotlin.math.abs
 
 /**
  * Sous-ensemble du [Snapshot] utile pour l'automation (programme + fin), sans capteurs/actuateurs.
- * Deux états égaux ⇒ pas de republication.
+ *
+ * Mêmes valeurs que l'API locale : [targetTempC] est la température que Toque demande (0 hors travail ou sans
+ * chauffe), pas l'écho de la base, qui garde sa dernière consigne après le travail et la renvoie différente de la
+ * demande (45 → 51, 65 → 72) ; [speedLevel] est le niveau de vitesse que la base annonce avoir reçu, car la vitesse
+ * mesurée reste à 0 en marche sur le SKMC 1200.
  */
 data class MqttState(
     val actualTempC: Int,
@@ -36,11 +41,27 @@ data class MqttState(
         )
     )
 
+    /**
+     * Faut-il publier cet état après [last] (le dernier publié, null au début) ? Tout changement sauf le temps restant
+     * part tout de suite ; le temps restant, qui baisse d'une seconde à chaque seconde, ne part que tous les
+     * [REMAINING_STEP_S] s (Home Assistant en déduit l'heure de fin), ou dès qu'il saute (temps ajouté), tombe à 0 ou
+     * devient inconnu.
+     */
+    fun needsPublishAfter(last: MqttState?): Boolean {
+        if (last == null) return true
+        if (copy(remainingSec = 0) != last.copy(remainingSec = 0)) return true
+        if (remainingSec == last.remainingSec) return false
+        if ((remainingSec <= 0) != (last.remainingSec <= 0)) return true
+        return abs(remainingSec - last.remainingSec) >= REMAINING_STEP_S
+    }
+
     companion object {
+        const val REMAINING_STEP_S = 5
+
         fun from(s: Snapshot): MqttState = MqttState(
             actualTempC = s.actualTempC,
-            targetTempC = s.targetTempC,
-            speedLevel = s.speedLevel,
+            targetTempC = s.commandedTempC,
+            speedLevel = s.targetSpeedLevel,
             jobActive = s.jobActive,
             jobKind = s.jobKind,
             jobLabel = s.jobLabel,
