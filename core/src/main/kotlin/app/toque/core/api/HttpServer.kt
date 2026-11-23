@@ -50,13 +50,15 @@ class HttpServer(
     }
     private val slots = Semaphore(MAX_CONNECTIONS)
     private val imageGate = Semaphore(1)
-    private class Conn(val remote: String, val host: String, val since: Long = System.currentTimeMillis()) {
+    private class Conn(val remote: String, val host: String, val seq: Long, val since: Long = System.currentTimeMillis()) {
         @Volatile var path = ""
         @Volatile var stream = false
     }
     private val open = ConcurrentHashMap<Socket, Conn>()
 
     private val refusedCount = AtomicInteger()
+    /** Ordre d'arrivée : l'horloge ne départage pas deux connexions ouvertes dans la même milliseconde. */
+    private val connectionSeq = java.util.concurrent.atomic.AtomicLong()
     /** Les connexions qui occupaient toutes les places au dernier refus (la liste n'est plus lisible une fois saturé). */
     @Volatile private var lastRefusal: Pair<Long, List<ConnectionInfo>>? = null
 
@@ -138,7 +140,7 @@ class HttpServer(
                 refuse(c)
                 continue
             }
-            val conn = Conn(c.remoteSocketAddress?.toString()?.removePrefix("/") ?: "?", c.inetAddress?.hostAddress ?: "?")
+            val conn = Conn(c.remoteSocketAddress?.toString()?.removePrefix("/") ?: "?", c.inetAddress?.hostAddress ?: "?", connectionSeq.incrementAndGet())
             open[c] = conn
             try {
                 workers.execute {
@@ -241,7 +243,7 @@ class HttpServer(
      */
     private fun closeOldStreams(c: Socket, conn: Conn) {
         val same = open.entries.filter { it.value.stream && it.value.host == conn.host && it.key !== c }
-            .sortedBy { it.value.since }
+            .sortedBy { it.value.seq }
         for ((old, _) in same.take((same.size + 1 - MAX_STREAMS_PER_CLIENT).coerceAtLeast(0))) {
             log("flux ${conn.host} fermé : trop de flux ouverts par ce client")
             try { old.close() } catch (_: IOException) {}
