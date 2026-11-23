@@ -139,7 +139,13 @@ class HttpServerTest {
         }
         assertEquals(n, count)
         // Les plus anciens sont fermés par le robot : leur lecture se termine.
-        for (old in streams.take(2)) { while (old.readLine() != null) {} }
+        // (les pings arrivent toutes les secondes : on borne l'attente au lieu de lire jusqu'à la fin d'un flux resté ouvert)
+        val end = System.currentTimeMillis() + 10_000
+        for (old in streams.take(2)) {
+            var line: String? = ""
+            while (line != null && System.currentTimeMillis() < end) line = old.readLine()
+            assertEquals("le plus ancien flux aurait dû être fermé", null, line)
+        }
     }
 
     @Test(timeout = 60_000)
