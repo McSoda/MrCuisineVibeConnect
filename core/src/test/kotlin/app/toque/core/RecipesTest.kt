@@ -31,6 +31,19 @@ class RecipesTest {
         assertEquals("é\n\"x\"", (v as Map<*, *>)["a"].let { (it as List<*>)[2] })
     }
 
+    /** La recette d'essai du robot (tools/robot/recette-test.json) doit passer les règles de sécurité. */
+    @Test fun robotTestRecipeIsSafe() {
+        val text = java.io.File("../tools/robot/recette-test.json").readText()
+        val (list, bad) = RecipeCodec.decodeFile(text, RecipeSource.USER)
+        assertEquals(0, bad)
+        assertEquals(1, list.size)
+        for (s in list.single().steps) s.machine?.let { m ->
+            assertTrue("${s.text} : ${m.violations().map { it.message }}", m.valid)
+        }
+        // Les étapes machine sans texte s'enchaînent à la précédente (voir CookScreen.continues) : 4 le sont ici.
+        assertEquals(4, list.single().steps.count { it.machine != null && it.text.isBlank() })
+    }
+
     @Test fun fixtureRecipesAreValidAndSafe() {
         val list = builtin()
         assertTrue(list.size >= 12)

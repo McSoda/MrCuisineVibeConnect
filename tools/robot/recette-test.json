@@ -1,0 +1,40 @@
+{
+  "format": "toque-recettes-1",
+  "recipes": [
+    {
+      "id": "test-robot",
+      "title": "Test du robot (eau)",
+      "category": "Test",
+      "tags": ["test"],
+      "servings": 1,
+      "prepMinutes": 2,
+      "totalMinutes": 14,
+      "difficulty": 1,
+      "source": "user",
+      "notes": "Recette fictive pour tester pesée, moteur, chauffe et API. Eau seule, aucun aliment.",
+      "ingredients": [
+        { "group": "", "items": [ { "qty": "600", "unit": "g", "name": "eau", "note": "500 g puis 100 g" } ] }
+      ],
+      "steps": [
+        { "text": "Peser 500 g d'eau dans le bol (les lames doivent être couvertes).", "weigh": { "label": "Eau", "grams": 500 } },
+        { "text": "Chauffer à 45 °C, vitesse 2 (la montée prend environ 3 min).",
+          "machine": { "program": "manuel", "seconds": 210, "speed": 2, "tempC": 45 } },
+        { "text": "",
+          "machine": { "program": "manuel", "seconds": 30, "speed": 3, "tempC": 45 } },
+        { "text": "",
+          "machine": { "program": "manuel", "seconds": 30, "speed": 2, "tempC": 45, "reverse": true } },
+        { "text": "Vérifier que le bouchon du couvercle (gobelet doseur) est bien en place : les vitesses 4 et 5 projettent." },
+        { "text": "Vitesse 4, chauffe coupée (au-delà de 3, pas de chauffe).",
+          "machine": { "program": "manuel", "seconds": 15, "speed": 4, "tempC": 0 } },
+        { "text": "",
+          "machine": { "program": "manuel", "seconds": 15, "speed": 5, "tempC": 0 } },
+        { "text": "Le moteur est à l'arrêt. Peser 100 g d'eau et les ajouter.", "weigh": { "label": "Eau", "grams": 100 } },
+        { "text": "Vitesse 3, montée à 65 °C.",
+          "machine": { "program": "manuel", "seconds": 270, "speed": 3, "tempC": 65 } },
+        { "text": "",
+          "machine": { "program": "manuel", "seconds": 30, "speed": 3, "tempC": 65 } },
+        { "text": "Fin de la recette de test : vider le bol." }
+      ]
+    }
+  ]
+}

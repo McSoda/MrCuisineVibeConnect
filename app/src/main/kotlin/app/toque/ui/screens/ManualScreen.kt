@@ -154,7 +154,12 @@ class ManualScreen(
                 val min = if (tempLevel > 0) 0 else 1
                 val next = (speed + dir).coerceIn(min, 10)
                 if (dir < 0 && speed == min && min == 1) a.toast(tr("Sans chauffe, vitesse 1 minimum"))
-                if (next > max) a.toast(tr(why, max)) else speed = next
+                // Baisser est toujours permis : au-dessus du maximum on y descend d'un coup (sinon une vitesse
+                // préremplie trop haute, 5 en chauffe par exemple, ne pourrait plus être réduite).
+                if (next > max) {
+                    a.toast(tr(why, max))
+                    if (dir < 0) speed = max
+                } else speed = next
                 capNoStirTemperature()
             }
         }
