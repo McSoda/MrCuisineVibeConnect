@@ -1,6 +1,6 @@
 # API locale de Toque pour Home Assistant (spécification, v1)
 
-Statut : **proposition, rien n'est implémenté**. Décisions prises : transport HTTP + SSE avec annonce mDNS,
+Statut : **implémenté** (Réglages › Home Assistant, désactivé par défaut). Décisions prises : transport HTTP + SSE avec annonce mDNS,
 **lecture seule**, intégration HA dans un **dépôt séparé** (`toque-homeassistant`, domaine `toque`, distribuée par HACS).
 
 ## 1. Principes
@@ -100,7 +100,7 @@ Pour le développement, pas pour Home Assistant : ce que la base renvoie **brut*
 `rpm`, `speed`, `targetSpeed`, `weightG`, `motorOn`, `heaterOn`, trame `rxHex`…), ce que Toque lui envoie (`sent` :
 opération, vitesse, niveau de température, `txHex`), le travail (`job`) et les compteurs de trames. Rien n'y est
 corrigé : `/state` en donne la lecture interprétée (chauffe, poids, consigne). Sert à comparer deux versions du robot
-ou de la base (`tools/robot/verifier-recette.py`). Son contenu peut évoluer sans changer la version de l'API ;
+ou de la base. Son contenu peut évoluer sans changer la version de l'API ;
 jeton obligatoire, lecture seule comme le reste.
 
 `server` décrit les connexions du serveur (8 au plus ; au-delà, 503 `too_many_connections`) : `open` et `max`,
