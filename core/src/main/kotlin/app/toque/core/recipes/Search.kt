@@ -5,6 +5,9 @@ import java.text.Normalizer
 object TextNorm {
     private val MARKS = Regex("\\p{Mn}+")
     private val NON_ALNUM = Regex("[^\\p{L}\\p{Nd}]+")
+    // Bloc cyrillique en plage explicite : `\p{IsCyrillic}` est refusé par l'ICU d'Android 6 (le robot), et l'index des
+    // recettes ne se construisait pas. Compilée une fois, pas à chaque appel.
+    private val CYRILLIC_APOSTROPHE = Regex("(?<=[\\u0400-\\u04FF])['’ʼ`](?=[\\u0400-\\u04FF])")
     private val STOP = hashSetOf(
         // Français (FR)
         "de", "du", "des", "la", "le", "les", "l", "d", "et", "a", "au", "aux", "en", "un", "une",
@@ -26,7 +29,7 @@ object TextNorm {
     fun normalize(s: String): String {
         var t = s.lowercase().replace("œ", "oe").replace("æ", "ae").replace("ß", "ss")
             .replace("ł", "l")
-            .replace(Regex("""(?<=\p{IsCyrillic})['’ʼ`](?=\p{IsCyrillic})"""), "")
+            .replace(CYRILLIC_APOSTROPHE, "")
         t = Normalizer.normalize(t, Normalizer.Form.NFD)
         t = MARKS.replace(t, "")
         t = NON_ALNUM.replace(t, " ")
