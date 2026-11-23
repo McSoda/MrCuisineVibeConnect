@@ -32,7 +32,7 @@
         { "text": "Vitesse 3, montée à 65 °C.",
           "machine": { "program": "manuel", "seconds": 270, "speed": 3, "tempC": 65 } },
         { "text": "",
-          "machine": { "program": "manuel", "seconds": 30, "speed": 3, "tempC": 65 } },
+          "machine": { "program": "manuel", "seconds": 30, "speed": 1, "tempC": 65 } },
         { "text": "Fin de la recette de test : vider le bol." }
       ]
     }
