@@ -15,6 +15,7 @@ import app.toque.core.recipes.CookEvent
 import app.toque.core.recipes.CookSession
 import app.toque.core.recipes.CookSessions
 import app.toque.machine.MachineClient
+import app.toque.mqtt.MqttPublisher
 import app.toque.recipes.RecipeRepo
 import app.toque.ui.MainActivity
 import java.util.Locale
@@ -28,6 +29,7 @@ class ToqueApp : Application() {
         private set
     val machine: MachineClient by lazy { MachineClient(this) }
     val recipes: RecipeRepo by lazy { RecipeRepo(this) }
+    val mqtt: MqttPublisher by lazy { MqttPublisher(this, prefs, log) }
 
     /** L'API locale pour Home Assistant (désactivée tant que l'utilisateur ne l'active pas dans les Réglages). */
     val homeAssistant: HomeAssistantApi by lazy { HomeAssistantApi(this) }
@@ -118,6 +120,7 @@ class ToqueApp : Application() {
         log.write("interface", "démarrage")
         TimeSync.start(this, prefs, log)
         if (prefs.haEnabled) homeAssistant.apply()
+        mqtt.reconfigure()
     }
 
     private fun isMainProcess(): Boolean {

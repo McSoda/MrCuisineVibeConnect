@@ -153,6 +153,8 @@ class MainActivity : Activity() {
     /** Applique la langue choisie dans les réglages : l'interface est reconstruite, on revient aux réglages. */
     fun applyLanguage() {
         I18n.select(I18n.resolve(prefs.language, Locale.getDefault().language).code)
+        // Les noms d'entités Home Assistant (MQTT Discovery) suivent la langue de l'interface.
+        app.mqtt.republishDiscovery()
         reopenSettings = true
         recreate()
     }
@@ -164,6 +166,7 @@ class MainActivity : Activity() {
             machineBar.update(s)
             stack.lastOrNull()?.onSnapshot(s)
             standby.onSnapshot(s)
+            app.mqtt.onSnapshot(s)
         }
         unsubscribeEvents = app.machine.onEvent { e -> onMachineEvent(e) }
         topBar.startClock()
