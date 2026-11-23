@@ -1,34 +1,35 @@
-# API locale de Toque pour Home Assistant (spécification, v1)
+# Toque local API for Home Assistant (specification, v1)
 
-Statut : **implémenté** (Réglages › Home Assistant, désactivé par défaut). Décisions prises : transport HTTP + SSE avec annonce mDNS,
-**lecture seule**, intégration HA dans un **dépôt séparé** (`toque-homeassistant`, domaine `toque`, distribuée par HACS).
+Status: **implemented** (Settings › Home Assistant, off by default). Decisions taken: HTTP + SSE transport announced
+over mDNS, **read-only**, the Home Assistant (HA) integration lives in a **separate repository**
+(`toque-homeassistant`, domain `toque`, distributed through HACS).
 
-## 1. Principes
+## 1. Principles
 
-- Le serveur vit dans le **processus principal** de Toque, rattaché à `ToqueApp` (pas à l'activité : il continue quand
-  l'écran change). Le service machine tourne dans un autre processus et ne connaît ni les recettes, ni la session de
-  cuisson, ni les préférences ; le serveur lit l'état de la machine par `MachineClient`, comme l'interface.
-- Aucune dépendance : `ServerSocket` + JSON maison (`core/json`). Un fil d'écoute, 8 connexions simultanées au plus
-  (au-delà : `503`), une réponse par connexion (`Connection: close`), sauf le flux SSE.
-- Le code est dans `core` (routage, JSON, cadence, serveur : testables sans Android) ; seule la liaison avec l'appli
-  (recettes, préférences, mDNS) est dans `app`.
-- **Lecture seule** : toute méthode autre que `GET` renvoie `405`. Aucun endpoint ne touche au moteur,
-  à la chauffe ou à la session. Les règles de `Safety.kt` ne sont donc pas concernées.
-- Désactivé par défaut. Réglages › Intégrations › Home Assistant : interrupteur, port, jeton.
-- Version d'API entière (`api`). Évolutions **additives** seulement dans une version ; un champ inconnu est ignoré.
+- The server lives in Toque's **main process**, attached to `ToqueApp` (not to the activity: it keeps running when the
+  screen changes). The machine service runs in another process and knows neither the recipes, nor the cooking session,
+  nor the preferences; the server reads the machine state through `MachineClient`, like the user interface does.
+- No dependency: `ServerSocket` + the in-house JSON code (`core/json`). One listener thread, at most 8 simultaneous
+  connections (`503` beyond), one response per connection (`Connection: close`), except the SSE stream.
+- The code is in `core` (routing, JSON, cadence, server: testable without Android); only the glue with the app
+  (recipes, preferences, mDNS) is in `app`.
+- **Read-only**: every method other than `GET` returns `405`. No endpoint touches the motor, the heater or the
+  session. The rules in `Safety.kt` are therefore not involved.
+- Off by default. Settings › Home Assistant: switch, port, token.
+- Integer API version (`api`). **Additive** changes only within a version; an unknown field is ignored.
 
-## 2. Découverte et accès
+## 2. Discovery and access
 
-- Service mDNS `_toque._tcp`, port par défaut **8765**. Enregistrements TXT : `api=1`, `id=<id stable>`,
-  `version=<version Toque>`, `name=<nom du robot>`.
-- Base : `http://<ip>:8765/api/v1`.
-- `GET /info` est public (sert à la découverte et à valider l'adresse). Tout le reste exige
-  `Authorization: Bearer <jeton>`.
-- Jeton : 32 octets aléatoires générés à l'activation, affichés sur l'écran du robot, régénérables.
-  Il est saisi une fois dans le config flow HA.
-- HTTP en clair sur le réseau local : limite assumée, comme ADB sur 5555. Le jeton ne protège pas contre
-  l'écoute du réseau, seulement contre un accès fortuit. À documenter.
-- Erreurs : JSON `{"error":"<code>","message":"…"}` avec `401`, `404`, `405`, `503` (machine ou base non prête).
+- mDNS service `_toque._tcp`, default port **8765**. TXT records: `api=1`, `id=<stable id>`,
+  `version=<Toque version>`, `name=<robot name>`.
+- Base: `http://<ip>:8765/api/v1`.
+- `GET /info` is public (used for discovery and to validate the address). Everything else requires
+  `Authorization: Bearer <token>`.
+- Token: 32 random bytes generated on activation, shown on the robot's screen, regenerable. It is entered once in the
+  HA config flow.
+- Plain HTTP on the local network: an accepted limit, like ADB on 5555. The token does not protect against someone
+  listening to the network, only against accidental access. To be documented.
+- Errors: JSON `{"error":"<code>","message":"…"}` with `401`, `404`, `405`, `503` (machine or base not ready).
 
 ## 3. Endpoints
 
@@ -46,16 +47,15 @@ Statut : **implémenté** (Réglages › Home Assistant, désactivé par défaut
 ```
 
 ### `GET /state`
-Instantané complet. `status` est calculé côté robot :
-`fault` (défaut actif) › `recipe` (session guidée active) › `running` (job ou Turbo actif, en pause compris) › `standby`.
-L'état « indisponible » n'existe pas côté robot : HA le déduit quand le robot ne répond plus.
+Full snapshot. `status` is computed on the robot:
+`fault` (active fault) › `recipe` (guided session active) › `running` (job or Turbo active, paused included) › `standby`.
+There is no "unavailable" state on the robot: HA deduces it when the robot stops answering.
 
-**Fraîcheur.** `snapshotAgeMs` est l'âge (ms) du dernier instantané reçu de la base moteur (`-1` : aucun reçu).
-Le service machine en émet au moins un par seconde ; au-delà de 3 s de silence, l'application passe `link` à
-`OFFLINE` et publie un `state` immédiatement, puis continue le signal de vie (5 s pendant un travail, 30 s sinon,
-avec un `snapshotAgeMs` qui grandit). HA doit donc considérer l'état comme inexploitable si `link` vaut
-`OFFLINE` ou `snapshotAgeMs` dépasse 5 s, et le robot comme indisponible si aucun `state` n'est reçu en 2× le
-signal de vie.
+**Freshness.** `snapshotAgeMs` is the age (ms) of the last snapshot received from the motor base (`-1`: none received).
+The machine service emits at least one per second; after 3 s of silence the application sets `link` to `OFFLINE` and
+publishes a `state` immediately, then keeps the heartbeat going (5 s during a job, 30 s otherwise, with a growing
+`snapshotAgeMs`). HA must therefore treat the state as unusable if `link` is `OFFLINE` or `snapshotAgeMs` exceeds 5 s,
+and the robot as unavailable if no `state` is received within twice the heartbeat.
 ```json
 {
   "ts": 1763700000, "snapshotAgeMs": 120, "status": "recipe", "screenOn": true,
@@ -72,47 +72,46 @@ signal de vie.
   "sessionId": "c1d2…"
 }
 ```
-`job` vaut `null` sans travail en cours, **y compris une fois le travail terminé ou arrêté** (le robot garde l'écran
-de fin affiché jusqu'à sa fermeture, ce que l'API ne montre pas) : la fin est annoncée une fois par l'événement
-`job_done` (§3, `/events`). Un travail déjà terminé quand l'application démarre ne produit pas d'événement.
-`fault` vaut `{"code":"…","message":"…"}` en cas de défaut ;
-`sessionId` vaut `null` hors recette. `screenOn` : `false` quand l'écran est éteint ou que Toque est en veille
-(« veille » côté utilisateur = `status: standby` et `screenOn: false` ; voir §7).
+`job` is `null` when no job is running, **including once the job has finished or been stopped** (the robot keeps its end
+screen displayed until it is closed, which the API does not show): the end is announced once by the `job_done` event
+(§3, `/events`). A job already finished when the application starts produces no event.
+`fault` is `{"code":"…","message":"…"}` when there is a fault; `sessionId` is `null` outside a recipe. `screenOn` is
+`false` when the screen is off or Toque is in standby ("standby" for the user = `status: standby` and
+`screenOn: false`; see §7).
 
-**Particularités de la base du SKMC 1200** (relevées sur un robot réel, firmware 4922) :
-- `targetTempC` est la température que **Toque demande** pour le travail en cours (celle de l'étape ou du réglage),
-  0 sans chauffe ou sans travail. Ce n'est pas l'écho de la base : elle ajuste sa consigne pendant la montée (relevé :
-  étape à 95 °C, consigne renvoyée 103 puis 97 ; à 45 °C, 51 ; à 65 °C, 72) et garde la dernière après l'arrêt ou
-  pendant une étape sans chauffe (51 °C restés pendant une étape à 0 °C).
-- `heaterOn` vaut `true` seulement si la base annonce la chauffe **et** que le travail demande une température
-  (`targetTempC > 0`). La base répond « moteur + chauffe » à tout programme standard, même sans chauffe demandée
-  (commande `STANDARD v3 t0`, fond du bol froid).
-- `tempC` plafonne bas : 0 tant que le contenu est sous 37 °C, puis la mesure suit (relevé : 37 → 55 °C en 1 min 30
-  avec 600 g d'eau, à 65 °C demandés).
-- `weightG` vaut `null` tant que le moteur tourne : la base renvoie alors 0, et la valeur revient à l'arrêt.
-- `rpm` (mesuré) et `speed` (niveau déduit du régime mesuré) restent à 0 en marche, `tempC` aussi sans chauffe
-  (constaté, lames vérifiées en rotation) : la base ne renvoie pas ces mesures dans ce mode. Le comportement de
-  `tempC` pendant une vraie chauffe n'a pas encore été relevé. Utiliser `targetSpeed`, le niveau de vitesse que la base annonce avoir
-  reçu (0 à l'arrêt), pour savoir à quelle vitesse tourne le moteur.
+**Quirks of the SKMC 1200 base** (observed on a real robot, firmware 4922):
+- `targetTempC` is the temperature that **Toque asks for** for the current job (the step's or the setting's), 0 without
+  heating or without a job. It is not the base's echo: the base adjusts its target during the rise (observed: step at
+  95 °C, target returned 103 then 97; at 45 °C, 51; at 65 °C, 72) and keeps the last one after stopping or during a step
+  without heating (51 °C stayed during a 0 °C step).
+- `heaterOn` is `true` only if the base announces heating **and** the job asks for a temperature (`targetTempC > 0`).
+  The base answers "motor + heater" to every standard program, even without heating requested (command
+  `STANDARD v3 t0`, cold bowl bottom).
+- `tempC` has a low floor: 0 as long as the contents are under 37 °C, then the measurement follows (observed: 37 → 55 °C
+  in 1 min 30 with 600 g of water, at 65 °C requested).
+- `weightG` is `null` while the motor runs: the base then returns 0, and the value comes back at standstill.
+- `rpm` (measured) and `speed` (level deduced from the measured speed) stay at 0 while running, and so does `tempC`
+  without heating (observed, blades checked to be turning): the base does not return these measurements in this mode.
+  The behaviour of `tempC` during a real heating phase has not been recorded yet. Use `targetSpeed`, the speed level the
+  base says it received (0 at standstill), to know how fast the motor is turning.
 
 ### `GET /diagnostics`
-Pour le développement, pas pour Home Assistant : ce que la base renvoie **brut** (`base` : `tempC`, `targetTempC`,
-`rpm`, `speed`, `targetSpeed`, `weightG`, `motorOn`, `heaterOn`, trame `rxHex`…), ce que Toque lui envoie (`sent` :
-opération, vitesse, niveau de température, `txHex`), le travail (`job`) et les compteurs de trames. Rien n'y est
-corrigé : `/state` en donne la lecture interprétée (chauffe, poids, consigne). Sert à comparer deux versions du robot
-ou de la base. Son contenu peut évoluer sans changer la version de l'API ;
-jeton obligatoire, lecture seule comme le reste.
+For development, not for Home Assistant: what the base returns **raw** (`base`: `tempC`, `targetTempC`, `rpm`, `speed`,
+`targetSpeed`, `weightG`, `motorOn`, `heaterOn`, `rxHex` frame…), what Toque sends it (`sent`: operation, speed,
+temperature level, `txHex`), the job (`job`) and the frame counters. Nothing is corrected there: `/state` gives the
+interpreted reading (heating, weight, target). Used to compare two versions of the robot or of the base. Its content may
+change without changing the API version; token required, read-only like the rest.
 
-`server` décrit les connexions du serveur (8 au plus ; au-delà, 503 `too_many_connections`) : `open` et `max`,
-`connections` (adresse distante, âge en ms, chemin demandé, `stream` pour le flux d'événements), et `refused` : le nombre
-de refus depuis le démarrage, l'ancienneté du dernier (`lastAgoMs`) et la liste des connexions qui tenaient alors les
-places. Quand le serveur est plein plus rien ne répond : `refused` se lit une fois une place libérée.
+`server` describes the server's connections (at most 8; beyond that, 503 `too_many_connections`): `open` and `max`,
+`connections` (remote address, age in ms, requested path, `stream` for the event stream), and `refused`: the number of
+refusals since start-up, the age of the last one (`lastAgoMs`) and the list of connections that held the slots at that
+moment. When the server is full nothing answers: `refused` can be read once a slot is free again.
 
-Un même client (adresse IP) garde au plus 3 flux `/events` : quand il en ouvre un de plus, le robot ferme les plus
-anciens. Un client qui reconnecte sans fermer l'ancien flux ne peut donc pas saturer le serveur.
+A single client (IP address) keeps at most 3 `/events` streams: when it opens one more, the robot closes the oldest.
+A client that reconnects without closing its previous stream therefore cannot fill up the server.
 
 ### `GET /session`
-`{"active": false}` hors recette. Sinon :
+`{"active": false}` outside a recipe. Otherwise:
 ```json
 {
   "active": true, "id": "c1d2…", "rev": 12,
@@ -127,19 +126,18 @@ anciens. Un client qui reconnecte sans fermer l'ancien flux ne peut donc pas sat
   "startedAt": 1763699000
 }
 ```
-- Étape **manuelle** = étape sans réglage machine (`Step.machine == null`) : ajout, pesée, geste.
-  Une étape avec réglage est `kind: "machine"` (`machine` contient `program`, `seconds`, `speed`, `tempC`,
-  `reverse`, `accessory`, `pulses`).
-- `lastManual` : plus grand index manuel **strictement inférieur** à `stepIndex`.
-  `nextManual` : plus petit index manuel **strictement supérieur**. Les deux valent `null` s'il n'y en a pas.
-  Si l'étape courante est manuelle, c'est `step`.
-- `awaiting` : `"user"` (action humaine attendue), `"machine"` (réglage prêt à lancer ou en cours), `null`.
-- `rev` augmente à chaque changement de la session ; `ingredients` reprend la forme de `RecipeCodec`
-  (quantités éventuellement adaptées par l'utilisateur).
+- A **manual** step is a step without a machine setting (`Step.machine == null`): adding, weighing, a gesture. A step with
+  a setting is `kind: "machine"` (`machine` contains `program`, `seconds`, `speed`, `tempC`, `reverse`, `accessory`,
+  `pulses`).
+- `lastManual`: the largest manual index **strictly lower** than `stepIndex`. `nextManual`: the smallest manual index
+  **strictly higher**. Both are `null` if there is none. If the current step is manual, it is `step`.
+- `awaiting`: `"user"` (a human action is awaited), `"machine"` (setting ready to start or running), `null`.
+- `rev` increases on every change of the session; `ingredients` uses the shape of `RecipeCodec` (quantities possibly
+  adapted by the user).
 
 ### `GET /recipes`
-Paramètres : `q` (recherche, même normalisation que l'appli), `category`, `favorite=1`, `limit`, `offset`.
-Renvoie des résumés et `rev` (change quand le catalogue change, utilisable en `ETag`).
+Parameters: `q` (search, same normalisation as the app), `category`, `favorite=1`, `limit`, `offset`.
+Returns summaries and `rev` (changes when the catalogue changes, usable as an `ETag`).
 ```json
 {"rev": 7, "total": 312, "recipes": [
   {"id": "veloute-de-potiron", "title": "Velouté de potiron", "category": "Soupe", "tags": ["automne"],
@@ -149,96 +147,95 @@ Renvoie des résumés et `rev` (change quand le catalogue change, utilisable en 
 ```
 
 ### `GET /recipes/{id}`
-Format `RecipeCodec.toMap` (ingrédients groupés, étapes avec `machine` et `weigh`, `notes`, `author`),
-plus `machineSteps`, `ingredientCount` et `imageUrl` (voir §8). `404` si inconnue.
-`difficulty` : 1 facile, 2 moyen, 3 difficile. « Type » (boisson, dessert…) = `category` + `tags`.
+`RecipeCodec.toMap` format (grouped ingredients, steps with `machine` and `weigh`, `notes`, `author`), plus
+`machineSteps`, `ingredientCount` and `imageUrl` (see §8). `404` if unknown. `difficulty`: 1 easy, 2 medium, 3 hard.
+"Type" (drink, dessert…) = `category` + `tags`.
 
 ### `GET /events` (SSE)
-Flux `text/event-stream`, un commentaire `:` de maintien toutes les 15 s, `id:` croissant, reprise par `Last-Event-ID`
-(rejeu des 50 derniers événements au plus). À la connexion, le flux envoie d'abord l'état courant (`state` puis
-`session`, sans `id:`), pour que le client n'ait pas à interroger l'API en plus.
+`text/event-stream` stream, a `:` keep-alive comment every 15 s, increasing `id:`, resume with `Last-Event-ID` (replay of
+at most the last 50 events). On connection the stream first sends the current state (`state` then `session`, without
+`id:`), so that the client does not need to query the API as well.
 
-Les `id:` repartent de 1 quand l'application du robot redémarre (mise à jour, arrêt). Un `Last-Event-ID` plus grand que le
-dernier identifiant émis vient donc d'avant ce redémarrage : le robot l'ignore (pas de rejeu) et envoie tous les événements
-suivants. Le client n'a rien à faire de plus.
+The `id:` values restart at 1 when the robot's application restarts (update, stop). A `Last-Event-ID` greater than the
+last identifier emitted therefore predates that restart: the robot ignores it (no replay) and sends all the following
+events. The client has nothing more to do.
 
-| `event:` | Quand | `data:` |
+| `event:` | When | `data:` |
 |---|---|---|
-| `state` | changement de `status`, de job, de défaut ; sinon cadence réduite (voir §4) | même forme que `/state` |
-| `session` | début, fin, changement d'étape ou de `awaiting` | même forme que `/session` |
-| `step` | passage à une nouvelle étape | `{"sessionId","index","kind","text"}` |
-| `done` | fin de recette ou abandon | `{"sessionId","recipeId","result":"finished|aborted"}` |
-| `job_done` | un travail machine en cours se termine ou est arrêté (une fois) | `{"kind","label","result":"finished|aborted","reason","totalS"}` |
-| `fault` | défaut apparu ou levé | `{"code","message","active"}` |
-| `recipes` | catalogue modifié (synchro, import) | `{"rev":8,"total":315}` |
+| `state` | change of `status`, job or fault; otherwise reduced cadence (see §4) | same shape as `/state` |
+| `session` | start, end, change of step or of `awaiting` | same shape as `/session` |
+| `step` | move to a new step | `{"sessionId","index","kind","text"}` |
+| `done` | end of recipe or abandon | `{"sessionId","recipeId","result":"finished|aborted"}` |
+| `job_done` | a running machine job ends or is stopped (once) | `{"kind","label","result":"finished|aborted","reason","totalS"}` |
+| `fault` | fault raised or cleared | `{"code","message","active"}` |
+| `recipes` | catalogue modified (sync, import) | `{"rev":8,"total":315}` |
 
-## 4. Cadence (protéger la base de HA)
+## 4. Cadence (protecting HA's database)
 
-Le `Snapshot` interne sort à ~10 Hz ; l'API n'en expose pas le détail.
-- Température : seulement si l'écart ≥ 1 °C ; tr/min : écart ≥ 50 ; poids : écart ≥ 2 g. Au plus un `state` par
-  seconde pour ces variations.
-- Poids au repos (ni travail ni recette en cours) : la balance dérive de quelques grammes, donc écart ≥ 5 g et au plus
-  un `state` toutes les 10 s pour le poids seul. Pendant un travail ou une recette, le seuil reste 2 g.
-- Signal de vie : un `state` au moins toutes les 5 s pendant un job (le temps restant avance), toutes les 30 s sinon.
-- Les changements de `status`, couvercle, bol, moteur, chauffe, défaut, job, phase, session et écran partent
-  immédiatement.
+The internal `Snapshot` is produced at ~10 Hz; the API does not expose that detail.
+- Temperature: only if it moves by ≥ 1 °C; rpm: change ≥ 50; weight: change ≥ 2 g. At most one `state` per second for
+  these variations.
+- Weight at rest (no job and no recipe in progress): the scale drifts by a few grams, so the change must be ≥ 5 g and
+  there is at most one `state` every 10 s for weight alone. During a job or a recipe the threshold stays at 2 g.
+- Heartbeat: a `state` at least every 5 s during a job (the remaining time moves), every 30 s otherwise.
+- Changes of `status`, lid, bowl, motor, heater, fault, job, phase, session and screen go out immediately.
 
-## 5. Modèle interne à créer dans `core`
+## 5. Internal model in `core`
 
-`CookSession` / `CookSessions` (pur Kotlin : recette, `stepIndex`, étapes faites, `awaiting`, `startedAt`, `rev`),
-pilotées par `CookScreen` et enregistrées dans `prefs.cookSession` par `ToqueApp` : **fait** (commit `cecc9a2`).
-Reste à tester dans `core` : le routage, les formats JSON, les seuils de cadence et le serveur (sockets locales).
+`CookSession` / `CookSessions` (pure Kotlin: recipe, `stepIndex`, finished steps, `awaiting`, `startedAt`, `rev`), driven
+by `CookScreen` and saved in `prefs.cookSession` by `ToqueApp`. Routing, JSON formats, cadence thresholds and the server
+(local sockets) are tested in `core`.
 
-## 6. Entités Home Assistant (dépôt `toque-homeassistant`)
+## 6. Home Assistant entities (`toque-homeassistant` repository)
 
-Un appareil par robot (`id`) ; `sw_version` = version de Toque, `model` = SKMC 1200, `hw_version` = firmware carte.
-Config flow : découverte `zeroconf` (`_toque._tcp`) puis jeton. Mise à jour : SSE, avec interrogation de `/state`
-toutes les 60 s en repli ; indisponible si plus de réponse.
+One device per robot (`id`); `sw_version` = Toque version, `model` = SKMC 1200, `hw_version` = board firmware.
+Config flow: `zeroconf` discovery (`_toque._tcp`) then the token. Updates: SSE, with a fallback poll of `/state` every
+60 s; unavailable when there is no more answer.
 
-| Entité | Source |
+| Entity | Source |
 |---|---|
-| `sensor` État (enum : `standby`, `running`, `recipe`, `fault`) | `status` |
-| `sensor` Température, Consigne, Vitesse (tr/min), Poids, Temps restant | `machine`, `job` |
-| `binary_sensor` Couvercle ouvert, Bol présent, Moteur, Chauffe, Défaut | `machine`, `fault` |
-| `sensor` Recette en cours (titre), Étape (`n/N`) | `session` |
-| `sensor` Étape en cours, Dernière étape manuelle, Prochaine étape manuelle | `session` ; **état = 255 caractères au plus, texte complet en attribut** |
-| attribut `ingredients` de la recette en cours | `session.ingredients` (à exclure du recorder) |
-| `event` Cuisine (`step`, `action_requise`, `done`, `job_done`, `fault`) | `/events` |
-| `sensor` Nombre de recettes (diagnostic) | `recipeCount` |
-| Services avec réponse `toque.list_recipes`, `toque.get_recipe` | `/recipes`, `/recipes/{id}` |
-| Action `todo` : ajouter les ingrédients d'une recette à une liste de courses | `/recipes/{id}` |
+| `sensor` State (enum: `standby`, `running`, `recipe`, `fault`) | `status` |
+| `sensor` Temperature, Target, Speed (rpm), Weight, Remaining time | `machine`, `job` |
+| `binary_sensor` Lid open, Bowl present, Motor, Heater, Fault | `machine`, `fault` |
+| `sensor` Current recipe (title), Step (`n/N`) | `session` |
+| `sensor` Current step, Last manual step, Next manual step | `session`; **state = 255 characters at most, full text as an attribute** |
+| `ingredients` attribute of the current recipe | `session.ingredients` (to exclude from the recorder) |
+| `event` Cooking (`step`, `action_requise`, `done`, `job_done`, `fault`) | `/events` |
+| `sensor` Recipe count (diagnostic) | `recipeCount` |
+| Services with a response `toque.list_recipes`, `toque.get_recipe` | `/recipes`, `/recipes/{id}` |
+| `todo` action: add a recipe's ingredients to a shopping list | `/recipes/{id}` |
 
-Diagnostics (firmware, version d'Android, uptime, adresse IP) : catégorie `diagnostic`, inactifs par défaut.
+Diagnostics (firmware, Android version, uptime, IP address): `diagnostic` category, disabled by default.
 
-## 7. Décisions
+## 7. Decisions
 
-- **`screenOn`** : champ de `/state`, faux quand l'écran Android est éteint **ou** quand Toque est en veille (écran
-  noir avec l'heure, rétroéclairage au minimum : Android, lui, reste éveillé, donc `PowerManager.isInteractive` seul
-  ne voit jamais cette veille — constaté sur le robot). « Veille » côté utilisateur = `status: standby` et
-  `screenOn: false`. Un événement `state` part à chaque entrée ou sortie de veille.
-- **Images** : servies par le robot, `GET /recipes/{id}/image`. Voir §8.
-- **Nom éditable** : Réglages › Intégrations › Home Assistant › Nom du robot (défaut : « Monsieur Cuisine »).
-  Il apparaît dans `/info.name`, dans le TXT mDNS `name` et comme nom d'appareil HA. L'`id` reste stable et
-  sert d'identifiant unique HA : renommer le robot ne crée pas un second appareil.
-- **Identifiant de session conservé** : `CookSession.id` est enregistré avec la session (là où `guidedRecipe` /
-  `guidedStep` le sont aujourd'hui). Après un redémarrage de l'appli ou du robot, la session reprise garde son `id`
-  et sa `rev` continue de croître. Un nouvel `id` n'apparaît que pour une nouvelle recette lancée.
+- **`screenOn`**: field of `/state`, false when the Android screen is off **or** Toque is in standby (black screen with
+  the clock, backlight at minimum: Android itself stays awake, so `PowerManager.isInteractive` alone never sees this
+  standby — observed on the robot). "Standby" for the user = `status: standby` and `screenOn: false`. A `state` event is
+  sent each time standby is entered or left.
+- **Images**: served by the robot, `GET /recipes/{id}/image`. See §8.
+- **Editable name**: Settings › Home Assistant › Robot name (default: "Monsieur Cuisine"). It appears in `/info.name`,
+  in the mDNS TXT `name` and as the HA device name. The `id` stays stable and serves as the HA unique identifier:
+  renaming the robot does not create a second device.
+- **Session identifier kept**: `CookSession.id` is saved with the session (where `guidedRecipe` / `guidedStep` used to
+  be). After an application or robot restart, the resumed session keeps its `id` and its `rev` keeps growing. A new `id`
+  only appears for a new recipe being started.
 
 ## 8. Images
 
-- `recipe.image` (URL d'origine) reste dans le JSON ; en plus, chaque résumé et détail porte
-  `"imageUrl": "/api/v1/recipes/{id}/image"` quand le fichier est déjà en cache, sinon `null`.
-- Le point d'accès renvoie **le fichier en cache tel quel** (`OnlineSync` l'a déjà redimensionné et recompressé) :
-  pas de décodage ni de redimensionnement côté API, donc un coût processeur proche de zéro (une lecture de fichier).
-- `ETag` (taille + date du fichier) et `Cache-Control: max-age=86400` : HA ne retélécharge pas une image inchangée.
-- Garde-fous : un seul envoi d'image à la fois, lecture par blocs de 16 Kio, `404` si non cachée (jamais de
-  téléchargement déclenché par l'API), et pas d'image pendant un job actif (`503` avec `Retry-After: 5`) pour ne pas
-  gêner la boucle de communication avec la carte. L'intégration HA demande ses images au démarrage et à l'événement
-  `recipes`, pas en continu.
-- À mesurer pendant l'implémentation : durée d'un envoi sur le MT6580 pendant un job. Si la boucle machine en souffre,
-  la règle « pas d'image pendant un job » reste la protection.
+- `recipe.image` (original URL) stays in the JSON; in addition, every summary and detail carries
+  `"imageUrl": "/api/v1/recipes/{id}/image"` when the file is already cached, otherwise `null`.
+- The endpoint returns **the cached file as is** (`OnlineSync` has already resized and recompressed it): no decoding or
+  resizing on the API side, hence a CPU cost close to zero (one file read).
+- `ETag` (file size + date) and `Cache-Control: max-age=86400`: HA does not download an unchanged image again.
+- Safeguards: only one image sent at a time, reading in 16 KiB blocks, `404` if not cached (a download is never
+  triggered by the API), and no image during an active job (`503` with `Retry-After: 5`) so as not to disturb the
+  communication loop with the board. The HA integration asks for its images at start-up and on the `recipes` event, not
+  continuously.
+- To measure during implementation: how long a transfer takes on the MT6580 during a job. If the machine loop suffers,
+  the "no image during a job" rule remains the protection.
 
-## 9. Points encore ouverts
+## 9. Still open
 
-- Une recette lancée depuis HA n'existe pas (lecture seule) : rien à décider.
-- Rétention des images en cache : aujourd'hui sans limite connue, à vérifier avant d'annoncer `imageUrl` pour tout le catalogue.
+- A recipe started from HA does not exist (read-only): nothing to decide.
+- Retention of cached images: no known limit today, to be checked before announcing `imageUrl` for the whole catalogue.
