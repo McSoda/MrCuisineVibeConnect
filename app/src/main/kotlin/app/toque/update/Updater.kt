@@ -66,7 +66,7 @@ class Updater(private val context: Context) {
         val dir = File(context.cacheDir, "maj")
         dir.mkdirs()
         dir.listFiles()?.forEach { it.delete() }
-        val file = File(dir, "Toque-${r.version}.apk")
+        val file = File(dir, "${Releases.APK_PREFIX}${r.version}.apk")
         val c = open(url, "application/octet-stream")
         try {
             if (c.responseCode != 200) throw Failure(tr("Téléchargement refusé (code %d)", c.responseCode))
