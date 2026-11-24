@@ -367,6 +367,9 @@ class HttpServer(
         c.soTimeout = 0
         val queue = LinkedBlockingQueue<ApiEvent>(QUEUE_CAPACITY)
         val unsubscribe = bus.subscribe { e -> if (!queue.offer(e)) try { c.close() } catch (_: IOException) {} }
+        // Lu tout de suite après l'abonnement, avant la moindre écriture : un événement publié pendant l'envoi des
+        // premières trames est dans la file avec un identifiant plus grand, il sera donc envoyé et non perdu.
+        val startId = bus.lastId
         try {
             out.write(("HTTP/1.1 200 OK\r\nServer: Toque\r\nContent-Type: text/event-stream\r\n" +
                 "Cache-Control: no-cache\r\nX-Accel-Buffering: no\r\nConnection: close\r\n\r\n").toByteArray(Charsets.ISO_8859_1))
@@ -375,8 +378,8 @@ class HttpServer(
             out.flush()
             // Un identifiant plus grand que le dernier émis vient d'avant un redémarrage (les identifiants repartent de 1) :
             // le suivre ferait ignorer tous les événements jusqu'à ce que le compteur le rattrape.
-            val resume = lastEventId?.takeIf { it <= bus.lastId }
-            var lastSent = resume ?: bus.lastId
+            val resume = lastEventId?.takeIf { it <= startId }
+            var lastSent = resume ?: startId
             if (resume != null) for (e in bus.since(resume)) {
                 out.write(frame(e.id, e.name, e.data))
                 lastSent = e.id
