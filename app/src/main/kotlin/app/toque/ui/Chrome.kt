@@ -46,6 +46,7 @@ abstract class Screen(val a: MainActivity) {
 /** Barre supérieure : retour, titre, minuteurs, état de la base, heure. */
 class TopBar(private val a: MainActivity) : LinearLayout(a) {
     private val back = Icon(a, Icon.Kind.BACK, Ui.TEXT)
+    private val backGroup = Ui.horizontal(a, Gravity.CENTER_VERTICAL)
     private val titleView = Ui.ellipsize(Ui.text(a, "", 24f, Ui.TEXT, Ui.MEDIUM))
     private val temp = barChip("", Icon.Kind.THERMO, Ui.TEXT2)
     private val tempIcon = temp.getChildAt(0) as Icon
@@ -88,8 +89,12 @@ class TopBar(private val a: MainActivity) : LinearLayout(a) {
         setPadding(Ui.u(10), Ui.u(TOP_GAP), Ui.u(18), 0)
         // Transparente : le dégradé du fond passe aussi derrière la barre du haut.
         roundButton(back) { a.back() }
-        addView(back, LayoutParams(Ui.u(TOUCH), Ui.u(TOUCH)))
-        addView(titleView, LayoutParams(0, Ui.WRAP, 1f).apply { leftMargin = Ui.u(6) })
+        backGroup.addView(back, LayoutParams(Ui.u(TOUCH), Ui.u(TOUCH)))
+        backGroup.addView(titleView, LayoutParams(Ui.WRAP, Ui.WRAP).apply { leftMargin = Ui.u(6) })
+        backGroup.setOnClickListener { a.back() }
+        val leftSlot = Ui.horizontal(a, Gravity.CENTER_VERTICAL)
+        leftSlot.addView(backGroup, LayoutParams(Ui.WRAP, Ui.WRAP))
+        addView(leftSlot, LayoutParams(0, Ui.WRAP, 1f))
         roundButton(timerButton) { TimerPanel.open(a) }
         timerButton.contentDescription = tr("Minuteur")
         addView(timerButton, LayoutParams(Ui.u(TOUCH), Ui.u(TOUCH)).apply { rightMargin = Ui.u(4) })
@@ -187,6 +192,7 @@ class TopBar(private val a: MainActivity) : LinearLayout(a) {
     fun setTitle(t: String, canGoBack: Boolean) {
         titleView.text = t
         back.visibility = if (canGoBack) View.VISIBLE else View.INVISIBLE
+        backGroup.isClickable = canGoBack
         home.visibility = if (canGoBack) View.VISIBLE else View.GONE
     }
 
