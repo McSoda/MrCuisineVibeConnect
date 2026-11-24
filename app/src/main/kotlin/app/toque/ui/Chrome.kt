@@ -23,6 +23,7 @@ import app.toque.core.machine.Snapshot
 /** Écran de l'appli (vue construite une fois, réutilisée). */
 abstract class Screen(val a: MainActivity) {
     abstract val title: String
+    open val titleCounter: String? get() = null
     val view: View by lazy { build() }
     val c: Context get() = a
 
@@ -46,7 +47,16 @@ abstract class Screen(val a: MainActivity) {
 /** Barre supérieure : retour, titre, minuteurs, état de la base, heure. */
 class TopBar(private val a: MainActivity) : LinearLayout(a) {
     private val back = Icon(a, Icon.Kind.BACK, Ui.TEXT)
-    private val titleView = Ui.ellipsize(Ui.text(a, "", 24f, Ui.TEXT, Ui.MEDIUM))
+    private val titleBox = LinearLayout(a).apply {
+        orientation = HORIZONTAL
+        isBaselineAligned = true
+    }
+    private val titleView = Ui.ellipsize(Ui.text(a, "", 24f, Ui.TEXT, Ui.MEDIUM)).apply {
+        includeFontPadding = false
+    }
+    private val counterView = Ui.text(a, "", 18f, Ui.TEXT2, Ui.LIGHT).apply {
+        includeFontPadding = false
+    }
     private val temp = barChip("", Icon.Kind.THERMO, Ui.TEXT2)
     private val tempIcon = temp.getChildAt(0) as Icon
     /** Triangle rouge sur la température, qui clignote tant que le bol est chaud (≥ 60 °C). */
@@ -89,7 +99,10 @@ class TopBar(private val a: MainActivity) : LinearLayout(a) {
         // Transparente : le dégradé du fond passe aussi derrière la barre du haut.
         roundButton(back) { a.back() }
         addView(back, LayoutParams(Ui.u(TOUCH), Ui.u(TOUCH)))
-        addView(titleView, LayoutParams(0, Ui.WRAP, 1f).apply { leftMargin = Ui.u(6) })
+        titleBox.addView(titleView)
+        titleBox.addView(counterView, LayoutParams(Ui.WRAP, Ui.WRAP).apply { leftMargin = Ui.u(10) })
+        counterView.visibility = View.GONE
+        addView(titleBox, LayoutParams(0, Ui.WRAP, 1f).apply { leftMargin = Ui.u(6) })
         roundButton(timerButton) { TimerPanel.open(a) }
         timerButton.contentDescription = tr("Minuteur")
         addView(timerButton, LayoutParams(Ui.u(TOUCH), Ui.u(TOUCH)).apply { rightMargin = Ui.u(4) })
@@ -184,8 +197,14 @@ class TopBar(private val a: MainActivity) : LinearLayout(a) {
         timerCount.visibility = if (running.size > 1) View.VISIBLE else View.GONE
     }
 
-    fun setTitle(t: String, canGoBack: Boolean) {
+    fun setTitle(t: String, counter: String? = null, canGoBack: Boolean) {
         titleView.text = t
+        if (!counter.isNullOrBlank()) {
+            counterView.text = counter
+            counterView.visibility = View.VISIBLE
+        } else {
+            counterView.visibility = View.GONE
+        }
         back.visibility = if (canGoBack) View.VISIBLE else View.INVISIBLE
         home.visibility = if (canGoBack) View.VISIBLE else View.GONE
     }
