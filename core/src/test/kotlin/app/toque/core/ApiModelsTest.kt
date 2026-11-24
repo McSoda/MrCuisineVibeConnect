@@ -7,6 +7,7 @@ import app.toque.core.json.list
 import app.toque.core.json.obj
 import app.toque.core.machine.LinkState
 import app.toque.core.machine.Snapshot
+import app.toque.core.robot.RobotProfiles
 import app.toque.core.recipes.CookSession
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -197,5 +198,16 @@ class ApiModelsTest {
         assertEquals(mapOf("version" to "0.5.6", "build" to 13), m["toque"])
         assertEquals(mapOf("firmware" to 12), m["board"])
         assertEquals(5L, m["recipesRev"])
+    }
+
+    @Test
+    fun infoModelFollowsTheRobotProfile() {
+        // Le modèle annoncé vient de la fiche du robot choisi, jamais de la valeur par défaut du Connect.
+        for (p in RobotProfiles.ALL) {
+            val d = FakeBackend().device.copy(model = p.models.first())
+            assertEquals(p.models.first(), ApiModels.info(d, 0, 0, 0)["model"])
+        }
+        assertEquals("SKMS 1200", RobotProfiles.MC_SMART.models.first())
+        assertEquals("SKMC 1200", RobotProfiles.MC_CONNECT.models.first())
     }
 }

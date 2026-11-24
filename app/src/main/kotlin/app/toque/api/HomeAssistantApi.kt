@@ -224,6 +224,8 @@ class HomeAssistantApi(private val app: ToqueApp) : ApiBackend {
         get() = DeviceInfo(
             id = app.prefs.deviceId,
             name = app.prefs.haName,
+            // Référence du robot choisi dans Toque (la première de sa fiche : « SKMC 1200 », « SKMS 1200 »).
+            model = app.prefs.robot.models.first(),
             toqueVersion = versionName,
             toqueBuild = versionCode,
             androidRelease = Build.VERSION.RELEASE ?: "",
