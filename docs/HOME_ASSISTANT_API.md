@@ -166,7 +166,7 @@ events. The client has nothing more to do.
 | `session` | start, end, change of step or of `awaiting` | same shape as `/session` |
 | `step` | move to a new step | `{"sessionId","index","kind","text"}` |
 | `done` | end of recipe or abandon | `{"sessionId","recipeId","result":"finished|aborted"}` |
-| `job_done` | a running machine job ends or is stopped (once) | `{"kind","label","result":"finished|aborted","reason","totalS"}` |
+| `job_done` | a running machine job ends or is stopped (once) | `{"id","kind","label","result":"finished|aborted","reason","totalS"}` (`id`: one per job, to tell two identical ends apart, e.g. after a reconnection) |
 | `fault` | fault raised or cleared | `{"code","message","active"}` |
 | `recipes` | catalogue modified (sync, import) | `{"rev":8,"total":315}` |
 

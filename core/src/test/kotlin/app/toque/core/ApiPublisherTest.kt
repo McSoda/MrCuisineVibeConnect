@@ -186,6 +186,20 @@ class ApiPublisherTest {
     }
 
     @Test
+    fun eachJobEndCarriesItsOwnId() {
+        pub.onSnapshot()
+        for (round in 1..2) {
+            now += 1000; backend.snap = job("RUNNING"); pub.onSnapshot()
+            now += 10; backend.snap = job("FINISHED"); pub.onSnapshot()
+            now += 10; backend.snap = backend.snap.copy(jobActive = false, jobState = ""); pub.onSnapshot()
+        }
+        val ids = jobDone().map { Json.parse(it.data).obj()["id"] as String }
+        assertEquals(2, ids.size)
+        assertTrue(ids.all { it.startsWith("j") })
+        assertTrue("deux fins identiques ont deux identifiants", ids[0] != ids[1])
+    }
+
+    @Test
     fun anAbortedJobIsReportedAsAborted() {
         pub.onSnapshot()
         now += 10; backend.snap = job("RUNNING"); pub.onSnapshot()

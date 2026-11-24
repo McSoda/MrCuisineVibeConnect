@@ -94,6 +94,16 @@ class ApiModelsTest {
     }
 
     @Test
+    fun targetTemperatureComesFromThePhaseNotFromTheConnectTable() {
+        // Smart : un programme à 40 °C ou à une température hors de la table du Connect ; le niveau de Toque n'est
+        // qu'approché (6 = 65 °C pour la table du Connect).
+        fun target(s: Snapshot) = (machineOf(s)["targetTempC"] as Number).toInt()
+        val smart = idle.copy(jobActive = true, jobState = "RUNNING", jobTempLevel = 6, jobTempC = 40)
+        assertEquals(40, target(smart))
+        assertEquals(0, target(smart.copy(jobTempLevel = 0, jobTempC = 0)))
+    }
+
+    @Test
     fun weightIsUnknownWhileTheMotorRuns() {
         assertEquals(null, machineOf(idle.copy(motorOn = true, weightG = 0))["weightG"])
         assertEquals(1245, (machineOf(idle.copy(weightG = 1245))["weightG"] as Number).toInt())

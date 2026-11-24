@@ -89,6 +89,7 @@ class ApiPublisher(
     private var jobWasOngoing = false
     private var lastJobKind = ""
     private var lastJobLabel = ""
+    private var lastJobId = ""
 
     private fun key(): Key {
         val s = backend.snapshot
@@ -142,6 +143,8 @@ class ApiPublisher(
      */
     private fun publishJobEnd(s: Snapshot) {
         if (s.jobOngoing) {
+            // Identifiant du travail : l'heure à laquelle on l'a vu commencer ; il distingue deux fins identiques.
+            if (!jobWasOngoing) lastJobId = "j" + clockMs()
             jobWasOngoing = true
             lastJobKind = s.jobKind
             lastJobLabel = s.jobLabel
@@ -151,7 +154,7 @@ class ApiPublisher(
         jobWasOngoing = false
         if (!s.jobEnded) return
         bus.publish("job_done", linkedMapOf(
-            "kind" to lastJobKind, "label" to lastJobLabel,
+            "id" to lastJobId, "kind" to lastJobKind, "label" to lastJobLabel,
             "result" to if (s.state == JobState.FINISHED) "finished" else "aborted",
             "reason" to s.endReason, "totalS" to s.totalMs / 1000,
         ))

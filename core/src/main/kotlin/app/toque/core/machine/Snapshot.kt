@@ -95,7 +95,10 @@ data class Snapshot(
      * [targetTempC], la consigne que la base renvoie : elle l'ajuste pendant la montée (recette à 95 °C : 97 à 103) et
      * garde la dernière après l'arrêt ou pour un travail sans chauffe (relevé : 51 °C restés pendant une étape à 0 °C).
      */
-    val commandedTempC: Int get() = if (jobOngoing && jobTempLevel > 0) Mcc.celsiusForLevel(jobTempLevel) else 0
+    val commandedTempC: Int get() =
+        // [jobTempC] d'abord : la température de la phase, y compris les 40 °C et les programmes du Smart, que la table du
+        // Connect ne connaît pas. La table ne sert que si l'instantané n'a pas cette valeur (anciens instantanés).
+        if (jobOngoing && jobTempLevel > 0) jobTempC.takeIf { it > 0 } ?: Mcc.celsiusForLevel(jobTempLevel) else 0
 
     /** La base renvoie un poids de 0 tant que le moteur tourne (constaté sur le robot) : il n'est pas lisible alors. */
     val weightValid: Boolean get() = !motorOn
