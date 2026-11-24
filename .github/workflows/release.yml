@@ -40,14 +40,12 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Tests and build (Connect, then Smart)
+      - name: Tests and build (Connect)
         if: steps.version.outputs.publish == 'true'
         run: |
           v="${{ steps.version.outputs.name }}"
           ./gradlew --no-daemon :core:test :app:assembleRelease
-          cp app/build/outputs/apk/release/app-release.apk "Toque-$v.apk"
-          ./gradlew --no-daemon :app:assembleRelease -PtoqueSmart=true
-          cp app/build/outputs/apk/release/app-release.apk "Toque-smart-$v.apk"
+          cp app/build/outputs/apk/release/app-release.apk "MCC-285-Toque-$v.apk"
 
       - name: Publish on GitHub
         if: steps.version.outputs.publish == 'true'
@@ -58,6 +56,5 @@ jobs:
           prev=$(git describe --tags --abbrev=0 2>/dev/null || true)
           if [ -n "$prev" ]; then range="$prev..HEAD"; else range="HEAD"; fi
           git log --no-merges --pretty='- %s' $range > notes.md
-          # The Connect APK first: older Toque versions take the first APK of the release.
-          gh release create "v$v" "Toque-$v.apk" --title "Toque $v" --notes-file notes.md --target "$GITHUB_SHA"
-          gh release upload "v$v" "Toque-smart-$v.apk"
+          # This fork only publishes the Connect APK (the Smart one comes from the original repository).
+          gh release create "v$v" "MCC-285-Toque-$v.apk" --title "Toque $v (MCC 285)" --notes-file notes.md --target "$GITHUB_SHA"

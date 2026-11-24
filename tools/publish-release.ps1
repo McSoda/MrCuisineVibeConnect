@@ -2,7 +2,7 @@
 # when GitHub Actions is available): tag vX.Y.Z, release notes from the commits, the APK attached.
 # Robots then find it in Settings > Updates, and toque-setup.ps1 downloads it.
 #
-#   powershell -ExecutionPolicy Bypass -File tools\publish-release.ps1 -Apk Toque-0.8.0.apk -SmartApk Toque-smart-0.8.0.apk [-RepoInfo]
+#   powershell -ExecutionPolicy Bypass -File tools\publish-release.ps1 -Apk MCC-285-Toque-0.8.2.1.apk [-RepoInfo]
 #
 # -Apk: the Connect APK (gradlew assembleRelease), attached first: older Toque versions take the first APK.
 # -SmartApk: the Smart APK (gradlew assembleRelease -PtoqueSmart=true), attached as Toque-smart-X.Y.Z.apk.
@@ -12,7 +12,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$Apk,
     [string]$SmartApk = "",
-    [string]$Repo = "Wuki60/MrCuisineVibeConnect",
+    [string]$Repo = "McSoda/MrCuisineVibeConnect",
     [switch]$RepoInfo,
     # Pre-release: on GitHub but not offered to robots (they read /releases/latest) until -Promote.
     [switch]$Prerelease,
@@ -72,7 +72,7 @@ if ($Promote -and $release.prerelease) {
     Write-Host "Release $tag is now the latest version: robots will be offered it."
 }
 
-$name = "Toque-$version.apk"
+$name = "MCC-285-Toque-$version.apk"
 if (-not ($release.assets | Where-Object { $_.name -eq $name })) {
     $upload = "https://uploads.github.com/repos/$Repo/releases/$($release.id)/assets?name=$name"
     Invoke-RestMethod -Method Post -Uri $upload -Headers $h -InFile $Apk -ContentType "application/vnd.android.package-archive" | Out-Null

@@ -16,6 +16,7 @@ import app.toque.core.recipes.McCategories
 import app.toque.core.recipes.McOnline
 import app.toque.core.recipes.Recipe
 import app.toque.core.recipes.UserRecipes
+import app.toque.core.update.Releases
 import app.toque.core.robot.RobotProfiles
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -276,7 +277,7 @@ class OnlineSync(private val context: Context, private val prefs: Prefs, private
             try {
                 c.connectTimeout = 20_000
                 c.readTimeout = 30_000
-                c.setRequestProperty("User-Agent", "Toque/$version (Android; +https://github.com/Wuki60/MrCuisineVibeConnect)")
+                c.setRequestProperty("User-Agent", "Toque/$version (Android; +https://github.com/${Releases.REPO})")
                 for ((k, v) in headers) c.setRequestProperty(k, v)
                 val code = c.responseCode
                 if ((code == 429 || code >= 500) && attempt < 4) {
