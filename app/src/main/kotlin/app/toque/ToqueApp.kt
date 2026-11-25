@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Process
 import app.toque.api.HomeAssistantApi
+import app.toque.companion.RobotCompanion
 import app.toque.core.i18n.I18n
 import app.toque.core.robot.RobotProfiles
 import app.toque.core.json.Json
@@ -22,15 +23,18 @@ import java.util.Locale
 import java.util.UUID
 import javax.net.ssl.HttpsURLConnection
 
-class ToqueApp : Application() {
+open class ToqueApp : Application() {
     lateinit var prefs: Prefs
         private set
     lateinit var log: Logbook
         private set
     val machine: MachineClient by lazy { MachineClient(this) }
-    val recipes: RecipeRepo by lazy { RecipeRepo(this) }
+    val recipes: RecipeRepo by lazy { RecipeRepo(this, log) }
     /** toqueapp.org : compte relié, recettes de la communauté. */
     val site: app.toque.site.SiteAccount by lazy { app.toque.site.SiteAccount(this) }
+    /** Toque Compagnon (téléphones sur le Wi-Fi) ; processus de l'interface seulement, null s'il n'a pas pu démarrer. */
+    var companion: RobotCompanion? = null
+        private set
 
     /** L'API locale pour Home Assistant (désactivée tant que l'utilisateur ne l'active pas dans les Réglages). */
     val homeAssistant: HomeAssistantApi by lazy { HomeAssistantApi(this) }
@@ -60,9 +64,11 @@ class ToqueApp : Application() {
             val saved = if (text.isNotBlank()) {
                 CookSession.fromMap(Json.parse(text).obj()) { recipes.getAdjusted(it) }
             } else {
-                // Ancien format : recette + étape, sans identifiant de session.
-                prefs.takeLegacyGuided()?.let { (id, step) ->
-                    recipes.getAdjusted(id)?.let { r ->
+                // Sans session enregistrée (version d'avant, ou recette + étape seules) : une nouvelle, à la même étape.
+                val id = prefs.guidedRecipe
+                val step = prefs.guidedStep
+                id.takeIf { it.isNotEmpty() }?.let {
+                    recipes.getAdjusted(it)?.let { r ->
                         CookSession(
                             UUID.randomUUID().toString(), r,
                             stepIndex = step.coerceIn(0, maxOf(0, r.steps.size - 1)),
@@ -115,15 +121,40 @@ class ToqueApp : Application() {
         }
         cook.addListener { e ->
             when (e) {
-                is CookEvent.Changed -> prefs.cookSession = Json.write(e.session.toMap())
-                is CookEvent.Ended -> prefs.cookSession = ""
+                // La recette et l'étape sont aussi gardées à part : l'accueil et le compagnon les lisent.
+                is CookEvent.Changed -> {
+                    prefs.cookSession = Json.write(e.session.toMap())
+                    prefs.guidedRecipe = e.session.recipe.id
+                    prefs.guidedStep = e.session.stepIndex
+                }
+                is CookEvent.Ended -> {
+                    prefs.cookSession = ""
+                    prefs.guidedRecipe = ""
+                }
                 is CookEvent.StepChanged -> Unit
             }
         }
         log.write("interface", "démarrage")
+        startBackground()
+        companion = try {
+            RobotCompanion(this).also {
+                configureCompanion(it)
+                it.start()
+            }
+        } catch (t: Throwable) {
+            log.crash("compagnon", t)
+            null
+        }
+    }
+
+    /** Tâches de fond réseau (heure). Les essais d'interface (Robolectric) n'en lancent aucune. */
+    protected open fun startBackground() {
         TimeSync.start(this, prefs, log)
         if (prefs.haEnabled) homeAssistant.apply()
     }
+
+    /** Réglage du compagnon avant son démarrage (essais : port libre sur la boucle locale). */
+    protected open fun configureCompanion(c: RobotCompanion) {}
 
     private fun isMainProcess(): Boolean {
         val pid = Process.myPid()

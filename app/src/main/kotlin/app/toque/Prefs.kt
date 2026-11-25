@@ -102,6 +102,13 @@ class Prefs(context: Context) {
             p.edit().putBoolean("requireBowl", v).commit()
         }
 
+    /** Un téléphone appairé peut lancer une cuisson manuelle (Réglages › Compagnon). */
+    var remoteStart: Boolean
+        get() = p.getBoolean("remoteStart", true)
+        set(v) {
+            p.edit().putBoolean("remoteStart", v).commit()
+        }
+
     /** Capteur du bol lu à l'envers (bases qui signalent « bol » quand il est retiré). */
     var invertBowl: Boolean
         get() = p.getBoolean("invertBowl", false)
@@ -328,14 +335,25 @@ class Prefs(context: Context) {
             return id
         }
 
-    /** Ancien format (recette + étape), lu une seule fois pour migrer vers [cookSession], puis effacé. */
-    fun takeLegacyGuided(): Pair<String, Int>? {
-        val id = p.getString("guidedRecipe", "") ?: ""
-        val step = p.getInt("guidedStep", 0)
-        if (!p.contains("guidedRecipe") && !p.contains("guidedStep")) return null
-        p.edit().remove("guidedRecipe").remove("guidedStep").commit()
-        return if (id.isEmpty()) null else id to step
-    }
+    /** Recette guidée en cours (id + étape), tenue à jour par la session de cuisson. */
+    var guidedRecipe: String
+        get() = p.getString("guidedRecipe", "") ?: ""
+        set(v) {
+            p.edit().putString("guidedRecipe", v).commit()
+        }
+
+    var guidedStep: Int
+        get() = p.getInt("guidedStep", 0)
+        set(v) {
+            p.edit().putInt("guidedStep", v).commit()
+        }
+
+    /** Titre connu de la recette guidée, « id⇥titre » : l'accueil le montre avant le chargement du catalogue. */
+    var guidedTitle: String
+        get() = p.getString("guidedTitle", "") ?: ""
+        set(v) {
+            p.edit().putString("guidedTitle", v).apply()
+        }
 
     /** Réglages importés déjà vérifiés (« J'ai vérifié ce réglage »), clé = recette, étape et réglage. */
     var reviewedSteps: Set<String>

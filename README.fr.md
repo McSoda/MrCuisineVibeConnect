@@ -19,7 +19,7 @@ fonctionne pas avec le Toque de Wuki60, qui n'a pas cette API.
 
 ## Ce qui change
 
-Basé sur Toque **0.9.0**. Nos versions ajoutent un quatrième nombre (**0.9.0.1** est la première basée sur la 0.9.0).
+Basé sur Toque **0.10.0**. Nos versions ajoutent un quatrième nombre (**0.10.0.1** est la première basée sur la 0.10.0).
 Les versions plus récentes de Wuki60 ne sont pas incluses tant qu'elles n'ont pas été fusionnées ici.
 
 | | Ce fork |

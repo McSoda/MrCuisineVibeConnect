@@ -19,7 +19,7 @@ upstream Toque, which has no such API.
 
 ## What differs
 
-Based on Toque **0.9.0**. Our releases add a fourth number (**0.9.0.1** is the first one based on 0.9.0). Newer
+Based on Toque **0.10.0**. Our releases add a fourth number (**0.10.0.1** is the first one based on 0.10.0). Newer
 upstream releases are not included until they are merged here.
 
 | | This fork |
