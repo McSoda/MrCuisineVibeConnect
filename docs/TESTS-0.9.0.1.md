@@ -1,6 +1,6 @@
 # Tests de la version 0.9.0.1
 
-Compte rendu des essais faits sur un robot réel avant et après la publication de la 0.9.0.1 (24 novembre 2026).
+Compte rendu des essais faits sur un robot réel avant et après la publication de la 0.9.0.1 (24 et 25 novembre 2026).
 C'est la 0.9.0 de Wuki60 avec, en plus, l'API Home Assistant, la session de cuisson (`CookSession`) et la
 source de mises à jour de ce dépôt (voir les [notes de la release](https://github.com/McSoda/MrCuisineVibeConnect/releases/tag/v0.9.0.1)).
 
@@ -42,6 +42,21 @@ d'essai qui bloque la boucle pendant une durée donnée (hors de toute version p
 
 Le code du chien de garde est le même dans la 0.9.0.1 (il vient de la 0.9.0). Les essais de blocage n'ont pas été
 rejoués sur la 0.9.0.1 elle-même.
+
+## Synchro nocturne des recettes
+
+Vérifiée le 25 novembre 2026 dans le journal du robot (synchro automatique prévue vers 3 h 30).
+
+| Nuit | Version | Journal |
+|---|---|---|
+| 22 (19 h 50), 23 et 24 novembre | précédentes | « Synchronisation impossible » : `NoSuchMethodError`, `HashMap.putIfAbsent` n'existe pas sur Android 6 (API 23). |
+| 25 novembre, 3 h 39 | 0.9.0.1 | **« 1662 recettes Lidl à jour »**, sans erreur. |
+
+Le correctif (PR #78 de badrbelhaj1, `getOrPut` à la place de `putIfAbsent`) vient de la 0.9.0. La ligne corrigée
+ne s'exécute que si une recette retirée est en favori, ajustée ou déjà cuisinée : les trois plantages montrent que
+c'était le cas sur ce robot. Le report des favoris et des ajustements n'a pas été vérifié recette par recette.
+
+Home Assistant n'a vu aucune coupure du robot pendant la nuit.
 
 ## Non testé
 
