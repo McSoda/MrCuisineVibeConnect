@@ -946,5 +946,9 @@
   "Réglage non proposé par l'éditeur du robot": "Ajuste no disponible en el editor del robot",
   "Durée : de %s à %s": "Duración: de %s a %s",
   "Impulsions : de %d à %d": "Impulsos: de %d a %d",
-  "Pas encore l'appli ?": "¿Aún no tienes la app?"
+  "Pas encore l'appli ?": "¿Aún no tienes la app?",
+  "Yaourt": "Yogur",
+  "Fermentation : lame à l'arrêt, %d °C maximum": "Fermentación: cuchilla parada, %d °C máximo",
+  "Lait tiède ensemencé, couvercle fermé. Garde %d °C sans remuer : la lame reste immobile.": "Leche tibia con el fermento, tapa cerrada. Mantiene %d °C sin remover: la cuchilla no se mueve.",
+  "Pétrir, vapeur, yaourt, nettoyage": "Amasar, vapor, yogur, limpieza"
 }

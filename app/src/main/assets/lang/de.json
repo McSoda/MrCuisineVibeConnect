@@ -946,5 +946,9 @@
   "Réglage non proposé par l'éditeur du robot": "Einstellung im Editor des Roboters nicht vorgesehen",
   "Durée : de %s à %s": "Dauer: %s bis %s",
   "Impulsions : de %d à %d": "Impulse: %d bis %d",
-  "Pas encore l'appli ?": "Noch keine App?"
+  "Pas encore l'appli ?": "Noch keine App?",
+  "Yaourt": "Joghurt",
+  "Fermentation : lame à l'arrêt, %d °C maximum": "Fermentation: Messer steht, höchstens %d °C",
+  "Lait tiède ensemencé, couvercle fermé. Garde %d °C sans remuer : la lame reste immobile.": "Lauwarme Milch mit Starterkultur, Deckel zu. Hält %d °C ohne Rühren: das Messer steht still.",
+  "Pétrir, vapeur, yaourt, nettoyage": "Kneten, Dampfgaren, Joghurt, Reinigung"
 }

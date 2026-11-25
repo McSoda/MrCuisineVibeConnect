@@ -946,5 +946,9 @@
   "Réglage non proposé par l'éditeur du robot": "Редактор робота не пропонує це налаштування",
   "Durée : de %s à %s": "Час: від %s до %s",
   "Impulsions : de %d à %d": "Імпульси: від %d до %d",
-  "Pas encore l'appli ?": "Ще немає додатка?"
+  "Pas encore l'appli ?": "Ще немає додатка?",
+  "Yaourt": "Йогурт",
+  "Fermentation : lame à l'arrêt, %d °C maximum": "Ферментація: ніж нерухомий, не більше %d °C",
+  "Lait tiède ensemencé, couvercle fermé. Garde %d °C sans remuer : la lame reste immobile.": "Тепле молоко із закваскою, кришка закрита. Тримає %d °C без перемішування: ніж нерухомий.",
+  "Pétrir, vapeur, yaourt, nettoyage": "Автоматичні режими"
 }

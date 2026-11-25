@@ -946,5 +946,9 @@
   "Réglage non proposé par l'éditeur du robot": "Setting not offered by the robot's editor",
   "Durée : de %s à %s": "Duration: %s to %s",
   "Impulsions : de %d à %d": "Pulses: %d to %d",
-  "Pas encore l'appli ?": "Don't have the app yet?"
+  "Pas encore l'appli ?": "Don't have the app yet?",
+  "Yaourt": "Yogurt",
+  "Fermentation : lame à l'arrêt, %d °C maximum": "Fermentation: blade stopped, %d °C maximum",
+  "Lait tiède ensemencé, couvercle fermé. Garde %d °C sans remuer : la lame reste immobile.": "Lukewarm milk with the starter, lid closed. Holds %d °C without stirring: the blade stays still.",
+  "Pétrir, vapeur, yaourt, nettoyage": "Knead, steam, yogurt, cleaning"
 }
