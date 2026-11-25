@@ -246,10 +246,10 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         t.addView(badge, LinearLayout.LayoutParams(Ui.u(84), Ui.u(84)))
         val text = Ui.vertical(c, Gravity.CENTER_HORIZONTAL or Gravity.TOP)
         text.addView(Ui.text(c, title, 22f, Ui.TEXT, Ui.MEDIUM).apply { gravity = Gravity.CENTER }, Ui.lp(Ui.WRAP, Ui.WRAP, t = 12))
-        val s = Ui.ellipsize(Ui.text(c, sub, 15f, Ui.TEXT2).apply { gravity = Gravity.CENTER }, 2)
+        val s = Ui.ellipsize(Ui.text(c, sub, 15f, Ui.TEXT2).apply { gravity = Gravity.CENTER }, 3)
         if (hasSub) text.addView(s, Ui.lp(Ui.WRAP, Ui.WRAP, t = 4))
-        // Deux tiers de la place libre au texte : deux lignes de sous-titre y tiennent en entier.
-        t.addView(text, LinearLayout.LayoutParams(Ui.MATCH, 0, 2f))
+        // Trois quarts de la place libre au texte : trois lignes de sous-titre y tiennent en entier.
+        t.addView(text, LinearLayout.LayoutParams(Ui.MATCH, 0, 3f))
         t.isClickable = true
         t.setOnClickListener { onClick() }
         tiles += TileParts(t.getChildAt(0), text, s)
@@ -266,8 +266,8 @@ class HomeScreen(a: MainActivity) : Screen(a) {
         if (on == compact) return
         compact = on
         for (p in tiles) {
-            (p.text.layoutParams as LinearLayout.LayoutParams).weight = if (on) 8f else 2f
-            p.sub.maxLines = if (on) 1 else 2
+            (p.text.layoutParams as LinearLayout.LayoutParams).weight = if (on) 8f else 3f
+            p.sub.maxLines = if (on) 1 else 3
             p.text.requestLayout()
         }
     }
