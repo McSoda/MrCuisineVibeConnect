@@ -142,7 +142,9 @@ mises à jour par Wi-Fi (`tools\install-robot.ps1 -Ip <IP du robot>`).
 3. Bol vide, couvercle fermé, **main près de l'interrupteur principal** :
    - Cuisson manuelle : 10 s, vitesse 2 → le moteur tourne puis s'arrête seul.
    - Ouvrir le couvercle pendant un essai → arrêt immédiat, « Pause : couvercle ouvert ».
-   - 30 s à 37 °C, vitesse 1 → la température affichée monte.
+   - 30 s à 37 °C, vitesse 1 → la chauffe démarre (Diagnostic : consigne 37 °C). Certaines bases
+     mesurent la température du bol par paliers (0 sous 37 °C, puis 37, 45, 50…, affiché « < 37 °C »
+     au début) : sur celles-ci, la valeur affichée ne change qu'une fois le bol à 37 °C.
    - Balance : poser un objet de poids connu, Tare.
    - Diagnostic : retirer le bol et regarder « Bol détecté ». S'il change bien, vous pouvez
      activer Réglages › Sécurité › « Exiger la détection du bol ».

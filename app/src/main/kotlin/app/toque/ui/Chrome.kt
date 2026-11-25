@@ -231,7 +231,7 @@ class TopBar(private val a: MainActivity) : LinearLayout(a) {
         bowl.visibility = if (s.hasSample && a.prefs.requireBowl && !s.bowlDetected && !s.bowlRemoved) View.VISIBLE else View.GONE
         if (s.hasSample) {
             temp.visibility = View.VISIBLE
-            Ui.chipText(temp).text = "${s.actualTempC} °C"
+            Ui.chipText(temp).text = s.bowlTempText(app.toque.core.robot.RobotProfiles.active.capabilities)
             val col = if (s.actualTempC >= 40) Ui.tempColor(s.actualTempC) else Ui.TEXT2
             Ui.chipText(temp).setTextColor(col)
             tempIcon.color = col

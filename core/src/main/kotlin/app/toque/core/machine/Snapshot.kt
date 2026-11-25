@@ -1,5 +1,7 @@
 package app.toque.core.machine
 
+import app.toque.core.robot.Capabilities
+
 /**
  * État complet et immuable de la machine, envoyé à l'interface ~10 fois par seconde.
  * [toMap]/[fromMap] servent au passage entre processus (Bundle Android).
@@ -71,6 +73,18 @@ data class Snapshot(
     val running: Boolean get() = state == JobState.RUNNING || state == JobState.STARTING || state == JobState.STOPPING
     val busy: Boolean get() = running || state == JobState.PAUSED || turboActive
     val hot: Boolean get() = hasSample && actualTempC >= Limits.HOT_C
+
+    /**
+     * Température du bol telle qu'on l'affiche. Une base qui mesure par paliers (SKMC 1100 A1, firmware
+     * 4924 : 0, 37, 45, 50… °C) envoie 0 sous le premier palier : « < 37 °C » plutôt qu'un « 0 °C » qui
+     * ressemble à une panne (#100). Une base qui mesure en degrés n'envoie jamais 0 dans une cuisine ;
+     * une base qui ne mesure pas toujours (le Smart) garde la valeur brute.
+     */
+    fun bowlTempText(caps: Capabilities): String {
+        val first = caps.temperaturesC.minOrNull()
+        return if (actualTempC == 0 && link == LinkState.READY && caps.measuresTemperature && first != null) "< $first °C"
+        else "$actualTempC °C"
+    }
 
     fun toMap(): Map<String, Any> = linkedMapOf(
         "link" to link.name, "transportName" to transportName, "transportUp" to transportUp,
