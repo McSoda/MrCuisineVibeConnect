@@ -80,6 +80,9 @@ class ProgramsScreen(a: MainActivity, openOnCleaning: Boolean = false) : Screen(
     private val progs = all.filter { RobotProfiles.active.capabilities.has(it.feature) }
     private val cleaning = progs.indexOfFirst { it.feature == Feature.CLEANING }
     private var selected = if (openOnCleaning && cleaning >= 0) cleaning else 0
+    private var focusedIndex = selected
+    private var editing = false
+    private var lastStartMs = 0L
     private lateinit var turbo: HoldButton
 
     override fun build(): View {
@@ -113,7 +116,7 @@ class ProgramsScreen(a: MainActivity, openOnCleaning: Boolean = false) : Screen(
             }
             card.addView(Ui.spacer(c, weight = 1f), LinearLayout.LayoutParams(1, 0, 1f))
             val dur = Ui.horizontal(c)
-            dur.addView(Ui.button(c, "", Ui.Style.SECONDARY, Icon.Kind.MINUS, height = 56) { selected = i; bump(p, -1) }, Ui.lp(Ui.u(56), Ui.WRAP))
+            dur.addView(Ui.button(c, "", Ui.Style.SECONDARY, Icon.Kind.MINUS, height = 56) { selected = i; focusedIndex = i; editing = true; bump(p, -1) }, Ui.lp(Ui.u(56), Ui.WRAP))
             // Le nombre en grand sur une ligne, l'unité en dessous : les cartes sont étroites à 4 par ligne.
             val gauge = Ui.vertical(c, Gravity.CENTER_HORIZONTAL)
             p.value = Ui.fitText(c, 38f, 24f, Ui.TEXT, Ui.LIGHT).apply { gravity = Gravity.CENTER }
@@ -121,16 +124,16 @@ class ProgramsScreen(a: MainActivity, openOnCleaning: Boolean = false) : Screen(
             p.unit = Ui.text(c, "", 14f, Ui.TEXT2).apply { gravity = Gravity.CENTER }
             gauge.addView(p.unit, Ui.lp(Ui.MATCH, Ui.WRAP, t = 1))
             dur.addView(gauge, LinearLayout.LayoutParams(0, Ui.WRAP, 1f))
-            dur.addView(Ui.button(c, "", Ui.Style.SECONDARY, Icon.Kind.PLUS, height = 56) { selected = i; bump(p, 1) }, Ui.lp(Ui.u(56), Ui.WRAP))
+            dur.addView(Ui.button(c, "", Ui.Style.SECONDARY, Icon.Kind.PLUS, height = 56) { selected = i; focusedIndex = i; editing = true; bump(p, 1) }, Ui.lp(Ui.u(56), Ui.WRAP))
             card.addView(dur, Ui.lp(t = 10))
             if (p.maxC > p.minC) {
                 // Température exacte (sous-vide, mijoter, fermenter), dans les bornes de l'appli d'origine.
                 val t = Ui.horizontal(c, Gravity.CENTER_VERTICAL)
-                t.addView(Ui.button(c, "", Ui.Style.SECONDARY, Icon.Kind.MINUS, height = 48) { selected = i; bumpTemp(p, -1) }
+                t.addView(Ui.button(c, "", Ui.Style.SECONDARY, Icon.Kind.MINUS, height = 48) { selected = i; focusedIndex = i; editing = true; bumpTemp(p, -1) }
                     .apply { setPadding(0, 0, 0, 0) }, Ui.lp(Ui.u(48), Ui.WRAP))
                 p.temp = Ui.text(c, "", 20f, Ui.TEXT).apply { gravity = Gravity.CENTER }
                 t.addView(p.temp, LinearLayout.LayoutParams(0, Ui.WRAP, 1f))
-                t.addView(Ui.button(c, "", Ui.Style.SECONDARY, Icon.Kind.PLUS, height = 48) { selected = i; bumpTemp(p, 1) }
+                t.addView(Ui.button(c, "", Ui.Style.SECONDARY, Icon.Kind.PLUS, height = 48) { selected = i; focusedIndex = i; editing = true; bumpTemp(p, 1) }
                     .apply { setPadding(0, 0, 0, 0) }, Ui.lp(Ui.u(48), Ui.WRAP))
                 card.addView(t, Ui.lp(t = 8))
             }
@@ -140,7 +143,7 @@ class ProgramsScreen(a: MainActivity, openOnCleaning: Boolean = false) : Screen(
             }
             card.addView(p.start, Ui.lp(t = 14))
             card.isClickable = true
-            card.setOnClickListener { selected = i; refresh() }
+            card.setOnClickListener { selected = i; focusedIndex = i; editing = true; refresh() }
             row.addView(card, LinearLayout.LayoutParams(0, Ui.MATCH, 1f).apply { if (i % 4 != 3 && (many || i < progs.size - 1)) rightMargin = Ui.u(16) })
         }
         // Dernière ligne incomplète : des places vides gardent la largeur des cartes.
@@ -189,7 +192,15 @@ class ProgramsScreen(a: MainActivity, openOnCleaning: Boolean = false) : Screen(
             }
             p.unit.text = if (s < 60) "s" else if (s >= 3600) "h" else "min"
             p.temp?.text = "${p.celsius} °C"
-            p.card.background = Ui.round(Ui.SURFACE, 26f, if (i == selected) Ui.ACCENT_INK else Ui.STROKE, if (i == selected) 2.5f else 1f)
+            val isFocused = (i == focusedIndex)
+            val isSelected = (i == selected)
+            val (strokeColor, strokeWidth) = when {
+                isSelected && editing -> Ui.ACCENT_INK to 2.5f
+                isFocused -> Ui.TEXT3 to 2.5f
+                isSelected -> Ui.ACCENT_INK to 1.5f
+                else -> Ui.STROKE to 1f
+            }
+            p.card.background = Ui.round(Ui.SURFACE, 26f, strokeColor, strokeWidth)
         }
     }
 
@@ -200,12 +211,62 @@ class ProgramsScreen(a: MainActivity, openOnCleaning: Boolean = false) : Screen(
     }
 
     override fun onKnob(delta: Int): Boolean {
-        bump(progs[selected], delta)
+        if (editing) {
+            bump(progs[selected], delta)
+        } else {
+            val next = (focusedIndex + delta).coerceIn(0, progs.size - 1)
+            if (next != focusedIndex) {
+                focusedIndex = next
+                refresh()
+            }
+        }
         return true
     }
 
+    private fun launchSelected() {
+        val now = android.os.SystemClock.uptimeMillis()
+        if (now - lastStartMs < 600L) return
+        lastStartMs = now
+        editing = false
+        val p = progs[selected]
+        a.startJob(p.make(p.seconds * 1000L, p.celsius))
+        refresh()
+    }
+
     override fun onKnobPress(): Boolean {
-        if (!a.snapshot.busy) progs[selected].let { a.startJob(it.make(it.seconds * 1000L, it.celsius)) }
+        val s = a.snapshot
+        if (s.busy) {
+            a.machine.pause { a.refusal(it) }
+            editing = false
+            refresh()
+            return true
+        }
+        if (editing) {
+            launchSelected()
+        } else {
+            selected = focusedIndex
+            editing = true
+            refresh()
+        }
+        return true
+    }
+
+    fun onKnobDoubleClick(): Boolean {
+        if (!a.snapshot.busy) {
+            selected = focusedIndex
+            launchSelected()
+            return true
+        }
+        return false
+    }
+
+    fun onKnobLongPress(): Boolean {
+        if (editing) {
+            editing = false
+            refresh()
+            return true
+        }
+        a.back()
         return true
     }
 }

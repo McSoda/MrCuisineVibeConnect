@@ -76,6 +76,12 @@ class MainActivity : Activity() {
         private set
     private var swallowTouch = false
     var knobListener: ((KeyEvent) -> Unit)? = null
+    private var knobLongHandled = false
+    private var lastKnobPressTime = 0L
+    private val knobLongPressRunnable = Runnable {
+        knobLongHandled = true
+        (current as? app.toque.ui.screens.ProgramsScreen)?.onKnobLongPress()
+    }
     private lateinit var timerAlarm: TimerAlarm
     private var unsubscribeTimers: (() -> Unit)? = null
     /** La fenêtre ouverte laisse la barre machine (et son bouton Stop) hors du voile. */
@@ -400,7 +406,13 @@ class MainActivity : Activity() {
         if (prefs.vendorSession) endVendorSession()
     }
 
+    override fun onPause() {
+        main.removeCallbacks(knobLongPressRunnable)
+        super.onPause()
+    }
+
     override fun onStop() {
+        main.removeCallbacks(knobLongPressRunnable)
         unsubscribeTimers?.invoke()
         unsubscribeTimers = null
         Timers.of(this).onRing = null
@@ -484,6 +496,8 @@ class MainActivity : Activity() {
     }
 
     private fun show(s: Screen) {
+        lastKnobPressTime = 0L
+        main.removeCallbacks(knobLongPressRunnable)
         content.removeAllViews()
         val v = s.view
         (v.parent as? FrameLayout)?.removeView(v)
@@ -542,7 +556,7 @@ class MainActivity : Activity() {
                 return true
             }
         }
-        if (!isBack && event.action == KeyEvent.ACTION_DOWN && overlay.visibility != View.VISIBLE) {
+        if (!isBack && overlay.visibility != View.VISIBLE) {
             val k = event.keyCode
             // Par défaut : les flèches, et les touches du bouton du robot (clavier mtk-kpd :
             // F6 à droite, F7 à gauche, F5 à l'appui).
@@ -557,7 +571,28 @@ class MainActivity : Activity() {
             }
             val s = current
             if ((left || right || press) && !prefs.knobSetupDone) prefs.knobSetupDone = true
-            if (s != null && currentFocus !is android.widget.EditText) {
+            if (s is app.toque.ui.screens.ProgramsScreen && press && currentFocus !is android.widget.EditText) {
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    if (event.repeatCount == 0) {
+                        knobLongHandled = false
+                        main.postDelayed(knobLongPressRunnable, 500L)
+                    }
+                    return true
+                } else if (event.action == KeyEvent.ACTION_UP) {
+                    main.removeCallbacks(knobLongPressRunnable)
+                    if (!knobLongHandled) {
+                        val now = android.os.SystemClock.uptimeMillis()
+                        if (now - lastKnobPressTime < 350L && s.onKnobDoubleClick()) {
+                            lastKnobPressTime = 0L
+                        } else {
+                            lastKnobPressTime = now
+                            s.onKnobPress()
+                        }
+                    }
+                    return true
+                }
+            }
+            if (event.action == KeyEvent.ACTION_DOWN && s != null && currentFocus !is android.widget.EditText) {
                 if (left && s.onKnob(-1)) return true
                 if (right && s.onKnob(1)) return true
                 if (press && s.onKnobPress()) return true
