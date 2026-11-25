@@ -148,6 +148,12 @@ SKMC 1100 A1 not tested yet: please report). Thanks to @julienperrault and @flex
   favourites come to the robot and your own recipes can be published from the robot. The site is in
   French, English, German, Spanish, Catalan and Ukrainian; only a revocable key of the robot is kept,
   never the password.
+- **Your own [Mealie](https://mealie.io) server** (self-hosted recipes): link the robot to it
+  (*Settings › Recipes › Mealie*, with your username or an API token) and all its recipes arrive on
+  the robot, read-only, nightly or on demand, with a "Mealie" chip in the list. Settings written in
+  the steps ("5 min/100 °C/speed 1", "10 sec/speed 5", "Turbo 3 times", "dough mode 2 min") are
+  suggested and must be checked before they start, like imported recipes. Only a token of the robot is
+  kept ("Toque (robot)", revocable in Mealie), never the password.
 - **Author, ratings and reviews**: each recipe shows who published it and its rating on the site,
   and the recipe page loads the users' comments (with Monsieur Cuisine's replies).
 - **Search that works**: ignores accents, plurals and typos ("bechamle", "risoto"), in any alphabet

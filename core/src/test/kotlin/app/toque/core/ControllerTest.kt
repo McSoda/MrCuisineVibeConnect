@@ -287,6 +287,26 @@ class ControllerTest {
         assertTrue(toast.all { it[3] == 19 && it[4] == Direction.COUNTER_CLOCKWISE.wire })
     }
 
+    @Test fun steppedReadingJustBelowSixtyAlreadyAsksForConfirmation() {
+        // #100 : une base qui mesure en paliers affiche 55 °C jusqu'à 59 °C ; mixer vite demande confirmation.
+        val b = Bench().ready()
+        b.c.startJob(Programs.manual(1, 5, Direction.CLOCKWISE, 300_000))
+        while (b.snap.actualTempC < 56) b.step(1_000)
+        b.c.stop()
+        b.step(3_000)
+        b.c.clearFinished()
+        assertTrue(b.snap.actualTempC in Limits.HOT_BLEND_C until Limits.HOT_C)
+        val v = b.c.startJob(Programs.manual(7, 0, Direction.CLOCKWISE, 30_000))
+        assertFalse(v.ok)
+        assertTrue(v.has(SafetyPolicy.HOT_BLEND))
+        assertTrue(b.c.startJob(Programs.manual(7, 0, Direction.CLOCKWISE, 30_000, hotBlendConfirmed = true)).ok)
+        // Le palier d'en dessous (50 °C) : pas de question ; vitesse 3 : jamais.
+        val fast = Programs.manual(7, 0, Direction.CLOCKWISE, 30_000)
+        assertTrue(SafetyPolicy.checkJob(fast, 55).any { it.code == SafetyPolicy.HOT_BLEND })
+        assertFalse(SafetyPolicy.checkJob(fast, 54).any { it.code == SafetyPolicy.HOT_BLEND })
+        assertFalse(SafetyPolicy.checkJob(Programs.manual(3, 0, Direction.CLOCKWISE, 30_000), 59).any { it.code == SafetyPolicy.HOT_BLEND })
+    }
+
     @Test fun hotContentNeedsConfirmationAndRampsSlowly() {
         val b = Bench().ready()
         b.c.startJob(Programs.manual(1, 13, Direction.CLOCKWISE, 300_000))

@@ -599,6 +599,7 @@ class RecipesScreen(
             // Recette de la communauté : sa langue seulement si ce n'est pas celle de l'interface.
             val lang = e.language.substringBefore('-')
             val tag = if (e.source == RecipeSource.USER) tr("Perso")
+                else if (e.source == RecipeSource.MEALIE) "Mealie"
                 else if (e.source == RecipeSource.COMMUNITY && lang == I18n.code.substringBefore('-')) ""
                 else lang.uppercase()
             badge.text = tag

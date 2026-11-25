@@ -128,6 +128,13 @@ object Limits {
     /** Sans mélange (vitesse 0) : 120 °C au plus, le niveau du programme Vapeur ; au-delà, l'opération vapeur n'a pas été essayée. */
     const val MAX_TEMP_LEVEL_NO_STIR = 17
     const val HOT_C = 60
+    /**
+     * Seuil de la confirmation « contenu chaud » avant de mixer à vitesse 4 ou plus. Certaines bases ne
+     * mesurent qu'en paliers (37, 45, 50, 55, 60… : la table de la machine, voir #100) : 55 °C affiché
+     * peut cacher 59 °C. Le palier juste sous [HOT_C] compte donc déjà comme chaud. Le Turbo et la
+     * montée progressive gardent [HOT_C].
+     */
+    const val HOT_BLEND_C = 55
     const val MAX_MS_HIGH_SPEED = 15 * 60_000L    // vitesse > 6
     const val MAX_MS_DEFAULT = 99 * 60_000L
     const val MAX_MS_KNEAD = 120_000L
@@ -246,7 +253,7 @@ object SafetyPolicy {
             v += Violation("accessory_speed", tr("%s : vitesse %d maximum", accessory.label, accessory.maxSpeed))
         if (accessory == Accessory.WHISK && kind == JobKind.TURBO)
             v += Violation("accessory_turbo", tr("Pas de Turbo avec le fouet"))
-        if (kind != JobKind.TURBO && actualTemperatureC != null && actualTemperatureC >= Limits.HOT_C &&
+        if (kind != JobKind.TURBO && actualTemperatureC != null && actualTemperatureC >= Limits.HOT_BLEND_C &&
             setting.speed >= 4 && !hotBlendConfirmed
         ) v += Violation(HOT_BLEND, tr("Contenu chaud (%d °C) : confirmez le mixage à vitesse %d", actualTemperatureC, setting.speed))
         return v

@@ -28,6 +28,7 @@ import app.toque.core.recipes.McOnline
 import app.toque.recipes.OnlineSync
 import app.toque.recipes.SyncProgress
 import app.toque.recipes.RecipeFiles
+import app.toque.core.mealie.MealieRecipes
 import app.toque.core.recipes.CommunityRecipes
 import app.toque.core.recipes.UserRecipes
 import app.toque.ui.AccentWheel
@@ -48,7 +49,7 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
     enum class Family { SCREEN, KNOB_SOUNDS, RECIPES, COOKING, SAFETY, PHONE, LANGUAGE_TIME, UPDATES, ADVANCED }
 
     /** D'où viennent les recettes : une pastille chacune, en haut de la famille « Recettes ». */
-    private enum class Source { LIDL, COMMUNITY, MINE, STOCK }
+    private enum class Source { LIDL, COMMUNITY, MEALIE, MINE, STOCK }
 
     override val title = tr("Réglages")
     /** La famille ouverte. */
@@ -98,6 +99,8 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
     private lateinit var accountButtons: LinearLayout
     private lateinit var siteText: TextView
     private lateinit var siteBtn: View
+    private lateinit var mealieText: TextView
+    private lateinit var mealieButtons: LinearLayout
 
     override fun build(): View {
         val root = Ui.horizontal(c, Gravity.TOP)
@@ -291,6 +294,7 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
             when (s) {
                 Source.LIDL -> lidlPage(page)
                 Source.COMMUNITY -> communityPage(page)
+                Source.MEALIE -> mealiePage(page)
                 Source.MINE -> myRecipesPage(page)
                 Source.STOCK -> stockAppPage(page)
             }
@@ -306,6 +310,7 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
             sourceRow.addView(Ui.toggleChip(c, when (s) {
                 Source.LIDL -> "Lidl"
                 Source.COMMUNITY -> tr("Communauté")
+                Source.MEALIE -> "Mealie"
                 Source.MINE -> tr("Mes recettes")
                 Source.STOCK -> tr("Appli d'origine")
             }, source == s) { source = s; renderSources() }, Ui.lp(Ui.WRAP, Ui.WRAP, r = 8))
@@ -377,6 +382,48 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         accountText = hint("")
         accountButtons = Ui.horizontal(c)
         p.addView(setting(accountText, accountButtons), Ui.lp(t = 8, b = 8))
+    }
+
+    /** Un serveur Mealie auto-hébergé : ses recettes arrivent en lecture seule, réglages proposés à vérifier. */
+    private fun mealiePage(p: LinearLayout) {
+        p.addView(hint(tr("Vous hébergez vos recettes avec Mealie ? Reliez le robot à votre serveur : toutes ses recettes arrivent dans Toque, chaque nuit et à la demande. Les réglages écrits dans les étapes (« 5 min/100 °C/vitesse 1 ») sont proposés, à vérifier avant de lancer.")),
+            Ui.lp(t = 12, b = 8))
+        line(p)
+        mealieText = Ui.text(c, "", 16f, Ui.TEXT).apply { setLineSpacing(0f, 1.15f) }
+        mealieButtons = Ui.horizontal(c)
+        p.addView(setting(mealieText, mealieButtons), Ui.lp(t = 8, b = 8))
+    }
+
+    private fun refreshMealie() {
+        if (!::mealieText.isInitialized) return
+        val m = a.app.mealie
+        val prefs = a.prefs
+        mealieButtons.removeAllViews()
+        if (!prefs.mealieLinked) {
+            mealieText.text = tr("Aucun serveur Mealie relié.")
+            mealieButtons.addView(Ui.button(c, tr("Relier mon serveur"), Ui.Style.PRIMARY, Icon.Kind.LINK, height = 52, textSize = 18f) { a.push(MealieLinkScreen(a)) })
+            return
+        }
+        val last = prefs.mealieLastResult
+        val first = when {
+            m.busy -> tr("Synchronisation en cours…")
+            last.isEmpty() -> tr("Jamais synchronisé")
+            else -> tr("Dernière synchro le %s", lastLine(last, prefs.mealieLastLang, prefs.mealieLastMs))
+        }
+        val repo = a.app.recipes
+        val n = if (repo.loaded) repo.index.entries.count { MealieRecipes.isMealie(it.id) } else 0
+        mealieText.text = tr("Relié à %s", prefs.mealieUrl) + "\n" + first + if (repo.loaded) "\n" + tr("%d recettes Mealie dans Toque", n) else ""
+        val sync = Ui.button(c, tr("Synchroniser"), Ui.Style.SECONDARY, Icon.Kind.SYNC, height = 52, textSize = 18f) {
+            m.sync { r -> r?.let { a.toast(it.message, if (it.ok) Ui.OK else Ui.WARN) } }
+        }
+        Ui.setButtonEnabled(sync, !m.busy)
+        mealieButtons.addView(sync, Ui.lp(Ui.WRAP, Ui.WRAP, r = 10))
+        mealieButtons.addView(Ui.button(c, tr("Délier"), Ui.Style.GHOST, Icon.Kind.CLOSE, height = 52, textSize = 18f) {
+            a.confirm(tr("Délier le serveur Mealie ?"), tr("Les recettes Mealie partent du robot ; elles restent sur votre serveur. Vos versions dans Mes recettes restent."), tr("Délier")) {
+                m.unlink()
+                a.toast(tr("Serveur Mealie délié"))
+            }
+        })
     }
 
     /** Les recettes écrites sur ce robot : un fichier pour les sauvegarder ou les passer à un autre robot. */
@@ -1086,6 +1133,7 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
     private var unsubRecipes: (() -> Unit)? = null
     private var unsubSync: (() -> Unit)? = null
     private var unsubSite: (() -> Unit)? = null
+    private var unsubMealie: (() -> Unit)? = null
 
     override fun onShow() {
         mode = a.prefs.mode
@@ -1095,10 +1143,12 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         refreshSync()
         renderAccount()
         refreshSite()
+        refreshMealie()
         // Changement de robot : les recettes sont refiltrées, puis cet écran se met à jour.
-        unsubRecipes = a.app.recipes.onChange { renderRobot(); refreshSync(); refreshSite() }
+        unsubRecipes = a.app.recipes.onChange { renderRobot(); refreshSync(); refreshSite(); refreshMealie() }
         unsubSync = SyncProgress.onChange { refreshSync() }
         unsubSite = a.app.site.onChange { renderAccount(); refreshSite() }
+        unsubMealie = a.app.mealie.onChange { refreshMealie() }
         refreshCompanion()
         unsubCompanion = a.app.companion?.onChange { ch ->
             if (ch == RobotCompanion.Change.PHONES || ch == RobotCompanion.Change.SERVER) refreshCompanion()
@@ -1129,6 +1179,8 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         unsubCompanion = null
         unsubSite?.invoke()
         unsubSite = null
+        unsubMealie?.invoke()
+        unsubMealie = null
     }
 
     override fun onSnapshot(s: Snapshot) {

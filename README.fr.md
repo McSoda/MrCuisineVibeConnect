@@ -152,6 +152,13 @@ essayés : dites-nous). Merci à @julienperrault et @flexbox.
   refuse ; à relier sur la même page), les favoris du site arrivent sur le robot et vos recettes
   peuvent être publiées depuis le robot. Le site est en français, anglais, allemand, espagnol,
   catalan et ukrainien ; le robot ne garde qu'une clé révocable, jamais le mot de passe.
+- **Votre serveur [Mealie](https://mealie.io)** (recettes auto-hébergées) : reliez-y le robot
+  (*Réglages › Recettes › Mealie*, avec votre identifiant ou un jeton d'API) et toutes ses recettes
+  arrivent sur le robot, en lecture seule, chaque nuit ou à la demande, avec une pastille « Mealie »
+  dans la liste. Les réglages écrits dans les étapes (« 5 min/100 °C/vitesse 1 », « 10 sec/vitesse 5 »,
+  « Turbo 3 fois », « mode pétrin 2 min ») sont proposés et à vérifier avant de partir, comme pour les
+  recettes importées. Le robot ne garde qu'un jeton (« Toque (robot) », révocable dans Mealie), jamais
+  le mot de passe.
 - **Auteur, notes et avis** : chaque recette affiche qui l'a publiée et sa note sur le site, et la
   fiche charge les commentaires des utilisateurs (avec les réponses de Monsieur Cuisine).
 - **Recherche qui marche** : insensible aux accents, aux pluriels et aux fautes de frappe
