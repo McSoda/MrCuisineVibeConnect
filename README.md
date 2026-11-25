@@ -36,8 +36,8 @@ robot without sending anything to its motor base and asks you to confirm it.
 > comes from Flav974's and Tidusneo24150's ports; the project does not own a Smart. Use at your own
 > risk and follow the first-run procedure.
 >
-> The interface is available in **English**, **French**, **German**, **Spanish**, **Catalan** and
-> **Ukrainian** (*Settings › Language and time*), and other languages can be added with a single file
+> The interface is available in **English**, **French**, **German**, **Spanish**, **Catalan**,
+> **Polish** and **Ukrainian** (*Settings › Language and time*), and other languages can be added with a single file
 > (see below).
 
 ## Community site: [toqueapp.org](https://toqueapp.org)
