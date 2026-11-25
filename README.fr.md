@@ -119,8 +119,8 @@ fait les deux étapes qui demandent le mode téléchargement MediaTek, et TWRP �
 2. Prenez un câble **USB-A ↔ USB-A** ; sur un Mac qui n'a que des ports USB-C, ajoutez un
    **adaptateur USB-C → USB-A**.
 3. Depuis le dossier du dépôt, lancez les étapes dans l'ordre, chacune quand la précédente le dit :
-   `bash tools/setup/toque-setup.sh prepare`, puis `backup`, `flash-twrp` (sur un SKMC 1100 A1,
-   `own-twrp` d'abord), `root`, `flash-root`, `android`, `install`, et si vous voulez `wifi`.
+   `bash tools/setup/toque-setup.sh prepare`, puis `backup`, `flash-twrp` (sur un SKMC 1100 A1 ou
+   un SKMC 1200 D4, `own-twrp` d'abord), `root`, `flash-root`, `android`, `install`, et si vous voulez `wifi`.
    `bash tools/setup/toque-setup.sh status` dit où vous en êtes.
 4. **Gardez une copie de `~/Toque/backup/`** (clé USB ou cloud) : c'est votre retour en arrière.
 

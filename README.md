@@ -117,8 +117,8 @@ two steps that need MediaTek download mode, and TWRP writes the rest.
 1. Install [Homebrew](https://brew.sh), then `brew install python libusb` and `xcode-select --install`.
 2. Get a **USB-A ↔ USB-A** cable; on a Mac with only USB-C ports, add a **USB-C → USB-A adapter**.
 3. From the repository folder, run the steps in order, each when the previous one says so:
-   `bash tools/setup/toque-setup.sh prepare`, then `backup`, `flash-twrp` (on an SKMC 1100 A1,
-   `own-twrp` first), `root`, `flash-root`, `android`, `install`, and optionally `wifi`.
+   `bash tools/setup/toque-setup.sh prepare`, then `backup`, `flash-twrp` (on an SKMC 1100 A1 or
+   SKMC 1200 D4, `own-twrp` first), `root`, `flash-root`, `android`, `install`, and optionally `wifi`.
    `bash tools/setup/toque-setup.sh status` shows where you are.
 4. **Keep a copy of `~/Toque/backup/`** (USB stick or cloud): it is your way back.
 
