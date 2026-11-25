@@ -121,7 +121,7 @@ object QuantityLinks {
     private val GRAMS = Regex("$NUMBER(?=\\s*g(?![\\p{L}]))")
 
     fun norm(s: String): String {
-        val d = Normalizer.normalize(s.lowercase().replace('’', '\'').replace("œ", "oe"), Normalizer.Form.NFD)
+        val d = Normalizer.normalize(s.lowercase().replace('’', '\'').replace("œ", "oe").replace('ł', 'l'), Normalizer.Form.NFD)
         return d.replace(Regex("\\p{Mn}+"), "").replace(Regex("[^a-z0-9]+"), " ").trim()
     }
 

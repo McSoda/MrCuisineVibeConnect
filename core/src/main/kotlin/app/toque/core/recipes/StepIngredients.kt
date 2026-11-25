@@ -11,7 +11,7 @@ package app.toque.core.recipes
  * montré : mieux vaut rien qu'un ingrédient faux.
  */
 object StepIngredients {
-    /** Mots vides et adjectifs de taille, dans les cinq langues du catalogue. */
+    /** Mots vides et adjectifs de taille, dans les langues du catalogue. */
     private val STOP = setOf(
         // français
         "de", "du", "des", "la", "le", "les", "un", "une", "et", "au", "aux", "en", "ou", "pour", "avec", "sans", "env", "environ",
@@ -26,6 +26,9 @@ object StepIngredients {
         // allemand
         "der", "die", "das", "den", "dem", "und", "oder", "mit", "ohne", "fur", "frisch", "frische", "frischer", "frisches",
         "etwas", "von", "zum", "zur", "klein", "kleine", "kleiner", "gross", "grosse", "grosser", "mittelgross", "mittelgrosse",
+        // polonais
+        "ze", "na", "do", "od", "po", "bez", "lub", "albo", "oraz", "dla", "ok", "okolo", "smaku", "swiezy", "swieza", "swieze",
+        "maly", "mala", "male", "duzy", "duza", "duze", "sredni", "srednia", "srednie", "kilka",
     )
 
     /** Contenants et mesures : le mot qui compte vient après (« gousse d'ail », « pincée de sel »). */
@@ -36,14 +39,41 @@ object StepIngredients {
         "diente", "pizca", "rama", "hoja", "rodaja", "trozo", "lata", "cucharada", "cucharadita", "taza", "chorrito",
         "zehe", "prise", "zweig", "blatt", "scheibe", "stuck", "dose", "essloffel", "teeloffel", "el", "tl", "tasse", "spritzer",
         "gra", "grans", "pessic", "branca", "fulla", "llesca", "tros", "llauna", "cullerada", "culleradeta", "tassa", "raig",
+        "zabek", "zabki", "szczypta", "szczypty", "galazka", "galazki", "lisc", "liscie", "plaster", "plasterek", "plasterki",
+        "kawalek", "kawalki", "puszka", "puszki", "lyzka", "lyzki", "lyzeczka", "lyzeczki", "szklanka", "szklanki",
+        "opakowanie", "kostka", "kostki", "peczek", "torebka", "torebki", "garsc",
+    )
+
+    /** Lettres qu'on ne trouve qu'en polonais : elles activent la comparaison des mots déclinés. */
+    private const val POLISH_LETTERS = "ąćęłńśźżĄĆĘŁŃŚŹŻ"
+
+    /** Mots polonais dont la déclinaison change le radical (« mąkę », « soli », « cukru »), ramenés au nom de la liste. */
+    private val POLISH_IRREGULAR = mapOf(
+        "make" to "maka", "maki" to "maka", "soli" to "sol", "sola" to "sol", "cukru" to "cukier", "cukrem" to "cukier",
+        "ryzu" to "ryz", "ryzem" to "ryz", "sera" to "ser", "serem" to "ser", "serze" to "ser", "wode" to "woda", "wody" to "woda",
+        "wodzie" to "woda", "jaja" to "jajko", "jaj" to "jajko", "marchwi" to "marchew", "marchewki" to "marchewka",
     )
 
     private fun norm(s: String): String = QuantityLinks.norm(s.replace("ß", "ss"))
 
+    private fun polish(s: String): Boolean = s.any { it in POLISH_LETTERS }
+
     /** Formes comparables d'un mot : lui-même, sans « s »/« x » de pluriel, sans « es », sans « n »/« en » (Zwiebeln). */
-    private fun forms(w: String): Set<String> {
+    private fun forms(w: String, pl: Boolean = false): Set<String> {
         val out = HashSet<String>()
         out += w
+        if (pl) {
+            // Polonais : le radical sans la terminaison de cas (cebula, cebulę, cebuli → cebul), au moins 4 lettres.
+            POLISH_IRREGULAR[w]?.let { out += it }
+            if (w.length >= 5) {
+                if (w.last() in "aeiyuo") out += w.dropLast(1)
+                if (w.endsWith("ek")) out += w.dropLast(2) + "k"
+                if (w.length >= 6) {
+                    if (w.endsWith("ie") || w.endsWith("ow") || w.endsWith("om") || w.endsWith("em") || w.endsWith("ej")) out += w.dropLast(2)
+                    if (w.endsWith("ami") || w.endsWith("ach")) out += w.dropLast(3)
+                }
+            }
+        }
         if (w.length > 3) {
             if (w.endsWith("s") || w.endsWith("x") || w.endsWith("n")) out += w.dropLast(1)
             if (w.endsWith("es") || w.endsWith("en")) out += w.dropLast(2)
@@ -51,9 +81,9 @@ object StepIngredients {
         return out
     }
 
-    private fun container(w: String): Boolean = forms(w).any { it in CONTAINERS }
+    private fun container(w: String, pl: Boolean = false): Boolean = forms(w, pl).any { it in CONTAINERS }
 
-    private fun same(a: String, b: String): Boolean = forms(a).any { it.length >= 3 && it in forms(b) }
+    private fun same(a: String, b: String, pl: Boolean = false): Boolean = forms(a, pl).any { it.length >= 3 && it in forms(b, pl) }
 
     /** Mots significatifs du nom (avant la virgule et la parenthèse), dans l'ordre. */
     fun keywords(name: String): List<String> =
@@ -61,9 +91,9 @@ object StepIngredients {
             .filter { it.length > 1 && it !in STOP && !it.all(Char::isDigit) }
 
     /** Le mot par lequel l'ingrédient est reconnu ; null si le nom n'en a pas d'assez long. */
-    fun head(name: String): String? {
+    fun head(name: String, pl: Boolean = false): String? {
         val kw = keywords(name)
-        val main = kw.firstOrNull { !container(it) } ?: kw.firstOrNull()
+        val main = kw.firstOrNull { !container(it, pl) } ?: kw.firstOrNull()
         return main?.takeIf { it.length >= 3 }
     }
 
@@ -74,26 +104,28 @@ object StepIngredients {
     fun mentioned(ingredients: List<Ingredient>, text: String): List<Int> {
         val words = norm(text).split(' ').filter { it.length >= 3 }
         if (words.isEmpty()) return emptyList()
-        fun inText(w: String) = words.any { same(it, w) }
+        // Polonais : reconnu à ses lettres (ł, ą, ę…), dans l'étape ou dans la liste.
+        val pl = polish(text) || ingredients.any { polish(it.name) }
+        fun inText(w: String) = words.any { same(it, w, pl) }
         // Ingrédients dont le mot principal est dans l'étape, regroupés par ce mot.
         val byHead = LinkedHashMap<String, MutableList<Int>>()
         for ((k, i) in ingredients.withIndex()) {
-            val h = head(i.name) ?: continue
+            val h = head(i.name, pl) ?: continue
             if (!inText(h)) continue
-            val key = byHead.keys.firstOrNull { same(it, h) } ?: h
+            val key = byHead.keys.firstOrNull { same(it, h, pl) } ?: h
             byHead.getOrPut(key) { ArrayList() } += k
         }
         val picked = HashSet<Int>()
         for (cands in byHead.values) {
             if (cands.size == 1) { picked += cands[0]; continue }
             // Plusieurs : ceux dont tous les mots sont dans l'étape ; aucun s'il n'y en a pas.
-            fun own(k: Int) = keywords(ingredients[k].name).filter { !container(it) }
+            fun own(k: Int) = keywords(ingredients[k].name).filter { !container(it, pl) }
             val full = cands.filter { k -> own(k).all { inText(it) } }
             if (full.isEmpty()) continue
             // « sucre » et « sucre vanillé » tous deux complets pour « ajouter le sucre vanillé » : seulement le
             // plus précis, sauf si le mot commun est écrit plusieurs fois (« le sucre et le sucre vanillé »).
-            val head = head(ingredients[full[0]].name) ?: continue
-            val times = words.count { same(it, head) }
+            val head = head(ingredients[full[0]].name, pl) ?: continue
+            val times = words.count { same(it, head, pl) }
             for (k in full) {
                 val mine = own(k).toSet()
                 val covered = full.any { o -> o != k && own(o).size > mine.size && own(o).containsAll(mine) }
