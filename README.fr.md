@@ -28,7 +28,7 @@ Les versions plus récentes de Wuki60 ne sont pas incluses tant qu'elles n'ont p
 | **Session de cuisson** | L'état de la recette guidée vit dans `core` (`CookSession`) : il survit à un redémarrage de l'appli et il est publié par l'API. |
 | **Mises à jour** | *Réglages › Mises à jour* lit **les releases de ce dépôt**. |
 | **APK** | `MCC-285-Toque-x.y.z.apk`, pour le **Monsieur Cuisine Connect uniquement**. Nous ne publions pas d'APK Smart : les propriétaires de Smart doivent utiliser [le dépôt d'origine](https://github.com/Wuki60/MrCuisineVibeConnect/releases/latest). |
-| **Tests** | Un contrôle du codec Smart contre les vecteurs « manual » du SDK, et le [compte rendu des essais de la 0.9.0.1 sur un robot réel](docs/TESTS-0.9.0.1.md). Nous n'avons testé que sur un SKMC 1200. |
+| **Tests** | Un contrôle du codec Smart contre les vecteurs « manual » du SDK, et le [compte rendu des essais des 0.10.0.1 et 0.9.0.1 sur un robot réel](docs/TESTS-0.9.0.1.md). Nous n'avons testé que sur un SKMC 1200. |
 
 ## Installer ce fork
 

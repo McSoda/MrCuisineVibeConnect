@@ -28,7 +28,7 @@ upstream releases are not included until they are merged here.
 | **Cooking session** | The state of the guided recipe lives in `core` (`CookSession`): it survives a restart of the app and is published by the API. |
 | **Updates** | *Settings › Updates* reads **the releases of this repository**. |
 | **APK** | `MCC-285-Toque-x.y.z.apk`, for the **Monsieur Cuisine Connect only**. We publish no Smart APK: Smart owners should use [upstream](https://github.com/Wuki60/MrCuisineVibeConnect/releases/latest). |
-| **Tests** | A check of the Smart codec against the SDK's "manual" vectors, and the [real-robot test report for 0.9.0.1](docs/TESTS-0.9.0.1.md) (in French). We have tested on an SKMC 1200 only. |
+| **Tests** | A check of the Smart codec against the SDK's "manual" vectors, and the [real-robot test report for 0.10.0.1 and 0.9.0.1](docs/TESTS-0.9.0.1.md) (in French). We have tested on an SKMC 1200 only. |
 
 ## Installing this fork
 

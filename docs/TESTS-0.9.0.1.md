@@ -1,3 +1,41 @@
+# Tests de la version 0.10.0.1
+
+Compte rendu des essais faits le 25 novembre 2026. C'est la 0.10.0 de Wuki60 (dont Toque Compagnon, l'application pour
+téléphone) avec nos ajouts (voir les [notes de la release](https://github.com/McSoda/MrCuisineVibeConnect/releases/tag/v0.10.0.1)).
+
+**Robot** : le même que pour la 0.9.0.1, ci-dessous. **APK essayé sur le robot** : construit sur le PC à partir des
+sources publiées (versionCode 23) et installé par adb. L'APK de la release n'a pas été installé ; son numéro de version
+et son certificat de signature ont été vérifiés (le même que pour les versions précédentes).
+
+## Tests automatiques (0.10.0.1)
+
+- Tests unitaires de `core` et de `app` (dont ceux du compagnon) : 641 tests, aucun échec.
+- `gradlew :app:assembleRelease` : réussi.
+- `tools\setup\test-setup.ps1` : 37 réussis, 0 échec.
+
+## Essais sur le robot (0.10.0.1)
+
+| Essai | Ce qui a été fait | Résultat |
+|---|---|---|
+| Démarrage | Installation par-dessus la 0.9.0.1 | Base « prête » environ 4 s après le démarrage de l'appli, catalogue de 1662 recettes prêt en 10,7 s, `/info` annonce 0.10.0.1. |
+| Réglages | *Avancé* et la nouvelle page *Téléphone* | Le bloc Home Assistant est toujours dans *Avancé* (API à l'écoute sur le port 8765). *Lancement depuis le téléphone* est **activé par défaut**. |
+| Écran d'appairage | *Téléphone › Appairer un téléphone*, puis retour sans appairer | QR code et code affichés, serveur du compagnon ouvert sur le port 8088, puis fermé en quittant l'écran. |
+| Reprise d'une recette guidée | Étape 3, retour à l'accueil, arrêt forcé de l'appli, relance, « Reprendre » | Même session (même identifiant dans l'API), même étape. |
+| Abandon d'une recette | Croix de la carte « Reprendre », puis confirmation | `/session` renvoie `{"active": false}`, la carte disparaît. |
+
+Aucun programme machine n'a été lancé pendant ces essais.
+
+## Non testé (0.10.0.1)
+
+- L'appairage réel d'un téléphone, et tout ce qui se fait depuis le téléphone (dont le lancement d'une cuisson).
+- Une cuisson, une fin de recette, les minuteurs et la veille (essayés sur la 0.9.0.1, ci-dessous).
+- La mise à jour depuis l'appli vers la 0.10.0.1.
+- La synchro nocturne avec la 0.10.0.1.
+- Le blocage provoqué de la boucle machine (chien de garde).
+- L'installation depuis un Mac avec le script corrigé pour télécharger notre APK.
+
+---
+
 # Tests de la version 0.9.0.1
 
 Compte rendu des essais faits sur un robot réel avant et après la publication de la 0.9.0.1 (24 et 25 novembre 2026).
