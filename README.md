@@ -11,6 +11,12 @@ the community site, known problems and credits. Start with
 
 This page only describes the differences.
 
+## Home Assistant integration
+
+**[McSoda/toque-homeassistant](https://github.com/McSoda/toque-homeassistant)** reads this fork's API and shows the
+robot in Home Assistant. Add it in HACS as a custom repository (category *Integration*). It does not work with the
+upstream Toque, which has no such API.
+
 ## What differs
 
 Based on Toque **0.9.0**. Our releases add a fourth number (**0.9.0.1** is the first one based on 0.9.0). Newer
@@ -29,10 +35,10 @@ upstream releases are not included until they are merged here.
 Follow the [upstream installation guides](https://github.com/Wuki60/MrCuisineVibeConnect#readme), from **this**
 repository, with these differences:
 
-- **Windows**: `tools\setup\toque-setup.ps1` of this repository downloads our APK from our
-  [latest release](https://github.com/McSoda/MrCuisineVibeConnect/releases/latest).
-- **macOS**: `tools/setup/toque-setup.sh` **still downloads the upstream APK**. Download ours and install it with
-  `bash tools/install-robot.sh --apk <folder>/MCC-285-Toque-x.y.z.apk`.
+- **Windows and macOS**: the setup scripts of this repository (`tools\setup\toque-setup.ps1`,
+  `tools/setup/toque-setup.sh`) download our APK from our
+  [latest release](https://github.com/McSoda/MrCuisineVibeConnect/releases/latest). If the work folder already holds
+  an upstream APK with a higher version number, the install step picks that one: delete it or pass our file.
 - **Robot that already runs Toque**: from the repository folder,
   `powershell -ExecutionPolicy Bypass -File tools\install-robot.ps1 -Apk <folder>\MCC-285-Toque-x.y.z.apk`.
 - [AGENTS.md](AGENTS.md) is the upstream file: where it names `Toque-x.y.z.apk` or the upstream releases, use ours.

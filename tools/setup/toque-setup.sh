@@ -83,7 +83,7 @@ TWRP_SHA="fc9ac999fc3b0a6c0cb563f39359084a6fcc211aeb42e7b754990afa4b543d3e"
 TWRP_SIZE=11452416
 SCATTER_SHA="13b8260dba9e4efba874c09e35803af43cc69556ba0f1937226240b0ab318364"
 TOOLS_URL="https://dl.google.com/android/repository/platform-tools-latest-darwin.zip"
-RELEASES_API="https://api.github.com/repos/Wuki60/MrCuisineVibeConnect/releases/latest"
+RELEASES_API="https://api.github.com/repos/McSoda/MrCuisineVibeConnect/releases/latest"
 # mtkclient: a tag, checked against its commit (a moved tag is refused).
 MTK_URL="https://github.com/bkerler/mtkclient"
 MTK_TAG="v2.1.4.1"
@@ -494,7 +494,7 @@ step_prepare() {
         name=$(plutil -extract "assets.$i.name" raw "$rel" 2> /dev/null) || name=""
         case "$name" in
           Toque-smart-*) ;;
-          Toque-*.apk)
+          MCC-285-Toque-*.apk)
             url=$(plutil -extract "assets.$i.browser_download_url" raw "$rel" 2> /dev/null) || url=""
             break ;;
         esac
@@ -795,12 +795,12 @@ step_install() {
   if [ -z "$apk" ]; then
     # The highest version, not the newest file (an older release downloaded later must not win);
     # never a Toque-smart-* APK on a Connect.
-    apk=$(for f in "$DOWNLOADS"/Toque-*.apk; do
+    apk=$(for f in "$DOWNLOADS"/Toque-*.apk "$DOWNLOADS"/MCC-285-Toque-*.apk; do
       [ -f "$f" ] || continue
       case "$(basename "$f")" in Toque-smart-*) continue ;; esac
-      v=$(basename "$f" .apk); v=${v#Toque-}
+      v=$(basename "$f" .apk); v=${v#MCC-285-}; v=${v#Toque-}
       printf '%s\t%s\n' "$v" "$f"
-    done | awk -F'\t' '{ split($1, n, /[.-]/); printf "%06d%06d%06d\t%s\n", n[1], n[2], n[3], $2 }' | sort | tail -n 1 | cut -f 2-)
+    done | awk -F'\t' '{ split($1, n, /[.-]/); printf "%06d%06d%06d%06d\t%s\n", n[1], n[2], n[3], n[4], $2 }' | sort | tail -n 1 | cut -f 2-)
   fi
   [ -n "$apk" ] && [ -f "$apk" ] || fail "No Toque APK: run 'prepare' (downloads the latest release) or pass --apk <file>."
   resolve_adb

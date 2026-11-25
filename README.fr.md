@@ -11,6 +11,12 @@ d'installation, le site communautaire, les problèmes connus et les crédits. Co
 
 Cette page ne décrit que les différences.
 
+## Intégration Home Assistant
+
+**[McSoda/toque-homeassistant](https://github.com/McSoda/toque-homeassistant)** lit l'API de ce fork et fait apparaître
+le robot dans Home Assistant. À ajouter dans HACS comme dépôt personnalisé (catégorie *Intégration*). Elle ne
+fonctionne pas avec le Toque de Wuki60, qui n'a pas cette API.
+
 ## Ce qui change
 
 Basé sur Toque **0.9.0**. Nos versions ajoutent un quatrième nombre (**0.9.0.1** est la première basée sur la 0.9.0).
@@ -29,10 +35,11 @@ Les versions plus récentes de Wuki60 ne sont pas incluses tant qu'elles n'ont p
 Suivez les [guides d'installation de Wuki60](https://github.com/Wuki60/MrCuisineVibeConnect/blob/main/README.fr.md),
 depuis **ce** dépôt, avec ces différences :
 
-- **Windows** : `tools\setup\toque-setup.ps1` de ce dépôt télécharge notre APK depuis notre
-  [dernière release](https://github.com/McSoda/MrCuisineVibeConnect/releases/latest).
-- **macOS** : `tools/setup/toque-setup.sh` **télécharge encore l'APK de Wuki60**. Téléchargez le nôtre et installez-le
-  avec `bash tools/install-robot.sh --apk <dossier>/MCC-285-Toque-x.y.z.apk`.
+- **Windows et macOS** : les scripts d'installation de ce dépôt (`tools\setup\toque-setup.ps1`,
+  `tools/setup/toque-setup.sh`) téléchargent notre APK depuis notre
+  [dernière release](https://github.com/McSoda/MrCuisineVibeConnect/releases/latest). Si le dossier de travail contient
+  déjà un APK de Wuki60 avec un numéro de version plus élevé, l'étape d'installation le choisit : supprimez-le ou
+  indiquez notre fichier.
 - **Robot sur lequel Toque tourne déjà** : depuis le dossier du dépôt,
   `powershell -ExecutionPolicy Bypass -File tools\install-robot.ps1 -Apk <dossier>\MCC-285-Toque-x.y.z.apk`.
 - [AGENTS.md](AGENTS.md) est le fichier de Wuki60 : là où il nomme `Toque-x.y.z.apk` ou ses releases, prenez les nôtres.
