@@ -328,6 +328,8 @@
   "Molette pendant la veille": "Підсвітка кільця в режимі сну",
   "Couleurs sur la molette": "Кольори на коліщатку",
   "L'anneau de la molette montre l'état du robot : rouge pour un problème, orange pendant une pause, vert quand c'est à vous, cyan pendant un programme, blanc sinon.": "Кільце коліщатка показує стан робота: червоне — проблема, помаранчеве — пауза, зелене — ваша черга, бірюзове — працює програма, біле — в інших випадках.",
+  "Molette éteinte pendant une recette": "Коліщатко не світиться під час рецепта",
+  "L'anneau reste éteint tant qu'une recette guidée est en cours, par exemple pour filmer le robot. Seul le rouge d'un problème s'allume encore.": "Кільце не світиться, поки триває покроковий рецепт, наприклад щоб знімати робота на відео. Вмикається лише червоне світло в разі проблеми.",
   "Monsieur Cuisine (recette officielle)": "Monsieur Cuisine (офіційний рецепт)",
   "Monter": "Вгору",
   "Montée progressive de la vitesse si le contenu est chaud": "Плавний розгін для гарячого",

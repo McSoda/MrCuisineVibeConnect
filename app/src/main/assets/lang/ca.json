@@ -332,6 +332,8 @@
   "Molette pendant la veille": "Llum del botó en repòs",
   "Couleurs sur la molette": "Colors al botó giratori",
   "L'anneau de la molette montre l'état du robot : rouge pour un problème, orange pendant une pause, vert quand c'est à vous, cyan pendant un programme, blanc sinon.": "L'anell del botó giratori mostra l'estat del robot: vermell si hi ha un problema, taronja durant una pausa, verd quan et toca a tu, cian durant un programa i blanc en els altres casos.",
+  "Molette éteinte pendant une recette": "Botó giratori apagat durant una recepta",
+  "L'anneau reste éteint tant qu'une recette guidée est en cours, par exemple pour filmer le robot. Seul le rouge d'un problème s'allume encore.": "L'anell es manté apagat mentre hi ha una recepta guiada en curs, per exemple per filmar el robot. Només es continua encenent el vermell quan hi ha un problema.",
   "Monsieur Cuisine (recette officielle)": "Monsieur Cuisine (recepta oficial)",
   "Monter": "Puja",
   "Montée progressive de la vitesse si le contenu est chaud": "Augment progressiu de la velocitat si el contingut és calent",

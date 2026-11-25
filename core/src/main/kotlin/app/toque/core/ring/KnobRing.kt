@@ -17,6 +17,8 @@ data class Rgb(val red: Int, val green: Int, val white: Int) {
 
     companion object {
         const val MAX = 79
+        /** Les trois LED éteintes. */
+        val OFF = Rgb(0, 0, 0)
         /** Le blanc habituel du robot (SKMC 1100 A1), quand celui lu au démarrage est inutilisable. */
         val USUAL_WHITE = Rgb(0, 0, 50)
     }
@@ -33,7 +35,9 @@ enum class RingColour(val rgb: Rgb?) {
     /** Un programme tourne (cuisson, programme, Turbo), à froid ou à chaud. */
     CYAN(Rgb(0, 79, 79)),
     /** Rien de tout ça : le blanc propre au robot, lu au démarrage de Toque (pas de valeur fixe). */
-    WHITE(null);
+    WHITE(null),
+    /** Éteint : recette guidée gardée dans le noir (voir [KnobRing.show]) ; [of] ne la donne jamais. */
+    OFF(Rgb.OFF);
 
     companion object {
         /**
@@ -71,6 +75,9 @@ interface RingLeds {
      * plus tard (gardée si Toque s'arrête entre-temps) ; null : efface la note. false en cas d'échec.
      */
     fun write(colour: Rgb, restore: Rgb?): Boolean
+
+    /** Une note de [write] existe : Toque s'est arrêté sans remettre l'anneau comme il l'avait trouvé. */
+    fun noted(): Boolean = false
 }
 
 /**
@@ -78,8 +85,9 @@ interface RingLeds {
  * pas se contredire. On n'écrit que quand la couleur à montrer change (des écritures fréquentes
  * rendent l'anneau irrégulier). Appels à faire depuis un seul fil.
  *
- * Le blanc est celui que l'anneau avait au démarrage de Toque, lu une seule fois. Si les LED sont
- * absentes ou le root refusé, plus rien n'est tenté et c'est noté une fois dans le journal.
+ * Le blanc est celui que l'anneau avait au démarrage de Toque, lu une seule fois ; un anneau éteint
+ * n'est jamais pris pour ce blanc. Si les LED sont absentes ou le root refusé, plus rien n'est tenté
+ * et c'est noté une fois dans le journal.
  */
 class KnobRing(private val leds: RingLeds, private val log: (String) -> Unit = {}) {
     private var white: Rgb? = null
@@ -89,6 +97,12 @@ class KnobRing(private val leds: RingLeds, private val log: (String) -> Unit = {
     /** Couleur demandée par le code couleur ; null : code couleur coupé (anneau laissé tel quel). */
     private var wanted: RingColour? = null
     private var asleep = false
+    /** Anneau gardé éteint (recette guidée), sauf pour un problème : veilleuse comprise. */
+    private var dark = false
+    /** Intensité de la veilleuse demandée pour la veille en cours. */
+    private var night = Rgb.OFF
+    /** La note d'un Toque précédent a déjà été cherchée (code couleur coupé au démarrage). */
+    private var recovered = false
     /** Code couleur coupé : ce qu'avait l'anneau avant la veille, remis au réveil. */
     private var beforeSleep: Rgb? = null
 
@@ -97,28 +111,40 @@ class KnobRing(private val leds: RingLeds, private val log: (String) -> Unit = {
     /**
      * Couleur du code couleur ([colour]), ou null quand le code couleur est coupé : l'anneau reprend
      * alors son blanc et n'est plus touché qu'en veille. En veille, retenue pour le réveil.
+     *
+     * [dark] : garder l'anneau éteint (recette guidée en cours, avec le réglage). Seul
+     * [RingColour.RED] s'allume encore ; toute autre [colour], null compris, l'éteint, et la veille
+     * ne rallume pas de veilleuse. Code couleur coupé, l'appelant passe quand même la couleur du
+     * moment, pour que le rouge d'un problème se voie.
      */
-    fun show(colour: RingColour?) {
+    fun show(colour: RingColour?, dark: Boolean = false) {
         if (broken) return
         val was = wanted
-        wanted = colour
-        if (asleep) return
-        if (colour == null) {
-            if (was != null) restoreWhite()
+        val darkChanged = dark != this.dark
+        this.dark = dark
+        val now = if (dark && colour != RingColour.RED) RingColour.OFF else colour
+        wanted = now
+        if (asleep) {
+            // La recette gardée éteinte s'ouvre ou se ferme pendant la veille.
+            if (darkChanged) putAsleep(beforeSleep ?: baseWhite() ?: return)
             return
         }
-        apply(rgbOf(colour) ?: return)
+        if (now == null) {
+            if (was != null) restoreWhite() else recover()
+            return
+        }
+        apply(rgbOf(now) ?: return)
     }
 
     /** Veille de l'écran : veilleuse blanche d'intensité [level] (0 : éteinte). */
     fun standby(level: Int) {
         if (broken || asleep) return
-        val night = Rgb(0, 0, level.coerceIn(0, Rgb.MAX))
         val restore = if (wanted != null) baseWhite() else leds.read()?.takeIf { it.valid }
         if (restore == null) return fail("lecture de l'anneau impossible (LED absentes ou root refusé)")
         asleep = true
+        night = Rgb(0, 0, level.coerceIn(0, Rgb.MAX))
         beforeSleep = if (wanted == null) restore else null
-        write(night, restore)
+        putAsleep(restore)
     }
 
     /** Réveil : l'anneau montre la couleur du moment (ou, code couleur coupé, ce qu'il avait). */
@@ -142,6 +168,23 @@ class KnobRing(private val leds: RingLeds, private val log: (String) -> Unit = {
         if (asleep) wake()
         if (wanted != null) restoreWhite()
         wanted = null
+        dark = false
+    }
+
+    /** Ce que l'anneau montre en veille : la veilleuse, ou rien s'il est gardé éteint. */
+    private fun putAsleep(restore: Rgb) {
+        val c = if (dark) Rgb.OFF else night
+        if (c != shown) write(c, restore)
+    }
+
+    /**
+     * Code couleur coupé : Toque ne touche pas à l'anneau, sauf s'il l'avait laissé éteint ou coloré
+     * en s'arrêtant (note encore là).
+     */
+    private fun recover() {
+        if (recovered) return
+        recovered = true
+        if (shown == null && leds.noted()) restoreWhite()
     }
 
     private fun restoreWhite() {
@@ -165,7 +208,7 @@ class KnobRing(private val leds: RingLeds, private val log: (String) -> Unit = {
             fail("LED de l'anneau absentes ou root refusé : code couleur désactivé")
             return null
         }
-        val w = if (r.valid) r else {
+        val w = if (r.valid && r != Rgb.OFF) r else {
             log("blanc de l'anneau inattendu ($r) : blanc habituel ${Rgb.USUAL_WHITE} à la place")
             Rgb.USUAL_WHITE
         }

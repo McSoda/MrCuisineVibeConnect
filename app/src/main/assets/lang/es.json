@@ -332,6 +332,8 @@
   "Molette pendant la veille": "Mando durante el reposo",
   "Couleurs sur la molette": "Colores en el mando",
   "L'anneau de la molette montre l'état du robot : rouge pour un problème, orange pendant une pause, vert quand c'est à vous, cyan pendant un programme, blanc sinon.": "El anillo del mando muestra el estado del robot: rojo si hay un problema, naranja durante una pausa, verde cuando le toca a usted, cian mientras funciona un programa, blanco en los demás casos.",
+  "Molette éteinte pendant une recette": "Mando apagado durante una receta",
+  "L'anneau reste éteint tant qu'une recette guidée est en cours, par exemple pour filmer le robot. Seul le rouge d'un problème s'allume encore.": "El anillo permanece apagado mientras hay una receta guiada en curso, por ejemplo para filmar el robot. Solo se sigue encendiendo el rojo cuando hay un problema.",
   "Monsieur Cuisine (recette officielle)": "Monsieur Cuisine (receta oficial)",
   "Monter": "Subir",
   "Montée progressive de la vitesse si le contenu est chaud": "Subida progresiva de velocidad si el contenido está caliente",

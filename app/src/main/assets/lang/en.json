@@ -328,6 +328,8 @@
   "Molette pendant la veille": "Knob light during standby",
   "Couleurs sur la molette": "Colours on the knob",
   "L'anneau de la molette montre l'état du robot : rouge pour un problème, orange pendant une pause, vert quand c'est à vous, cyan pendant un programme, blanc sinon.": "The knob's ring shows the robot's state: red for a problem, orange during a pause, green when it is your turn, cyan while a program runs, white otherwise.",
+  "Molette éteinte pendant une recette": "Knob light off during a recipe",
+  "L'anneau reste éteint tant qu'une recette guidée est en cours, par exemple pour filmer le robot. Seul le rouge d'un problème s'allume encore.": "The ring stays off while a guided recipe is in progress, for example to film the robot. Only the red of a problem still lights up.",
   "Monsieur Cuisine (recette officielle)": "Monsieur Cuisine (official recipe)",
   "Monter": "Move up",
   "Montée progressive de la vitesse si le contenu est chaud": "Gradual speed-up when the contents are hot",

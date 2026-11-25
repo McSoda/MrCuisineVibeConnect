@@ -59,6 +59,8 @@ class MainActivity : Activity() {
     private lateinit var topBar: TopBar
     private lateinit var machineBar: MachineBar
     private val stack = ArrayList<Screen>()
+    /** Entre onStart et onStop : Toque est à l'écran et tient l'anneau de la molette. */
+    private var onScreen = false
     private val main = Handler(Looper.getMainLooper())
     private var unsubscribe: (() -> Unit)? = null
     private var unsubscribeEvents: (() -> Unit)? = null
@@ -326,6 +328,7 @@ class MainActivity : Activity() {
 
     override fun onStart() {
         super.onStart()
+        onScreen = true
         unsubscribe = app.machine.onSnapshot { s ->
             topBar.update(s)
             machineBar.update(s)
@@ -416,6 +419,7 @@ class MainActivity : Activity() {
         SyncService.reportUi(-1, false)
         standby.stop()
         // Toque n'est plus à l'écran (appli d'origine, paramètres Android…) : blanc du robot.
+        onScreen = false
         KnobLight.release()
         updates.onStop()
         super.onStop()
@@ -423,7 +427,11 @@ class MainActivity : Activity() {
 
     /** Code couleur de l'anneau de la molette ; KnobLight n'écrit que quand la couleur change. */
     private fun knobRing(s: Snapshot) {
-        KnobLight.show(if (prefs.knobColours) RingColour.of(s, current?.cookWaiting == true) else null)
+        // Recette guidée en cours, à l'écran ou recouverte (balance, « Ajuster à la main »…).
+        val dark = prefs.knobOffInRecipe && stack.any { it is CookScreen }
+        // Anneau gardé éteint : la couleur est passée même code coupé, pour le rouge d'un problème.
+        val colour = if (prefs.knobColours || dark) RingColour.of(s, current?.cookWaiting == true) else null
+        KnobLight.show(colour, dark)
     }
 
     override fun onDestroy() {
@@ -492,6 +500,8 @@ class MainActivity : Activity() {
         topBar.setTitle(s.title, stack.size > 1)
         s.onShow()
         s.onSnapshot(snapshot)
+        // Recette ouverte ou quittée : l'anneau suit sans attendre le prochain instantané.
+        if (onScreen) knobRing(snapshot)
     }
 
     fun refreshTitle() {
