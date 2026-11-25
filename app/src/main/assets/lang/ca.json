@@ -730,7 +730,7 @@
   "Refusé par le site": "Rebutjat pel web",
   "Compte Toque": "Compte Toque",
   "Vous avez un compte sur toqueapp.org ? Reliez-le pour retrouver ici vos favoris du site et publier vos recettes depuis le robot.": "Tens un compte a toqueapp.org? Vincula'l per tenir aquí els teus preferits del web i publicar les teves receptes des del robot.",
-  "Sans compte, les recettes de la communauté arrivent quand même. Vous pourrez relier un compte plus tard dans Réglages › Recettes › Communauté.": "Sense compte, les receptes de la comunitat arriben igualment. Pots vincular un compte més tard a Configuració › Receptes › Comunitat.",
+  "Sans compte, les recettes de la communauté arrivent quand même. Vous pourrez relier un compte plus tard dans Réglages › Recettes › toqueapp.org.": "Sense compte, les receptes de la comunitat arriben igualment. Pots vincular un compte més tard a Configuració › Receptes › toqueapp.org.",
   "Non merci": "No, gràcies",
   "Me connecter": "Connecta'm",
   "« %s » sera supprimée de ce robot, avec sa note et ses corrections. Elle reste sur toqueapp.org : supprimez-la depuis le site si besoin.": "«%s» s'eliminarà d'aquest robot, amb la seva nota i les correccions. Es manté a toqueapp.org: elimina-la des del web si cal.",
@@ -738,7 +738,7 @@
   "Communauté toqueapp.org": "Comunitat toqueapp.org",
   "Toque crée une copie de cette recette dans Mes recettes, telle qu'elle est affichée, pour que vous la modifiiez. La recette de la communauté reste telle quelle.": "Toque crea una còpia d'aquesta recepta a Les meves receptes, tal com es mostra, perquè la modifiquis. La recepta de la comunitat no canvia.",
   "Communauté": "Comunitat",
-  "Aucune recette de la communauté pour l'instant.\nRéglages › Recettes › Communauté › Synchroniser.": "Encara no hi ha receptes de la comunitat.\nConfiguració › Receptes › Comunitat › Sincronitza.",
+  "Aucune recette de la communauté pour l'instant.\nRéglages › Recettes › toqueapp.org › Synchroniser.": "Encara no hi ha receptes de la comunitat.\nConfiguració › Receptes › toqueapp.org › Sincronitza.",
   "Les recettes partagées sur toqueapp.org, reçues sans compte. Celles que la communauté a traduites arrivent dans votre langue.": "Les receptes compartides a toqueapp.org, rebudes sense compte. Les que la comunitat ha traduït arriben en la teva llengua.",
   "Recevoir les recettes de la communauté": "Rebre les receptes de la comunitat",
   "Relié au compte « %s ». Vos favoris du site arrivent sur le robot, et vous pouvez publier vos recettes.": "Vinculat al compte «%s». Els teus preferits del web arriben al robot i pots publicar les teves receptes.",
@@ -787,7 +787,7 @@
   "Aucune recette pour l'instant": "Encara no hi ha receptes",
   "Actualiser": "Actualitza",
   "Actualisation…": "S'està actualitzant…",
-  "Reliez un compte Toque (Réglages › Recettes › Communauté) pour retrouver ici vos favoris du site.": "Vincula un compte Toque (Configuració › Receptes › Comunitat) per trobar aquí els teus preferits del lloc.",
+  "Reliez un compte Toque (Réglages › Recettes › toqueapp.org) pour retrouver ici vos favoris du site.": "Vincula un compte Toque (Configuració › Receptes › toqueapp.org) per trobar aquí els teus preferits del lloc.",
   "Bol replacé avec environ %d g de contenu : balance laissée telle quelle": "Bol col·locat amb uns %d g a dins: la bàscula es deixa com està",
   "Bol replacé. S'il est vide, appuyez sur Tare : Toque retiendra son poids et remettra ensuite la balance à zéro à chaque retour du bol vide.": "Bol col·locat. Si és buit, prem Tara: Toque en recordarà el pes i posarà la bàscula a zero cada vegada que tornis a col·locar el bol buit.",
   "Bol vide mémorisé : %d g.": "Bol buit memoritzat: %d g.",
@@ -990,5 +990,6 @@
   "%d mise(s) à jour": "%d actualitzada(es)",
   "%d retirée(s)": "%d retirada(es)",
   "%d illisible(s)": "%d il·legible(s)",
-  "Déjà à jour": "Ja està al dia"
+  "Déjà à jour": "Ja està al dia",
+  "Autres": "Altres"
 }

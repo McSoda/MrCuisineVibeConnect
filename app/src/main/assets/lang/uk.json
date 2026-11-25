@@ -730,7 +730,7 @@
   "Refusé par le site": "Відхилено сайтом",
   "Compte Toque": "Обліковий запис Toque",
   "Vous avez un compte sur toqueapp.org ? Reliez-le pour retrouver ici vos favoris du site et publier vos recettes depuis le robot.": "Маєте акаунт на toqueapp.org? Під'єднайте його, щоб синхронізувати обране з сайту та публікувати свої рецепти з комбайна.",
-  "Sans compte, les recettes de la communauté arrivent quand même. Vous pourrez relier un compte plus tard dans Réglages › Recettes › Communauté.": "Без облікового запису рецепти спільноти все одно надходять. Прив'язати обліковий запис можна пізніше: Параметри › Рецепти › Спільнота.",
+  "Sans compte, les recettes de la communauté arrivent quand même. Vous pourrez relier un compte plus tard dans Réglages › Recettes › toqueapp.org.": "Без облікового запису рецепти спільноти все одно надходять. Прив'язати обліковий запис можна пізніше: Параметри › Рецепти › toqueapp.org.",
   "Non merci": "Ні, дякую",
   "Me connecter": "Увійти",
   "« %s » sera supprimée de ce robot, avec sa note et ses corrections. Elle reste sur toqueapp.org : supprimez-la depuis le site si besoin.": "«%s» буде видалено з комбайна. На toqueapp.org рецепт залишиться.",
@@ -738,7 +738,7 @@
   "Communauté toqueapp.org": "Спільнота toqueapp.org",
   "Toque crée une copie de cette recette dans Mes recettes, telle qu'elle est affichée, pour que vous la modifiiez. La recette de la communauté reste telle quelle.": "Копія для редагування в «Мої рецепти». Рецепт спільноти лишається без змін.",
   "Communauté": "Спільнота",
-  "Aucune recette de la communauté pour l'instant.\nRéglages › Recettes › Communauté › Synchroniser.": "Рецептів спільноти ще немає.\nПараметри › Рецепти › Спільнота › Синхронізувати.",
+  "Aucune recette de la communauté pour l'instant.\nRéglages › Recettes › toqueapp.org › Synchroniser.": "Рецептів спільноти ще немає.\nПараметри › Рецепти › toqueapp.org › Синхронізувати.",
   "Les recettes partagées sur toqueapp.org, reçues sans compte. Celles que la communauté a traduites arrivent dans votre langue.": "Рецепти з toqueapp.org без реєстрації. Перекладені рецепти відображаються українською.",
   "Recevoir les recettes de la communauté": "Отримувати рецепти спільноти",
   "Relié au compte « %s ». Vos favoris du site arrivent sur le robot, et vous pouvez publier vos recettes.": "Обліковий запис «%s» під'єднано: завантаження обраного з сайту та публікація власних рецептів.",
@@ -787,7 +787,7 @@
   "Aucune recette pour l'instant": "Рецептів поки що\nнемає",
   "Actualiser": "Оновити",
   "Actualisation…": "Оновлення…",
-  "Reliez un compte Toque (Réglages › Recettes › Communauté) pour retrouver ici vos favoris du site.": "Під’єднайте обліковий запис Toque (Параметри › Рецепти › Спільнота), щоб бачити тут свої улюблені рецепти з сайту.",
+  "Reliez un compte Toque (Réglages › Recettes › toqueapp.org) pour retrouver ici vos favoris du site.": "Під’єднайте обліковий запис Toque (Параметри › Рецепти › toqueapp.org), щоб бачити тут свої улюблені рецепти з сайту.",
   "Bol replacé avec environ %d g de contenu : balance laissée telle quelle": "Чашу повернуто, в ній близько %d г: ваги не обнулено",
   "Bol replacé. S'il est vide, appuyez sur Tare : Toque retiendra son poids et remettra ensuite la balance à zéro à chaque retour du bol vide.": "Чашу повернуто. Якщо вона порожня, натисніть «Тара»: Toque запам’ятає її вагу й надалі обнулятиме ваги щоразу, коли порожню чашу повертають на місце.",
   "Bol vide mémorisé : %d g.": "Вага порожньої чаші: %d г.",
@@ -990,5 +990,6 @@
   "%d mise(s) à jour": "оновлено: %d",
   "%d retirée(s)": "прибрано: %d",
   "%d illisible(s)": "нечитабельних: %d",
-  "Déjà à jour": "Уже актуально"
+  "Déjà à jour": "Уже актуально",
+  "Autres": "Інше"
 }

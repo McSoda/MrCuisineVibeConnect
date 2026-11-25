@@ -358,7 +358,7 @@ class RecipesScreen(
             selection.byUsage && query.isBlank() -> tr("Aucune recette cuisinée pour l'instant.\nLes recettes apparaissent ici dès leur première cuisson.")
             selection == ChipSelection.of(RecipeChip.FAVORITES) && query.isBlank() -> tr("Aucun favori pour l'instant.\nTouchez l'étoile d'une recette pour l'ajouter.")
             selection == ChipSelection.of(RecipeChip.COMMUNITY) && query.isBlank() ->
-                tr("Aucune recette de la communauté pour l'instant.\nRéglages › Recettes › Communauté › Synchroniser.")
+                tr("Aucune recette de la communauté pour l'instant.\nRéglages › Recettes › toqueapp.org › Synchroniser.")
             selection == ChipSelection.of(RecipeChip.USER) && query.isBlank() ->
                 tr("Aucune recette perso pour l'instant.\nTouchez « Nouvelle recette », ou le crayon d'une recette Lidl pour en faire votre version.")
             selection.hasFilters -> Ui.guillemets(tr("Aucune recette avec ces filtres.\nTouchez « Toutes » pour les retirer."))
@@ -370,7 +370,7 @@ class RecipesScreen(
     private fun refreshFavorites() {
         val site = a.app.site
         if (!a.prefs.siteLinked && !a.prefs.siteCommunity) {
-            a.toast(tr("Reliez un compte Toque (Réglages › Recettes › Communauté) pour retrouver ici vos favoris du site."), Ui.WARN)
+            a.toast(tr("Reliez un compte Toque (Réglages › Recettes › toqueapp.org) pour retrouver ici vos favoris du site."), Ui.WARN)
             return
         }
         if (site.busy) {

@@ -730,7 +730,7 @@
   "Refusé par le site": "Rechazado por la web",
   "Compte Toque": "Cuenta Toque",
   "Vous avez un compte sur toqueapp.org ? Reliez-le pour retrouver ici vos favoris du site et publier vos recettes depuis le robot.": "¿Tienes una cuenta en toqueapp.org? Vincúlala para tener aquí tus favoritos de la web y publicar tus recetas desde el robot.",
-  "Sans compte, les recettes de la communauté arrivent quand même. Vous pourrez relier un compte plus tard dans Réglages › Recettes › Communauté.": "Sin cuenta, las recetas de la comunidad llegan igualmente. Puedes vincular una cuenta más tarde en Ajustes › Recetas › Comunidad.",
+  "Sans compte, les recettes de la communauté arrivent quand même. Vous pourrez relier un compte plus tard dans Réglages › Recettes › toqueapp.org.": "Sin cuenta, las recetas de la comunidad llegan igualmente. Puedes vincular una cuenta más tarde en Ajustes › Recetas › toqueapp.org.",
   "Non merci": "No, gracias",
   "Me connecter": "Conectarme",
   "« %s » sera supprimée de ce robot, avec sa note et ses corrections. Elle reste sur toqueapp.org : supprimez-la depuis le site si besoin.": "«%s» se eliminará de este robot, con su nota y sus correcciones. Sigue en toqueapp.org: elimínala desde la web si hace falta.",
@@ -738,7 +738,7 @@
   "Communauté toqueapp.org": "Comunidad toqueapp.org",
   "Toque crée une copie de cette recette dans Mes recettes, telle qu'elle est affichée, pour que vous la modifiiez. La recette de la communauté reste telle quelle.": "Toque crea una copia de esta receta en Mis recetas, tal como se muestra, para que la modifiques. La receta de la comunidad no cambia.",
   "Communauté": "Comunidad",
-  "Aucune recette de la communauté pour l'instant.\nRéglages › Recettes › Communauté › Synchroniser.": "Aún no hay recetas de la comunidad.\nAjustes › Recetas › Comunidad › Sincronizar.",
+  "Aucune recette de la communauté pour l'instant.\nRéglages › Recettes › toqueapp.org › Synchroniser.": "Aún no hay recetas de la comunidad.\nAjustes › Recetas › toqueapp.org › Sincronizar.",
   "Les recettes partagées sur toqueapp.org, reçues sans compte. Celles que la communauté a traduites arrivent dans votre langue.": "Las recetas compartidas en toqueapp.org, recibidas sin cuenta. Las que la comunidad ha traducido llegan en tu idioma.",
   "Recevoir les recettes de la communauté": "Recibir las recetas de la comunidad",
   "Relié au compte « %s ». Vos favoris du site arrivent sur le robot, et vous pouvez publier vos recettes.": "Vinculado a la cuenta «%s». Tus favoritos de la web llegan al robot y puedes publicar tus recetas.",
@@ -787,7 +787,7 @@
   "Aucune recette pour l'instant": "Aún no hay recetas",
   "Actualiser": "Actualizar",
   "Actualisation…": "Actualizando…",
-  "Reliez un compte Toque (Réglages › Recettes › Communauté) pour retrouver ici vos favoris du site.": "Vincula una cuenta Toque (Ajustes › Recetas › Comunidad) para encontrar aquí tus favoritos del sitio.",
+  "Reliez un compte Toque (Réglages › Recettes › toqueapp.org) pour retrouver ici vos favoris du site.": "Vincula una cuenta Toque (Ajustes › Recetas › toqueapp.org) para encontrar aquí tus favoritos del sitio.",
   "Bol replacé avec environ %d g de contenu : balance laissée telle quelle": "Vaso colocado con unos %d g dentro: la báscula se deja como está",
   "Bol replacé. S'il est vide, appuyez sur Tare : Toque retiendra son poids et remettra ensuite la balance à zéro à chaque retour du bol vide.": "Vaso colocado. Si está vacío, pulsa Tara: Toque recordará su peso y pondrá la báscula a cero cada vez que vuelvas a colocar el vaso vacío.",
   "Bol vide mémorisé : %d g.": "Vaso vacío memorizado: %d g.",
@@ -990,5 +990,6 @@
   "%d mise(s) à jour": "%d actualizada(s)",
   "%d retirée(s)": "%d quitada(s)",
   "%d illisible(s)": "%d ilegible(s)",
-  "Déjà à jour": "Ya está al día"
+  "Déjà à jour": "Ya está al día",
+  "Autres": "Otros"
 }

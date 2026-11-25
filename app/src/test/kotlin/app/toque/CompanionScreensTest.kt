@@ -430,14 +430,6 @@ class CompanionScreensTest {
         shot("12-reglages-couleurs-molette")
     }
 
-    /** Touche le texte [text] (ou le premier parent qui se touche). */
-    private fun tap(root: View, text: String) {
-        var v: View = findText(root, text) ?: throw AssertionError("texte introuvable : $text")
-        while (!v.isClickable) v = v.parent as View
-        v.performClick()
-        idle(3)
-    }
-
     /**
      * Mealie : la page des réglages (non relié, puis relié), l'écran pour relier, la liste avec la
      * pastille et la fiche d'une recette reçue (réglage proposé à vérifier). Aucun réseau : le serveur
@@ -449,7 +441,11 @@ class CompanionScreensTest {
         val settings = SettingsScreen(activity, SettingsScreen.Family.RECIPES)
         activity.push(settings)
         idle(3)
-        tap(settings.view, "Mealie")
+        // Pastilles de Recettes : Lidl, toqueapp.org, Mes recettes, Appli d'origine ; Mealie est dans la famille « Autres ».
+        for (chip in listOf("Lidl", "toqueapp.org", "Mes recettes", "Appli d'origine")) assertNotNull(chip, findText(settings.view, chip))
+        assertNull(findText(settings.view, "Communauté"))
+        shot("39b-reglages-recettes-pastilles")
+        openFamily(settings, "Autres")
         assertNotNull(findText(settings.view, "Relier mon serveur"))
         shot("40-reglages-mealie-non-relie")
         activity.push(MealieLinkScreen(activity))
@@ -468,10 +464,9 @@ class CompanionScreensTest {
         app.prefs.mealieLastResult = "25/11 à 03:31 : 1 ajoutée(s)"
         app.recipes.upsertAll(listOf(r))
         waitFor("recette Mealie enregistrée") { app.recipes.index.entries.any { it.id == r.id } }
-        val linked = SettingsScreen(activity, SettingsScreen.Family.RECIPES)
+        val linked = SettingsScreen(activity, SettingsScreen.Family.OTHERS)
         activity.push(linked)
         idle(3)
-        tap(linked.view, "Mealie")
         assertNotNull(findText(linked.view, "Délier"))
         shot("42-reglages-mealie-relie")
         activity.push(RecipesScreen(activity))

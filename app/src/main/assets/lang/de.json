@@ -730,7 +730,7 @@
   "Refusé par le site": "Von der Website abgelehnt",
   "Compte Toque": "Toque-Konto",
   "Vous avez un compte sur toqueapp.org ? Reliez-le pour retrouver ici vos favoris du site et publier vos recettes depuis le robot.": "Sie haben ein Konto auf toqueapp.org? Verbinden Sie es, um Ihre Favoriten der Website hier zu haben und Ihre Rezepte vom Roboter aus zu veröffentlichen.",
-  "Sans compte, les recettes de la communauté arrivent quand même. Vous pourrez relier un compte plus tard dans Réglages › Recettes › Communauté.": "Auch ohne Konto kommen die Community-Rezepte an. Sie können ein Konto später unter Einstellungen › Rezepte › Community verbinden.",
+  "Sans compte, les recettes de la communauté arrivent quand même. Vous pourrez relier un compte plus tard dans Réglages › Recettes › toqueapp.org.": "Auch ohne Konto kommen die Community-Rezepte an. Sie können ein Konto später unter Einstellungen › Rezepte › toqueapp.org verbinden.",
   "Non merci": "Nein danke",
   "Me connecter": "Anmelden",
   "« %s » sera supprimée de ce robot, avec sa note et ses corrections. Elle reste sur toqueapp.org : supprimez-la depuis le site si besoin.": "„%s“ wird von diesem Roboter gelöscht, mit Notiz und Korrekturen. Auf toqueapp.org bleibt es: löschen Sie es bei Bedarf auf der Website.",
@@ -738,7 +738,7 @@
   "Communauté toqueapp.org": "toqueapp.org-Community",
   "Toque crée une copie de cette recette dans Mes recettes, telle qu'elle est affichée, pour que vous la modifiiez. La recette de la communauté reste telle quelle.": "Toque legt eine Kopie dieses Rezepts so wie angezeigt unter Meine Rezepte an, damit Sie es bearbeiten können. Das Community-Rezept bleibt unverändert.",
   "Communauté": "Community",
-  "Aucune recette de la communauté pour l'instant.\nRéglages › Recettes › Communauté › Synchroniser.": "Noch keine Community-Rezepte.\nEinstellungen › Rezepte › Community › Synchronisieren.",
+  "Aucune recette de la communauté pour l'instant.\nRéglages › Recettes › toqueapp.org › Synchroniser.": "Noch keine Community-Rezepte.\nEinstellungen › Rezepte › toqueapp.org › Synchronisieren.",
   "Les recettes partagées sur toqueapp.org, reçues sans compte. Celles que la communauté a traduites arrivent dans votre langue.": "Auf toqueapp.org geteilte Rezepte, ohne Konto empfangen. Von der Community übersetzte Rezepte kommen in Ihrer Sprache an.",
   "Recevoir les recettes de la communauté": "Community-Rezepte empfangen",
   "Relié au compte « %s ». Vos favoris du site arrivent sur le robot, et vous pouvez publier vos recettes.": "Mit dem Konto „%s“ verbunden. Ihre Favoriten der Website kommen auf den Roboter, und Sie können Ihre Rezepte veröffentlichen.",
@@ -787,7 +787,7 @@
   "Aucune recette pour l'instant": "Noch keine Rezepte",
   "Actualiser": "Aktualisieren",
   "Actualisation…": "Wird aktualisiert…",
-  "Reliez un compte Toque (Réglages › Recettes › Communauté) pour retrouver ici vos favoris du site.": "Verbinde ein Toque-Konto (Einstellungen › Rezepte › Community), um hier deine Favoriten von der Website zu finden.",
+  "Reliez un compte Toque (Réglages › Recettes › toqueapp.org) pour retrouver ici vos favoris du site.": "Verbinde ein Toque-Konto (Einstellungen › Rezepte › toqueapp.org), um hier deine Favoriten von der Website zu finden.",
   "Bol replacé avec environ %d g de contenu : balance laissée telle quelle": "Schüssel mit etwa %d g Inhalt zurückgestellt: Waage bleibt, wie sie ist",
   "Bol replacé. S'il est vide, appuyez sur Tare : Toque retiendra son poids et remettra ensuite la balance à zéro à chaque retour du bol vide.": "Schüssel zurückgestellt. Wenn sie leer ist, drücke Tara: Toque merkt sich ihr Gewicht und stellt die Waage danach jedes Mal auf null, wenn die leere Schüssel zurückkommt.",
   "Bol vide mémorisé : %d g.": "Leere Schüssel gespeichert: %d g.",
@@ -990,5 +990,6 @@
   "%d mise(s) à jour": "%d aktualisiert",
   "%d retirée(s)": "%d entfernt",
   "%d illisible(s)": "%d unlesbar",
-  "Déjà à jour": "Bereits aktuell"
+  "Déjà à jour": "Bereits aktuell",
+  "Autres": "Weitere"
 }

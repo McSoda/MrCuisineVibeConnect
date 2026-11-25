@@ -49,7 +49,7 @@ catalan et ukrainien.
 - **Publiez vos recettes** sur le site ou directement depuis le robot. Les réglages de chaque étape
   (durée, température, vitesse) sont vérifiés avec les mêmes règles de sécurité que sur le robot.
 - **Envoyez-les sur votre robot** : les recettes de la communauté arrivent sur le robot sans aucun
-  compte (*Réglages › Recettes › Communauté*). Avec un compte Toque gratuit et facultatif
+  compte (*Réglages › Recettes › toqueapp.org*). Avec un compte Toque gratuit et facultatif
   (à relier sur la même page), vos favoris et vos recettes vous suivent sur le robot.
 - **Traduisez** les recettes des autres dans votre langue, **abonnez-vous** aux cuisiniers que vous
   aimez, et signalez ce qui n'a rien à y faire.
@@ -147,13 +147,13 @@ essayés : dites-nous). Merci à @julienperrault et @flexbox.
   nouvelles ou modifiées sont retéléchargées. On peut toujours importer à la place celles de
   l'appli d'origine.
 - **Recettes de la communauté sur [toqueapp.org](https://toqueapp.org)** : les recettes partagées
-  par les utilisateurs de Toque arrivent sur le robot (*Réglages › Recettes › Communauté*), sans
+  par les utilisateurs de Toque arrivent sur le robot (*Réglages › Recettes › toqueapp.org*), sans
   compte. Avec un compte Toque gratuit (facultatif, proposé une seule fois et plus jamais si on
   refuse ; à relier sur la même page), les favoris du site arrivent sur le robot et vos recettes
   peuvent être publiées depuis le robot. Le site est en français, anglais, allemand, espagnol,
   catalan et ukrainien ; le robot ne garde qu'une clé révocable, jamais le mot de passe.
 - **Votre serveur [Mealie](https://mealie.io)** (recettes auto-hébergées) : reliez-y le robot
-  (*Réglages › Recettes › Mealie*, avec votre identifiant ou un jeton d'API) et toutes ses recettes
+  (*Réglages › Autres*, avec votre identifiant ou un jeton d'API) et toutes ses recettes
   arrivent sur le robot, en lecture seule, chaque nuit ou à la demande, avec une pastille « Mealie »
   dans la liste. Les réglages écrits dans les étapes (« 5 min/100 °C/vitesse 1 », « 10 sec/vitesse 5 »,
   « Turbo 3 fois », « mode pétrin 2 min ») sont proposés et à vérifier avant de partir, comme pour les

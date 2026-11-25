@@ -46,10 +46,10 @@ import app.toque.update.Updater
  */
 class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Screen(a) {
     /** Les familles de réglages, dans l'ordre du menu : le quotidien d'abord, le technique à la fin. */
-    enum class Family { SCREEN, KNOB_SOUNDS, RECIPES, COOKING, SAFETY, PHONE, LANGUAGE_TIME, UPDATES, ADVANCED }
+    enum class Family { SCREEN, KNOB_SOUNDS, RECIPES, COOKING, SAFETY, PHONE, LANGUAGE_TIME, UPDATES, OTHERS, ADVANCED }
 
-    /** D'où viennent les recettes : une pastille chacune, en haut de la famille « Recettes ». */
-    private enum class Source { LIDL, COMMUNITY, MEALIE, MINE, STOCK }
+    /** D'où viennent les recettes : une pastille chacune, en haut de la famille « Recettes ». Mealie est dans « Autres ». */
+    private enum class Source { LIDL, SITE, MINE, STOCK }
 
     override val title = tr("Réglages")
     /** La famille ouverte. */
@@ -130,6 +130,7 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
                 Family.PHONE -> phonePage(page)
                 Family.LANGUAGE_TIME -> languageAndTimePage(page)
                 Family.UPDATES -> updatesPage(page)
+                Family.OTHERS -> othersPage(page)
                 Family.ADVANCED -> advancedPage(page)
             }
         }
@@ -156,6 +157,7 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         Family.PHONE -> tr("Téléphone")
         Family.LANGUAGE_TIME -> tr("Langue et heure")
         Family.UPDATES -> tr("Mises à jour")
+        Family.OTHERS -> tr("Autres")
         Family.ADVANCED -> tr("Avancé")
     }
 
@@ -168,6 +170,7 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         Family.PHONE -> Icon.Kind.PHONE
         Family.LANGUAGE_TIME -> Icon.Kind.GLOBE   // le globe se reconnaît quelle que soit la langue affichée
         Family.UPDATES -> Icon.Kind.DOWNLOAD
+        Family.OTHERS -> Icon.Kind.PLUS
         Family.ADVANCED -> Icon.Kind.SETTINGS
     }
 
@@ -293,8 +296,7 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
             p.addView(page, Ui.lp())
             when (s) {
                 Source.LIDL -> lidlPage(page)
-                Source.COMMUNITY -> communityPage(page)
-                Source.MEALIE -> mealiePage(page)
+                Source.SITE -> communityPage(page)
                 Source.MINE -> myRecipesPage(page)
                 Source.STOCK -> stockAppPage(page)
             }
@@ -309,8 +311,7 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         for (s in Source.values()) {
             sourceRow.addView(Ui.toggleChip(c, when (s) {
                 Source.LIDL -> "Lidl"
-                Source.COMMUNITY -> tr("Communauté")
-                Source.MEALIE -> "Mealie"
+                Source.SITE -> "toqueapp.org"
                 Source.MINE -> tr("Mes recettes")
                 Source.STOCK -> tr("Appli d'origine")
             }, source == s) { source = s; renderSources() }, Ui.lp(Ui.WRAP, Ui.WRAP, r = 8))
@@ -384,11 +385,16 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         p.addView(setting(accountText, accountButtons), Ui.lp(t = 8, b = 8))
     }
 
+    /** Famille « Autres » : ce qui vient en plus (un serveur Mealie pour l'instant), une rubrique chacun. */
+    private fun othersPage(p: LinearLayout) {
+        group(p, "Mealie")
+        mealiePage(p)
+    }
+
     /** Un serveur Mealie auto-hébergé : ses recettes arrivent en lecture seule, réglages proposés à vérifier. */
     private fun mealiePage(p: LinearLayout) {
         p.addView(hint(tr("Vous hébergez vos recettes avec Mealie ? Reliez le robot à votre serveur : toutes ses recettes arrivent dans Toque, chaque nuit et à la demande. Les réglages écrits dans les étapes (« 5 min/100 °C/vitesse 1 ») sont proposés, à vérifier avant de lancer.")),
-            Ui.lp(t = 12, b = 8))
-        line(p)
+            Ui.lp(t = 6, b = 8))
         mealieText = Ui.text(c, "", 16f, Ui.TEXT).apply { setLineSpacing(0f, 1.15f) }
         mealieButtons = Ui.horizontal(c)
         p.addView(setting(mealieText, mealieButtons), Ui.lp(t = 8, b = 8))
@@ -1231,7 +1237,8 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         }
 
         /** Hauteur d'une ligne du menu, en pixels de référence. */
-        private const val ENTRY = 52
+        /** Hauteur d'une ligne du menu : les 10 familles tiennent dans la hauteur de l'écran du robot (600). */
+        private const val ENTRY = 48
         /** Hauteur la plus grande d'une liste déroulante (au-delà elle défile), et sa marge avec le bord de l'écran. */
         private const val LIST_MAX = 400
         private const val LIST_MARGIN = 8

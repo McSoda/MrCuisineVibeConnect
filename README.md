@@ -49,7 +49,7 @@ Toque's own recipe site, free and ad-free, in English, French, German, Spanish, 
 - **Publish your recipes** on the site or straight from the robot. Each step's settings (time,
   temperature, speed) are checked with the same safety rules as on the robot.
 - **Send them to your robot**: community recipes reach the robot without any account
-  (*Settings › Recipes › Community*). With a free, optional Toque account (linked on the same page),
+  (*Settings › Recipes › toqueapp.org*). With a free, optional Toque account (linked on the same page),
   your favourites and your own recipes follow you to the robot.
 - **Translate** other people's recipes into your language, **follow** the cooks you like, and report
   what doesn't belong there.
@@ -143,13 +143,13 @@ SKMC 1100 A1 not tested yet: please report). Thanks to @julienperrault and @flex
   Requests are spaced out and only new or changed recipes are downloaded again. The recipes already
   in the stock app can still be imported instead.
 - **Community recipes from [toqueapp.org](https://toqueapp.org)**: recipes shared by Toque users
-  arrive on the robot (*Settings › Recipes › Community*), no account needed. With a free Toque account
+  arrive on the robot (*Settings › Recipes › toqueapp.org*), no account needed. With a free Toque account
   (optional, offered once and never again if declined; linked on the same page), the site's
   favourites come to the robot and your own recipes can be published from the robot. The site is in
   French, English, German, Spanish, Catalan and Ukrainian; only a revocable key of the robot is kept,
   never the password.
 - **Your own [Mealie](https://mealie.io) server** (self-hosted recipes): link the robot to it
-  (*Settings › Recipes › Mealie*, with your username or an API token) and all its recipes arrive on
+  (*Settings › Other*, with your username or an API token) and all its recipes arrive on
   the robot, read-only, nightly or on demand, with a "Mealie" chip in the list. Settings written in
   the steps ("5 min/100 °C/speed 1", "10 sec/speed 5", "Turbo 3 times", "dough mode 2 min") are
   suggested and must be checked before they start, like imported recipes. Only a token of the robot is
