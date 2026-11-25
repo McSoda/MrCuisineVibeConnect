@@ -19,7 +19,7 @@ it going.
 
 | Robot | Label under the robot | Status | How to install |
 |---|---|---|---|
-| Monsieur Cuisine **Connect** | SKMC 1200 (A1, B2, C3) | Supported | [AI agent](AGENTS.md) or [install guide](docs/INSTALLATION.md), then `Toque-x.y.z.apk` |
+| Monsieur Cuisine **Connect** | SKMC 1200 (A1, B2, C3, D4) | Supported | [AI agent](AGENTS.md) or [install guide](docs/INSTALLATION.md), then `Toque-x.y.z.apk` |
 | Monsieur Cuisine **Connect** | SKMC 1100 A1 | Supported | Same, with one more step, `own-twrp`: TWRP rebuilt around the robot's own kernel ([#10](https://github.com/Wuki60/MrCuisineVibeConnect/issues/10)) |
 | Monsieur Cuisine **Smart** | SKMS 1200 | **In test**: tested by Smart owners, reports in [#59](https://github.com/Wuki60/MrCuisineVibeConnect/issues/59) | [Smart guide](docs/SMART.en.md), then `Toque-smart-x.y.z.apk` |
 
