@@ -403,7 +403,7 @@ class CompanionScreensTest {
         val app = androidx_free_app()
         val hot = Snapshot(link = LinkState.READY, hasSample = true, actualTempC = 72)
         val bar = TopBar(activity)
-        bar.setTitle("Cuisson manuelle", true)
+        bar.setTitle("Cuisson manuelle", canGoBack = true)
         bar.update(hot)
         assertEquals(View.VISIBLE, bar.hotWarning.visibility)
         assertNotNull(findText(bar, "72 °C"))
