@@ -991,5 +991,8 @@
   "%d retirée(s)": "%d quitada(s)",
   "%d illisible(s)": "%d ilegible(s)",
   "Déjà à jour": "Ya está al día",
-  "Autres": "Otros"
+  "Autres": "Otros",
+  "Magisk est introuvable sur ce robot : désinstallé, ou masqué sous un autre nom.": "No se encuentra Magisk en este robot: desinstalado u oculto con otro nombre.",
+  "Ouvrir Magisk ?": "¿Abrir Magisk?",
+  "Magisk donne à Toque l'accès root dont il a besoin. Vous pouvez y régler ses notifications. N'y lancez jamais « Installation directe » et refusez toute réinstallation proposée : elle réécrit le démarrage du robot.": "Magisk da a Toque el acceso root que necesita. Allí puede ajustar sus notificaciones. No inicie nunca «Instalación directa» y rechace cualquier reinstalación que proponga: reescribe el arranque del robot."
 }

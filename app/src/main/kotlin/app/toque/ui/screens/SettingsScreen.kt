@@ -599,17 +599,19 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         renderModes()
         line(p)
 
-        // Les outils, deux par ligne.
+        // Les outils, deux par ligne ; le dernier, seul sur la sienne, en prend toute la largeur.
         val tools = listOf<Pair<String, () -> Unit>>(
             tr("Diagnostic de la base moteur") to { a.push(DiagnosticsScreen(a)) },
             tr("Journal") to { a.push(LogScreen(a)) },
             tr("Paramètres Android") to { a.openAndroidSettings() },
+            // Régler Magisk (ses notifications pendant la cuisine, par exemple) sans PC ; un nom propre, pas traduit.
+            "Magisk" to { a.openMagisk() },
             tr("Revenir à l'appli d'origine") to { restoreVendor() },
         )
         for (pair in tools.chunked(2)) {
             val two = Ui.horizontal(c)
             for ((i, tool) in pair.withIndex())
-                two.addView(tile(tool.first, tool.second), LinearLayout.LayoutParams(0, Ui.u(52), 1f).apply { if (i == 0) rightMargin = Ui.u(8) })
+                two.addView(tile(tool.first, tool.second), LinearLayout.LayoutParams(0, Ui.u(52), 1f).apply { if (i == 0 && pair.size > 1) rightMargin = Ui.u(8) })
             p.addView(two, Ui.lp(t = 8))
         }
         p.addView(Ui.spacer(c, h = 8))

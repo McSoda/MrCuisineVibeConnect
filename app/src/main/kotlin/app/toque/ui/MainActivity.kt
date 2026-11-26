@@ -871,7 +871,27 @@ class MainActivity : Activity() {
     }
 
     /** Paramètres Android (accès caché), avec le bouton « Retour à Toque » pour en revenir. */
-    fun openAndroidSettings() {
+    fun openAndroidSettings() = openOutside(Intent(android.provider.Settings.ACTION_SETTINGS))
+
+    /**
+     * L'appli Magisk (ses notifications, les droits accordés), sans passer par un PC. Elle est ouverte par
+     * son lanceur : le nom de son écran change d'une version à l'autre. Introuvable (désinstallée, ou masquée
+     * sous un autre nom par son propre réglage) : un message. Avant d'ouvrir, un rappel : Magisk propose une
+     * réinstallation qui réécrit le démarrage du robot.
+     */
+    fun openMagisk() {
+        val launch = packageManager.getLaunchIntentForPackage(MAGISK_PACKAGE)
+        if (launch == null) {
+            toast(tr("Magisk est introuvable sur ce robot : désinstallé, ou masqué sous un autre nom."), Ui.WARN)
+            return
+        }
+        confirm(tr("Ouvrir Magisk ?"),
+            tr("Magisk donne à Toque l'accès root dont il a besoin. Vous pouvez y régler ses notifications. N'y lancez jamais « Installation directe » et refusez toute réinstallation proposée : elle réécrit le démarrage du robot."),
+            tr("Ouvrir")) { openOutside(launch) }
+    }
+
+    /** Ouvre [intent] hors de Toque, avec le bouton « Retour à Toque » : le robot n'a pas de touche Retour. */
+    private fun openOutside(intent: Intent) {
         Thread {
             val ok = ReturnBubble.ensurePermission(this)
             main.post {
@@ -882,7 +902,7 @@ class MainActivity : Activity() {
                 prefs.returnBubble = true
                 ReturnBubble.start(this)
                 try {
-                    startActivity(Intent(android.provider.Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 } catch (_: Exception) {
                     prefs.returnBubble = false
                     ReturnBubble.stop(this)
@@ -894,6 +914,8 @@ class MainActivity : Activity() {
     companion object {
         private var reopenSettings = false
         private const val STORAGE_REQUEST = 7
+        /** L'appli Magisk sous son nom d'origine (son réglage « Masquer l'appli » lui en donne un autre). */
+        const val MAGISK_PACKAGE = "com.topjohnwu.magisk"
         private const val PRESS = 2
 
         /** MotionEvent.AXIS_SCROLL (API 26), valeur fixe pour Android 6. */
