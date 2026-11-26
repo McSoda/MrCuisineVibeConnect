@@ -1017,5 +1017,10 @@
   "Mon réglage : sans le robot": "Моє налаштування: без комбайна",
   "Mon réglage": "Моє налаштування",
   "À vérifier": "Перевірити",
-  "Mon réglage pour l'étape %d": "Моє налаштування для кроку %d"
+  "Mon réglage pour l'étape %d": "Моє налаштування для кроку %d",
+  "Cette recette ne prend pas votre réglage du robot": "Цей рецепт не приймає ваше налаштування робота",
+  "Le robot ne prend pas votre réglage depuis le téléphone": "Робот не приймає ваше налаштування з телефона",
+  "Étape %d : réglage du téléphone vérifié": "Крок %d: налаштування з телефона перевірено",
+  "Du téléphone : à vérifier": "З телефона: перевірити",
+  "Réglage saisi sur le téléphone : vérifiez-le avant de l'enregistrer.": "Налаштування введено на телефоні: перевірте його перед збереженням."
 }

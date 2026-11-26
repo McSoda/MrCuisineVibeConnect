@@ -427,6 +427,8 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
             val rb = Ui.button(c, tr("J'ai vérifié ce réglage"), Ui.Style.GHOST, Icon.Kind.CHECK, height = 56, textSize = 17f) {
                 reviewed += index
                 a.prefs.reviewedSteps = a.prefs.reviewedSteps + reviewKey(index)
+                // Réglage du propriétaire venu d'un téléphone (recette Mealie) : vérifié ici, il devient le sien.
+                if (step.reviewAlone) a.app.recipes.confirmStepSetting(recipe.id, index, step.machine)
                 buildPanel()
                 onSnapshot(a.snapshot)
             }

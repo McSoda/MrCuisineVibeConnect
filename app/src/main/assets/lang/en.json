@@ -1017,5 +1017,10 @@
   "Mon réglage : sans le robot": "My setting: without the robot",
   "Mon réglage": "My setting",
   "À vérifier": "To check",
-  "Mon réglage pour l'étape %d": "My setting for step %d"
+  "Mon réglage pour l'étape %d": "My setting for step %d",
+  "Cette recette ne prend pas votre réglage du robot": "This recipe does not take your robot setting",
+  "Le robot ne prend pas votre réglage depuis le téléphone": "The robot does not take your setting from the phone",
+  "Étape %d : réglage du téléphone vérifié": "Step %d: phone setting checked",
+  "Du téléphone : à vérifier": "From the phone: to check",
+  "Réglage saisi sur le téléphone : vérifiez-le avant de l'enregistrer.": "Setting typed on the phone: check it before saving."
 }

@@ -1017,5 +1017,10 @@
   "Mon réglage : sans le robot": "Meine Einstellung: ohne das Gerät",
   "Mon réglage": "Meine Einstellung",
   "À vérifier": "Zu prüfen",
-  "Mon réglage pour l'étape %d": "Meine Einstellung für Schritt %d"
+  "Mon réglage pour l'étape %d": "Meine Einstellung für Schritt %d",
+  "Cette recette ne prend pas votre réglage du robot": "Dieses Rezept nimmt Ihre Robotereinstellung nicht an",
+  "Le robot ne prend pas votre réglage depuis le téléphone": "Der Roboter nimmt Ihre Einstellung nicht vom Telefon an",
+  "Étape %d : réglage du téléphone vérifié": "Schritt %d: Einstellung vom Telefon geprüft",
+  "Du téléphone : à vérifier": "Vom Telefon: zu prüfen",
+  "Réglage saisi sur le téléphone : vérifiez-le avant de l'enregistrer.": "Am Telefon eingegebene Einstellung: vor dem Speichern prüfen."
 }

@@ -1017,5 +1017,10 @@
   "Mon réglage : sans le robot": "El meu ajust: sense el robot",
   "Mon réglage": "El meu ajust",
   "À vérifier": "Per comprovar",
-  "Mon réglage pour l'étape %d": "El meu ajust per al pas %d"
+  "Mon réglage pour l'étape %d": "El meu ajust per al pas %d",
+  "Cette recette ne prend pas votre réglage du robot": "Aquesta recepta no admet el vostre ajust del robot",
+  "Le robot ne prend pas votre réglage depuis le téléphone": "El robot no admet el vostre ajust des del telèfon",
+  "Étape %d : réglage du téléphone vérifié": "Pas %d: ajust del telèfon comprovat",
+  "Du téléphone : à vérifier": "Del telèfon: per comprovar",
+  "Réglage saisi sur le téléphone : vérifiez-le avant de l'enregistrer.": "Ajust escrit al telèfon: comproveu-lo abans de desar-lo."
 }

@@ -19,6 +19,7 @@ import app.toque.core.i18n.tr
 import app.toque.core.recipes.McOnline
 import app.toque.core.recipes.QuantityLinks
 import app.toque.core.recipes.Ingredient
+import app.toque.core.recipes.OwnStepSetting
 import app.toque.core.recipes.OwnStepSettings
 import app.toque.core.recipes.Portions
 import app.toque.core.recipes.Recipe
@@ -307,7 +308,7 @@ class RecipeScreen(a: MainActivity, val recipe: Recipe) : Screen(a) {
             stepsList.addView(Ui.text(c, tr("Touchez une étape pour lui donner votre réglage du robot, sans copier la recette."), 16f, Ui.TEXT2)
                 .apply { setLineSpacing(0f, 1.12f) }, Ui.lp(t = 4))
         val owned = OwnStepSettings.owned(recipe, adjustments)
-        for ((i, s) in shown.steps.withIndex()) stepsList.addView(stepRow(i, s, i in owned), Ui.lp(t = if (ownSettings) 6 else 12))
+        for ((i, s) in shown.steps.withIndex()) stepsList.addView(stepRow(i, s, owned[i]), Ui.lp(t = if (ownSettings) 6 else 12))
     }
 
     /**
@@ -316,7 +317,8 @@ class RecipeScreen(a: MainActivity, val recipe: Recipe) : Screen(a) {
      */
     private fun editStepSetting(i: Int) {
         val s = shown.steps.getOrNull(i) ?: return
-        val mine = OwnStepSettings.owned(recipe, adjustments)[i] != null
+        val own = OwnStepSettings.owned(recipe, adjustments)[i]
+        val mine = own != null
         val reset: (() -> Unit)? = if (!mine) null else ({
             save(adjustments.withoutStep(recipe, i))
             a.toast(tr("Étape %d : réglage de la recette", i + 1))
@@ -332,7 +334,9 @@ class RecipeScreen(a: MainActivity, val recipe: Recipe) : Screen(a) {
                 return@StepEditScreen
             }
             save(adjustments.withStep(recipe, i, m))
-            a.toast(tr("Étape %d : mon réglage enregistré", i + 1), Ui.OK)
+            // Réglage venu d'un téléphone, gardé tel quel d'un appui sur OK : c'est la vérification sur le robot.
+            a.toast(if (own != null && !own.trusted && own.machine == m) tr("Étape %d : réglage du téléphone vérifié", i + 1)
+                else tr("Étape %d : mon réglage enregistré", i + 1), Ui.OK)
         })
     }
 
@@ -620,8 +624,11 @@ class RecipeScreen(a: MainActivity, val recipe: Recipe) : Screen(a) {
     private fun section(t: String): TextView =
         Ui.text(c, t.uppercase(), 15f, Ui.TEXT2, Ui.MEDIUM).apply { letterSpacing = 0.08f; setPadding(0, Ui.u(10), 0, 0) }
 
-    /** [own] : l'étape porte le réglage du propriétaire (marqué « Mon réglage »). */
-    private fun stepRow(i: Int, s: Step, own: Boolean = false): View {
+    /**
+     * [own] : le réglage du propriétaire de l'étape, ou null. Tapé sur le robot : « Mon réglage » ; venu d'un
+     * téléphone : « Du téléphone : à vérifier », jusqu'à ce qu'il soit vérifié ici (OK sur l'étape) ou à la cuisson.
+     */
+    private fun stepRow(i: Int, s: Step, own: OwnStepSetting? = null): View {
         val row = Ui.horizontal(c, Gravity.TOP)
         val num = Ui.text(c, "${i + 1}", 17f, Ui.ACCENT_INK, Ui.MEDIUM).apply { gravity = Gravity.CENTER }
         num.background = Ui.round(Ui.ACCENT_DIM, 18f)
@@ -640,7 +647,9 @@ class RecipeScreen(a: MainActivity, val recipe: Recipe) : Screen(a) {
             chips.addView(Ui.chip(c, m.summary, if (ok) Icon.Kind.POT else Icon.Kind.WARNING,
                 if (ok) Ui.ACCENT_INK else Ui.WARN, if (ok) Ui.ACCENT_DIM else 0x33FFC14D, 15f), Ui.lp(Ui.WRAP, Ui.WRAP, r = 8))
         }
-        if (own) {
+        if (own != null && !own.trusted && s.machine != null) {
+            chips.addView(Ui.chip(c, tr("Du téléphone : à vérifier"), Icon.Kind.PHONE, Ui.WARN, 0x33FFC14D, 15f))
+        } else if (own != null) {
             chips.addView(Ui.chip(c, if (s.machine == null) tr("Mon réglage : sans le robot") else tr("Mon réglage"), Icon.Kind.EDIT,
                 Ui.ACCENT_INK, Ui.SURFACE2, 15f))
         } else if (ownSettings && s.machine != null && s.needsReview) {

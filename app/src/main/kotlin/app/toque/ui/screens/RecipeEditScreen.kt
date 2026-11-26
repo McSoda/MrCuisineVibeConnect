@@ -575,9 +575,10 @@ class StepEditScreen(
         left.addView(Edit.label(c, tr("Ce qu'il faut faire")))
         val body = Ui.vertical(c)
         body.addView(Ui.text(c, start.text.ifBlank { "—" }, 19f, Ui.TEXT).apply { setLineSpacing(0f, 1.15f) })
-        // Un réglage lu dans le texte arrive pré-rempli : l'enregistrer, c'est l'avoir vérifié.
+        // Un réglage lu dans le texte, ou venu d'un téléphone, arrive pré-rempli : l'enregistrer, c'est l'avoir vérifié.
         if (start.needsReview && start.machine != null)
-            body.addView(Ui.text(c, tr("Réglage lu dans le texte de l'étape : vérifiez-le avant de l'enregistrer."), 16f, Ui.WARN)
+            body.addView(Ui.text(c, if (start.reviewAlone) tr("Réglage saisi sur le téléphone : vérifiez-le avant de l'enregistrer.")
+                else tr("Réglage lu dans le texte de l'étape : vérifiez-le avant de l'enregistrer."), 16f, Ui.WARN)
                 .apply { setLineSpacing(0f, 1.15f) }, Ui.lp(t = 12))
         body.addView(Ui.text(c, tr("Votre réglage reste sur ce robot, même après une synchronisation. Si le texte de cette étape change à la source, il ne s'applique plus."),
             16f, Ui.TEXT2).apply { setLineSpacing(0f, 1.15f) }, Ui.lp(t = 12))

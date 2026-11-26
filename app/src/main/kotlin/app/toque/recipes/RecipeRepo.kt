@@ -528,6 +528,20 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
         return null
     }
 
+    /**
+     * « J'ai vérifié ce réglage » à la cuisson guidée, à l'étape [index] de la recette [id] : le réglage du
+     * propriétaire venu d'un téléphone, s'il est toujours [machine], devient le sien (comme tapé sur le robot :
+     * plus « à vérifier »). Rien d'autre ne change ; un réglage qui ne passe plus la règle reste tel quel.
+     */
+    fun confirmStepSetting(id: String, index: Int, machine: StepMachine?) {
+        val r = get(id) ?: return
+        if (machine == null || !OwnStepSettings.appliesTo(r)) return
+        val a = adjustmentsOf(id)
+        val o = OwnStepSettings.owned(r, a)[index] ?: return
+        if (o.trusted || o.machine != machine || OwnStepSettings.problem(r, index, machine) != null) return
+        setAdjustments(id, a.withStep(r, index, machine, SettingAuthor.ROBOT))
+    }
+
     /** L'étape [index] de la recette [id] revient au réglage de la recette. */
     fun clearStepSetting(id: String, index: Int) {
         val r = get(id) ?: return

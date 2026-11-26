@@ -382,19 +382,27 @@ data class Permissions(
      * faire. Absent chez un robot plus ancien : refusé (le téléphone ne propose pas « Renommer »).
      */
     val renamePhone: Permission = Permission(false),
+    /**
+     * Donner à une étape d'une recette reçue (Mealie aujourd'hui, [RecipeDetail.ownSettings]) son réglage du
+     * robot, sans copier la recette (GET /api/recipes/{id}/steps, POST et DELETE /api/recipes/{id}/steps/{rang}) :
+     * permis par un robot qui le sait faire ; le réglage reste à vérifier sur le robot. Absent chez un robot
+     * plus ancien : refusé (le téléphone ne propose rien de nouveau).
+     */
+    val ownSettings: Permission = Permission(false),
 ) {
     fun toMap(): Map<String, Any?> = linkedMapOf("pause" to pause.toMap(), "resume" to resume.toMap(),
         "stop" to stop.toMap(), "adjust" to adjust.toMap(), "tare" to tare.toMap(),
         "sendRecipe" to sendRecipe.toMap(), "removeWaiting" to removeWaiting.toMap(), "start" to start.toMap(),
         "clear" to clear.toMap(), "favorite" to favorite.toMap(), "stopRecipe" to stopRecipe.toMap(),
-        "editRecipes" to editRecipes.toMap(), "setAppearance" to setAppearance.toMap(), "renamePhone" to renamePhone.toMap())
+        "editRecipes" to editRecipes.toMap(), "setAppearance" to setAppearance.toMap(), "renamePhone" to renamePhone.toMap(),
+        "ownSettings" to ownSettings.toMap())
 
     companion object {
         fun fromMap(m: Map<String, Any?>): Permissions {
             fun p(k: String) = W.o(m, k)?.let { Permission.fromMap(it) } ?: Permission(false)
             return Permissions(p("pause"), p("resume"), p("stop"), p("adjust"), p("tare"), p("sendRecipe"), p("removeWaiting"),
                 p("start"), p("clear"), p("favorite"), p("stopRecipe"), p("editRecipes"), p("setAppearance"),
-                p("renamePhone"))
+                p("renamePhone"), p("ownSettings"))
         }
     }
 }
@@ -436,14 +444,29 @@ data class StepWire(
     val needsReview: Boolean = false,
     /** Contenu chaud et vitesse ≥ 4 : la confirmation se fait sur le robot. */
     val hotBlendOnRobot: Boolean = false,
+    /**
+     * Fiche d'une recette qui prend les réglages du propriétaire ([RecipeDetail.ownSettings]) : l'empreinte du
+     * texte de l'étape dans la recette de la source ([app.toque.core.recipes.OwnStepSettings.keys]), à renvoyer
+     * avec un réglage pour dire de quelle étape il s'agit. Vide ailleurs (et chez un robot plus ancien).
+     */
+    val key: String = "",
+    /**
+     * L'étape porte le réglage du propriétaire : « robot » (tapé sur le robot) ou « phone » (venu d'un
+     * téléphone, à vérifier sur le robot : [needsReview]) ; vide sinon.
+     */
+    val own: String = "",
 ) {
+    /** [key] et [own] ne sont écrits que s'ils existent : les autres étapes gardent exactement leur JSON. */
     fun toMap(): Map<String, Any?> = linkedMapOf("index" to index, "text" to text, "machine" to machine?.toMap(),
-        "weigh" to weigh?.toMap(), "needsReview" to needsReview, "hotBlendOnRobot" to hotBlendOnRobot)
+        "weigh" to weigh?.toMap(), "needsReview" to needsReview, "hotBlendOnRobot" to hotBlendOnRobot).apply {
+        if (key.isNotEmpty()) put("key", key)
+        if (own.isNotEmpty()) put("own", own)
+    }
 
     companion object {
         fun fromMap(m: Map<String, Any?>) = StepWire(W.i(m, "index"), W.s(m, "text"),
             W.o(m, "machine")?.let { MachineStepWire.fromMap(it) }, W.o(m, "weigh")?.let { WeighWire.fromMap(it) },
-            W.b(m, "needsReview"), W.b(m, "hotBlendOnRobot"))
+            W.b(m, "needsReview"), W.b(m, "hotBlendOnRobot"), W.s(m, "key"), W.s(m, "own"))
     }
 }
 
@@ -772,6 +795,12 @@ data class RecipeDetail(
      * téléphone s'en tient alors à [user]. Une valeur inconnue (robot plus récent) se lit comme une recette Lidl.
      */
     val source: String = "",
+    /**
+     * Le propriétaire peut donner à une étape son réglage du robot depuis le téléphone, sans copier la recette
+     * (une recette Mealie, chez un robot qui le sait faire) : chaque étape porte alors sa [StepWire.key] et, s'il
+     * y en a un, l'auteur de ce réglage ([StepWire.own]). Écrit seulement s'il est vrai : faux chez un robot plus ancien.
+     */
+    val ownSettings: Boolean = false,
 ) {
     /** Recette d'un serveur Mealie, en lecture seule sur le robot (« Depuis Mealie »). */
     val mealie: Boolean get() = source == SOURCE_MEALIE
@@ -786,6 +815,7 @@ data class RecipeDetail(
         "baseServings" to baseServings, "minServings" to minServings, "maxServings" to maxServings,
         "totalGrams" to totalGrams, "bowlTooFull" to bowlTooFull, "language" to language).apply {
         if (source.isNotEmpty()) put("source", source)
+        if (ownSettings) put("ownSettings", true)
     }
 
     companion object {
@@ -800,7 +830,7 @@ data class RecipeDetail(
             W.d(m, "rating"), W.i(m, "ratingCount"), W.b(m, "hasImage"),
             W.objs(m, "ingredients").map { IngredientGroupWire.fromMap(it) }, W.objs(m, "steps").map { StepWire.fromMap(it) },
             W.i(m, "baseServings"), W.i(m, "minServings"), W.i(m, "maxServings"), W.i(m, "totalGrams"), W.b(m, "bowlTooFull"),
-            W.s(m, "language"), W.s(m, "source"))
+            W.s(m, "language"), W.s(m, "source"), m["ownSettings"] == true)
     }
 }
 
