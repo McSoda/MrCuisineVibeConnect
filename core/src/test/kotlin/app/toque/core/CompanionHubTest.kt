@@ -63,7 +63,8 @@ class CompanionHubTest {
         Triple("POST", "/api/waiting", mapOf("recipeId" to "perso-veloute")), Triple("DELETE", "/api/waiting", null),
         Triple("POST", "/api/machine/pause", null), Triple("POST", "/api/machine/resume", null),
         Triple("POST", "/api/machine/stop", null), Triple("POST", "/api/machine/tare", null),
-        Triple("POST", "/api/machine/adjust", mapOf("speed" to 2)), Triple("DELETE", "/api/phones/me", null),
+        Triple("POST", "/api/machine/adjust", mapOf("speed" to 2)),
+        Triple("POST", "/api/phones/me", mapOf("name" to "Cuisine")), Triple("DELETE", "/api/phones/me", null),
         Triple("GET", "/api/nothing-here", null), Triple("POST", "/api/machine/start", null),
     )
 
@@ -271,7 +272,8 @@ class CompanionHubTest {
             assertFalse("$method $path", b.snap.jobActive)
             assertFalse(b.snap.motorOn)
             assertFalse(b.snap.heaterOn)
-            if (path == "/api/phones/me") break
+            // « Oublier » retire ce téléphone : les routes suivantes ne passeraient plus.
+            if (method == "DELETE" && path == "/api/phones/me") break
         }
         // L'interrupteur du robot est coupé tant que l'appli ne l'a pas donné : même un corps valide ne lance rien.
         assertEquals(409, f.req("POST", "/api/machine/start", f.pair(), mapOf("seconds" to 60, "tempC" to 0, "speed" to 2,

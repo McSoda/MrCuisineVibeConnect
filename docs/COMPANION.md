@@ -166,7 +166,9 @@ travels only inside the LAN request that consumes it.
 - Phones are named "Téléphone N" (lowest free N, translated) and listed on the robot with pairing date
   and last seen. The owner can give one another name on the robot (`hub.pairing.rename(id, label)`: one
   line, at most 24 characters, empty to go back to "Téléphone N"); that name is the one the journal, the
-  robot's messages and `PhoneWire.name` then carry, with no change to the protocol. The robot removes a
+  robot's messages and `PhoneWire.name` then carry, with no change to the protocol. A phone can also
+  name itself (`POST /api/phones/me`, same cleaning, when `state.can.renamePhone` says so); either
+  way the name given is also sent alone as `PhoneWire.label`. The robot removes a
   phone with `hub.pairing.remove(id)`; a phone removes itself with
   `DELETE /api/phones/me` ("Oublier"). A removed phone gets `401` on every call.
 - Authentication: `Authorization: Bearer <token>` on every call except `/api/hello`, `/api/pair`
@@ -270,6 +272,7 @@ response has `Connection: close`, `Cache-Control: no-store` (images: `private, m
 | POST | `/api/machine/clear` | yes | close the ended job shown on the robot (its OK button) |
 | POST | `/api/session/stop` | yes | stop the guided recipe open on the robot (its « Arrêter la recette ») |
 | POST | `/api/robot/appearance` | yes | set the robot's colour and/or theme (Settings › Screen) |
+| POST | `/api/phones/me` | yes | rename this phone (its own name only) |
 | DELETE | `/api/phones/me` | yes | forget this phone |
 
 Without a valid token every path except the first three answers `401 unauthorized`, including unknown
@@ -388,7 +391,7 @@ fixed chips.
 ### GET /api/recipes/{id}
 
 `RecipeDetail`: `id, title, category, servings, servingUnit, prepMinutes, totalMinutes, difficulty`
-(1 easy, 2 medium, 3 hard)`, favorite, user, author, rating, ratingCount, hasImage, ingredients, steps, language`.
+(1 easy, 2 medium, 3 hard)`, favorite, user, author, rating, ratingCount, hasImage, ingredients, steps, language, source`.
 ```json
 {"id":"perso-veloute-de-potimarron","title":"Velouté de potimarron","category":"Soupes","servings":4,"servingUnit":"",
  "prepMinutes":10,"totalMinutes":35,"difficulty":1,"favorite":true,"user":true,"author":"","rating":0,"ratingCount":0,"hasImage":true,
@@ -411,6 +414,12 @@ names). With it, the phone computes the sheet for another number itself with the
 (`Wires.forServings(sheet, n)`, from a sheet at `servings == baseServings`) and shows it during the
 tap; the robot's answer to `POST …/servings` then confirms it (same values). A robot from before
 this field sends none: the phone uses its own interface language.
+
+`source` says where the recipe comes from, the robot's `RecipeSource` in lower case: `imported` (Lidl),
+`user` (« Ma recette », same as `user` true), `community` (toqueapp.org) or `mealie` (a self-hosted Mealie
+server, read-only on the robot: its page says « Depuis Mealie », and « Ma version » makes an own copy,
+`POST /api/recipes/{id}/copy`, the Mealie recipe staying as it is). Absent on a robot from before this
+field: the phone then knows only `user`. A value it does not know (a newer robot) reads as `imported`.
 
 `?base=1`: the recipe with the user's corrections but at its own number of people
 (`Recipe.corrected(adjustments)`, `servings == baseServings`), whatever number is chosen on the
@@ -754,6 +763,24 @@ once the interface is rebuilt. Journal: `appearance` « Apparence changée depui
 clair » (no alert). `504 timeout` / `no_answer` as for the other commands. A robot from before this route has no
 `can.setAppearance`: the phone offers nothing; an older phone ignores the flag.
 
+### POST /api/phones/me
+
+Gives this phone (the one whose token is sent, never another) a name on the robot, as the owner can
+on the robot's list of phones. Body `{"name":"Cuisine de Léa"}`, nothing else (any other key, a name
+that is not a string or longer than 200 characters: `400 bad_request`, nothing changed). The robot
+cleans it like its own field (`PairingManager.cleanLabel`): one line (control characters and runs of
+spaces become one space), trimmed, at most 24 characters (`MAX_LABEL`, longer is cut). An empty or
+blank name goes back to the default « Téléphone N ». Reply `200`: this phone's `PhoneWire` as the robot
+now knows it (`name` the displayed name, `label` the name given, absent for the default):
+```json
+{"id":"1eeddd36","number":1,"name":"Cuisine de Léa","pairedAt":1795340083523,"lastSeenAt":1795340090000,"method":"code","label":"Cuisine de Léa"}
+```
+The new name is the one the journal, the robot's messages and `state.me` carry from then on; a change
+moves `revision` (a rename on the robot's list too). Nothing is journaled. Allowed to any paired phone
+for itself (`state.can.renamePhone`, always allowed by a robot that has this route). A robot from before
+this route has no `can.renamePhone` and answers `405 method_not_allowed`: the phone offers no
+« Renommer »; an older phone ignores the flag and the `label` field.
+
 ### DELETE /api/phones/me
 
 Removes this phone from the robot. Reply `{"ok":true,"revision":…}`; the token is dead afterwards.
@@ -802,10 +829,10 @@ differ, so compute countdowns from the moment the response arrived, not from `se
 | `revision` | grows on every visible change; pass it back as `since` |
 | `serverTime` | robot wall clock at the response |
 | `robot` | `id` (stable random id, 12 hex), `name`, `appVersion`, `language` (UI language code), `protocol`, and its look so that the phone can match it: `accent` (the colour chosen in Settings › Screen, `#RRGGBB` in upper case) and `theme` (`dark` or `light`). Both are absent on a robot that does not know them (before 0.8.0): the phone then keeps its own colour and theme. A change of colour or theme on the robot moves `revision` like any visible change. `anyAccent`: `true` when `POST /api/robot/appearance` takes any colour of the colour wheel (any colour its guard accepts), not only the ten; written only when true, so absent on an older robot (read as false: offer it only the ten) and an older phone ignores it. `accent` may then be a wheel colour: a phone shows it as is. `model`: the robot model, the id of its profile (`mc-connect` or `mc-smart`); written only when known, so absent on an older robot (the phone then infers it from `limits`: `heatNoStir` false is the Smart) |
-| `me` | this phone: `id`, `number`, `name`, `pairedAt`, `lastSeenAt`, `method` (`qr` / `code`) |
+| `me` | this phone: `id`, `number`, `name`, `pairedAt`, `lastSeenAt`, `method` (`qr` / `code`); `label`: the name given to it (on the robot or with `POST /api/phones/me`), written only when there is one, so absent for « Téléphone N » and on an older robot |
 | `machine` | the base, always present |
 | `job` | the current or last job, `null` when none is shown on the robot; an ended job (`FINISHED`, `ABORTED`) stays until OK is pressed on the robot or sent by a phone (`POST /api/machine/clear`) |
-| `can` | what this phone may do now (section 6): `pause`, `resume`, `stop`, `adjust`, `tare`, `sendRecipe`, `removeWaiting`, `start`, `clear`, `favorite`, `stopRecipe`, `editRecipes`, `setAppearance` |
+| `can` | what this phone may do now (section 6): `pause`, `resume`, `stop`, `adjust`, `tare`, `sendRecipe`, `removeWaiting`, `start`, `clear`, `favorite`, `stopRecipe`, `editRecipes`, `setAppearance`, `renamePhone` |
 | `session` | the guided recipe on the robot, `null` when none |
 | `waiting` | the recipe waiting on the robot's home screen, `null` when none |
 | `last` | the last finished activity (journal), `null` when none ("Dernière activité") |
@@ -1013,6 +1040,7 @@ Each pause, step end and job end appears once. A job end inside a recipe gives `
 | Write an own recipe (create, save, « Ma version ») | yes, any paired phone (`can.editRecipes`); text, ingredients, weighings, and a step's machine setting on a robot that says so (`settings`), never starting anything | own recipe (`perso-`), not cooked, not open in the robot's editor, version current, the editor's limits, typed settings judged by the step editor's rules and checked once on the robot before their first start | `not_user`, `already_user`, `cooking`, `editing`, `stale`, `busy`, limit codes and `step_machine` (422), `unsupported` |
 | Stop the guided recipe (« Arrêter la recette ») | yes, any paired phone, after the phone's own confirmation | a guided recipe is open on the robot (`can.stopRecipe`) | `no_recipe`, `unsupported` |
 | Change the robot's colour or theme | yes, any paired phone, after the person said yes on the phone (`can.setAppearance`) | one of the robot's ten colours, `dark` or `light`; no program, Home alone on the robot's screen, no dialog | `bad_request` (400), `busy`, `unsupported` |
+| Rename this phone | yes, each phone its own name only (`can.renamePhone`) | the phone is still paired | `bad_request` (400) |
 | Clear an ended job (OK) | yes, any paired phone | the robot shows a job `FINISHED` or `ABORTED` (whoever started or stopped it); only removes it from the display | `nothing_ended` |
 | Start a manual cooking | yes, if the robot's switch « Lancement depuis le téléphone » is on | (1) switch on; (2) link `READY`, a sample, no fault; (3) no job starting, running, stopping or paused, no Turbo (a finished job still shown is fine); (4) no guided recipe open on the robot; (5) lid closed, bowl in place (detected, not removed); (6) settings inside the bounds of the robot's Cuisson manuelle screen; (7) `SafetyPolicy.checkJob` finds no violation, hot blend included. `state.can.start` reflects (1)–(5). | `disabled`, `link`, `fault`, `busy`, `recipe`, `lid`, `bowl`, bounds codes, `hot_blend`, controller codes |
 | Start a recipe, a step, a program | **never** (no endpoint) | | |
@@ -1096,7 +1124,7 @@ an eavesdropper. Per-request signing was considered and left out for now.
   `recipe(id, base = false)` (`base`: `?base=1`), `setServings(id, n)`, `image(id)` (null if none), `sendRecipe(id)`, `removeWaiting()`, `pause()`, `resume()`,
   `stop()`, `tare()`, `adjust(AdjustRequest)`, `start(StartRequest)`, `clear()`, `setFavorite(id, on)` (`FavoriteReply`),
   `stopRecipe()`, `setAppearance(accent, theme)`, `editable(id)`, `saveRecipe(id, RecipeEditRequest)`, `createRecipe(RecipeEditRequest)`, `copyRecipe(id)`
-  (each answers `EditableRecipe`), `editor()` (`EditorWire`), `forget()` (drops the token even if the reply is lost).
+  (each answers `EditableRecipe`), `editor()` (`EditorWire`), `renameMe(name)` (`PhoneWire`), `forget()` (drops the token even if the reply is lost).
   Every authenticated call first proves the address (once per address, again after a network error).
   Errors: `CompanionException(status, error)` (`unauthorized` when 401), `RobotProofException` (the
   address did not prove it is this phone's robot; the token was not sent), `IOException` for the

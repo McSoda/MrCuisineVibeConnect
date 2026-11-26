@@ -191,6 +191,20 @@ class CompanionHub(
     fun onPhonesChanged(l: () -> Unit): () -> Unit = pairing.onPhonesChanged(l)
     fun onPairingChanged(l: () -> Unit): () -> Unit = pairing.onPairingChanged(l)
 
+    /**
+     * Donne au téléphone [id] le nom [label] ([PairingManager.rename] : même nettoyage, vide = « Téléphone N »),
+     * depuis le robot ou depuis ce téléphone (POST /api/phones/me). Un nom qui change fait une nouvelle
+     * révision : les téléphones qui suivent l'état voient leur `me.name` tout de suite. Le téléphone
+     * renommé, ou null s'il n'est plus appairé.
+     */
+    fun renamePhone(id: String, label: String): Phone? {
+        val before = pairing.list.firstOrNull { it.id == id } ?: return null
+        if (!pairing.rename(id, label)) return null
+        val after = pairing.list.firstOrNull { it.id == id } ?: return null
+        if (after.label != before.label) synchronized(lock) { bumpLocked() }
+        return after
+    }
+
     private fun fireWaiting() {
         val copy = synchronized(lock) { ArrayList(waitingListeners) }
         for (l in copy) try {
@@ -674,7 +688,7 @@ class CompanionHub(
         val look = if (host.setsAppearance) Permission.YES
             else Permission.no("unsupported", tr("Le robot ne change pas son apparence depuis le téléphone"))
         return Permissions(pause, resumeLocked(), stop, adjust, tare, Permission.YES, remove, startLocked(), clearLocked(),
-            favorite, stopRecipeLocked(), edit, look)
+            favorite, stopRecipeLocked(), edit, look, Permission.YES)
     }
 
     /** « Arrêter la recette » : une recette guidée est ouverte sur le robot (et l'hôte sait l'arrêter). */

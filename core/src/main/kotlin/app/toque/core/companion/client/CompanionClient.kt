@@ -18,9 +18,11 @@ import app.toque.core.companion.PairReply
 import app.toque.core.companion.PairRequest
 import app.toque.core.companion.PairingManager
 import app.toque.core.companion.PairingPayload
+import app.toque.core.companion.PhoneWire
 import app.toque.core.companion.ProveReply
 import app.toque.core.companion.ProveRequest
 import app.toque.core.companion.RecipeDetail
+import app.toque.core.companion.RenamePhoneRequest
 import app.toque.core.companion.SendRecipeRequest
 import app.toque.core.companion.StartRequest
 import app.toque.core.companion.ServingsRequest
@@ -242,6 +244,13 @@ class CompanionClient(
     fun adjust(req: AdjustRequest): CommandReply = command("POST", "/api/machine/adjust", req.toMap())
     /** Lance une cuisson manuelle (seule commande qui démarre quelque chose, voir state.can.start). */
     fun start(req: StartRequest): CommandReply = command("POST", "/api/machine/start", req.toMap())
+
+    /**
+     * Donne à ce téléphone le nom [name] sur le robot (voir state.can.renamePhone) ; vide : « Téléphone N ».
+     * Réponse : ce téléphone tel que le robot le connaît désormais (nom nettoyé).
+     */
+    fun renameMe(name: String): PhoneWire =
+        PhoneWire.fromMap(json(call("POST", "/api/phones/me", RenamePhoneRequest(name).toMap())))
 
     /** « Oublier » : retire ce téléphone de la liste du robot, puis oublie le jeton. */
     fun forget(): CommandReply {

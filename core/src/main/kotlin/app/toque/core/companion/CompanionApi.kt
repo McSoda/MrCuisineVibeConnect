@@ -33,6 +33,7 @@ object Wires {
         r.ingredients.map { g -> IngredientGroupWire(g.title, g.items.map { IngredientWire(it.qty, it.unit, it.name, it.note, it.display) }) },
         r.steps.mapIndexed { i, s -> step(i, s) },
         language = r.language.ifBlank { I18n.code },
+        source = r.source.name.lowercase(Locale.ROOT),
     ).let { d ->
         if (baseServings <= 0 || r.servings <= 0) d else {
             val range = Portions.range(baseServings)
@@ -119,6 +120,7 @@ class CompanionApi(private val hub: CompanionHub) : HttpHandler {
             seg == listOf("waiting") && method == "POST" -> sendRecipe(request, phone)
             seg == listOf("waiting") && method == "DELETE" ->
                 if (hub.removeWaiting(phone)) done() else ApiError.response(409, "no_waiting", tr("Aucune recette en attente"))
+            seg == listOf("phones", "me") && method == "POST" -> renameMe(request, phone)
             seg == listOf("phones", "me") && method == "DELETE" -> {
                 hub.pairing.remove(phone.id)
                 done()
@@ -276,6 +278,24 @@ class CompanionApi(private val hub: CompanionHub) : HttpHandler {
             return ApiError.response(400, "bad_request", "Body must be {\"accent\": a colour the robot accepts (#RRGGBB), \"theme\": \"dark\"|\"light\"}")
         }
         return refusedOrDone(hub.setAppearance(phone, req))
+    }
+
+    /**
+     * Nom que ce téléphone se donne : seulement le sien (celui du jeton), nettoyé comme sur le robot ;
+     * réponse : ce téléphone tel que le robot le connaît désormais.
+     */
+    private fun renameMe(r: HttpRequest, phone: Phone): HttpResponse {
+        val (m, err) = body(r)
+        if (err != null) return err
+        val req = try {
+            RenamePhoneRequest.fromMap(m!!)
+        } catch (e: Exception) {
+            return ApiError.response(400, "bad_request", "Body must be {\"name\": text, empty for the default name}")
+        }
+        // Retiré entre l'authentification et ici : comme tout appel d'un téléphone retiré.
+        val renamed = hub.renamePhone(phone.id, req.name)
+            ?: return ApiError.response(401, "unauthorized", tr("Ce téléphone n'est pas appairé avec le robot"))
+        return ok(PhoneWire.of(renamed).toMap())
     }
 
     /** Favori choisi depuis le téléphone ; réponse : la recette et son nouvel état. */
