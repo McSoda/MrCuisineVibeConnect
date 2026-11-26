@@ -66,11 +66,13 @@ class Robot:
         self.serial = devices[0][0]
 
     def _run(self, args):
-        r = subprocess.run([self.adb] + args, capture_output=True, text=True, encoding="utf-8", errors="replace")
-        return (r.stdout + r.stderr).strip()
+        r = subprocess.run([self.adb] + args, capture_output=True)
+        # Android 6 through adb on Windows ends lines with \r\r\n: drop every \r, so that no empty
+        # line appears (text mode would turn each lone \r into a line of its own).
+        return (r.stdout + r.stderr).decode("utf-8", "replace").replace("\r", "").strip()
 
     def shell(self, command):
-        return self._run(["-s", self.serial, "shell", command]).replace("\r", "")
+        return self._run(["-s", self.serial, "shell", command])
 
     def push(self, local, remote):
         out = self._run(["-s", self.serial, "push", local, remote])
@@ -150,8 +152,9 @@ def parse(lines):
     for raw in lines:
         line = raw.rstrip("\r\n")
         if line.startswith("#mark "):
-            _, up, name = line.split(" ", 2)
-            marks.append((float(up), name))
+            m = re.match(r"#mark ([\d.]+) (.*)", line)     # an empty mark line is ignored
+            if m:
+                marks.append((float(m.group(1)), m.group(2)))
         elif line.startswith("#"):
             k, _, v = line[1:].partition(" ")
             head[k] = v.strip()
