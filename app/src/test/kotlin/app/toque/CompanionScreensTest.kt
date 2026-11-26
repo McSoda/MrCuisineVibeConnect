@@ -422,6 +422,9 @@ class CompanionScreensTest {
         activity.push(settings)
         idle(3)
         assertNotNull(findText(settings.view, "Couleurs sur la molette"))
+        // Anneau éteint pendant une recette : proposé, désactivé par défaut.
+        assertFalse(app.prefs.knobOffInRecipe)
+        assertNotNull(findText(settings.view, "Molette éteinte pendant une recette"))
         openFamily(settings, "Molette et sons")
         shot("12-reglages-couleurs-molette")
     }

@@ -272,6 +272,10 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         p.addView(hint(tr("L'anneau de la molette montre l'état du robot : rouge pour un problème, orange pendant une pause, vert quand c'est à vous, cyan pendant un programme, blanc sinon.")),
             Ui.lp(t = 4, b = 8))
         line(p)
+        p.addView(toggle(tr("Molette éteinte pendant une recette"), a.prefs.knobOffInRecipe) { a.prefs.knobOffInRecipe = it }, Ui.lp(t = 8))
+        p.addView(hint(tr("L'anneau reste éteint tant qu'une recette guidée est en cours, par exemple pour filmer le robot. Seul le rouge d'un problème s'allume encore.")),
+            Ui.lp(t = 4, b = 8))
+        line(p)
         // Les touches que la molette envoie : à côté de ses autres réglages (c'était dans « Avancé »).
         p.addView(link(tr("Bouton rotatif")) { a.push(KnobScreen(a)) })
 

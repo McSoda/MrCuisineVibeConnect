@@ -182,6 +182,13 @@ class Prefs(context: Context) {
             p.edit().putBoolean("knobColours", v).commit()
         }
 
+    /** Anneau de la molette éteint tant qu'une recette guidée est en cours, rouge d'un problème excepté. */
+    var knobOffInRecipe: Boolean
+        get() = p.getBoolean("knobOffInRecipe", false)
+        set(v) {
+            p.edit().putBoolean("knobOffInRecipe", v).commit()
+        }
+
     /** Fuseau horaire : « auto » (d'après la connexion Internet) ou un identifiant IANA choisi à la main. */
     var timeZone: String
         get() = p.getString("timeZone", "auto") ?: "auto"

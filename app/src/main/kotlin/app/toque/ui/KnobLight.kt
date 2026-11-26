@@ -8,8 +8,9 @@ import app.toque.core.ring.RingLeds
 import java.util.concurrent.Executors
 
 /**
- * Anneau de la molette : code couleur (voir [RingColour]) et lumière pendant la veille (une
- * veilleuse blanche, faible et fixe, ou éteinte), tous deux tenus par un seul [KnobRing].
+ * Anneau de la molette : code couleur (voir [RingColour]), anneau éteint pendant une recette guidée
+ * (sur demande) et lumière pendant la veille (une veilleuse blanche, faible et fixe, ou éteinte),
+ * tous tenus par un seul [KnobRing].
  *
  * L'anneau a trois LED, vues par Android sous /sys/class/leds : « red » (rouge), « green » (vert)
  * et « blue », qui allume en fait du blanc (pas de LED bleue). L'intensité va de 1 à 79 (puis
@@ -31,15 +32,18 @@ object KnobLight {
     private val worker = Executors.newSingleThreadExecutor { r -> Thread(r, "toque-molette").apply { isDaemon = true } }
     private val ring = KnobRing(RootLeds) { m -> log(m) }
     @Volatile private var dimmed = false
-    /** Dernière demande du code couleur transmise ([UNSET] : aucune ; null : code couleur coupé). */
-    private var requested: Any? = UNSET
-    private object UNSET
+    /** Dernière demande transmise : couleur et anneau gardé éteint (null : aucune). */
+    private var requested: Pair<RingColour?, Boolean>? = null
 
-    /** Code couleur : [colour], ou null s'il est coupé. Appelée à chaque instantané ; n'agit qu'au changement. */
-    fun show(colour: RingColour?) {
-        if (requested === colour) return
-        requested = colour
-        worker.execute { ring.show(colour) }
+    /**
+     * Code couleur : [colour], ou null s'il est coupé ; [dark] : anneau gardé éteint, rouge excepté
+     * (voir [KnobRing.show]). Appelée à chaque instantané ; n'agit qu'au changement.
+     */
+    fun show(colour: RingColour?, dark: Boolean) {
+        val request = colour to dark
+        if (requested == request) return
+        requested = request
+        worker.execute { ring.show(colour, dark) }
     }
 
     /** [level] : intensité du blanc pendant la veille ([NIGHT_LEVEL] en veilleuse, 0 pour éteindre). */
@@ -57,7 +61,7 @@ object KnobLight {
 
     /** Toque rend l'écran (appli d'origine, Toque masqué) : l'anneau reprend le blanc du robot. */
     fun release() {
-        requested = UNSET
+        requested = null
         dimmed = false
         worker.execute { ring.release() }
     }
@@ -84,15 +88,20 @@ object KnobLight {
 
         override fun write(colour: Rgb, restore: Rgb?): Boolean {
             if (!colour.valid || (restore != null && !restore.valid)) return false
-            val note = if (restore != null) "echo \"$restore\" > $SAVED" else "rm -f $SAVED"
+            // La note est écrite avant de changer l'anneau et effacée après l'avoir remis : arrêté entre
+            // les deux, Toque ne prend pas un anneau éteint ou coloré pour le blanc du robot.
+            val before = if (restore != null) "echo \"$restore\" > $SAVED && " else ""
+            val after = if (restore != null) "" else " && rm -f $SAVED"
             val r = RootShell.run(
                 """
                 L=$LEDS
-                $note && echo ${colour.red} > ${'$'}L/red/brightness && echo ${colour.green} > ${'$'}L/green/brightness && echo ${colour.white} > ${'$'}L/blue/brightness
+                ${before}echo ${colour.red} > ${'$'}L/red/brightness && echo ${colour.green} > ${'$'}L/green/brightness && echo ${colour.white} > ${'$'}L/blue/brightness$after
                 """.trimIndent(),
                 8_000,
             )
             return r.ok
         }
+
+        override fun noted(): Boolean = RootShell.run("[ -f $SAVED ]", 8_000).ok
     }
 }

@@ -79,6 +79,7 @@ class KnobRingTest {
         assertEquals(Rgb(79, 30, 0), RingColour.ORANGE.rgb)
         assertEquals(Rgb(79, 0, 0), RingColour.RED.rgb)
         assertEquals(null, RingColour.WHITE.rgb)
+        assertEquals(Rgb(0, 0, 0), RingColour.OFF.rgb)
     }
 
     // ------------------------------------------------------------------ écritures sur l'anneau
@@ -92,6 +93,8 @@ class KnobRingTest {
             reads++
             return note ?: current
         }
+
+        override fun noted(): Boolean = note != null
 
         override fun write(colour: Rgb, restore: Rgb?): Boolean {
             if (!writable || current == null) return false
@@ -243,5 +246,151 @@ class KnobRingTest {
         ring.release()
         assertEquals(1, logs.size)
         assertFalse(ring.available)
+    }
+
+    // ------------------------------------------------------------------ éteint pendant une recette
+
+    private val off = Rgb(0, 0, 0)
+
+    @Test fun darkTurnsTheRingOffOnceThenTheUsualColourComesBack() {
+        val leds = FakeLeds()
+        val ring = KnobRing(leds)
+        ring.show(RingColour.WHITE)
+        // Recette : geste attendu, programme, pause : toujours éteint, écrit une seule fois.
+        ring.show(RingColour.GREEN, dark = true)
+        ring.show(RingColour.CYAN, dark = true)
+        ring.show(RingColour.ORANGE, dark = true)
+        ring.show(RingColour.WHITE, dark = true)
+        ring.show(RingColour.CYAN, dark = true)
+        assertEquals(listOf(white, off), leds.writes)
+        assertEquals(white, leds.note)
+        // Recette quittée.
+        ring.show(RingColour.CYAN)
+        ring.show(RingColour.WHITE)
+        assertEquals(listOf(white, off, cyan, white), leds.writes)
+        assertEquals(null, leds.note)
+    }
+
+    @Test fun darkFromTheStartNeverLightsTheRing() {
+        val leds = FakeLeds()
+        val ring = KnobRing(leds)
+        ring.show(RingColour.GREEN, dark = true)
+        assertEquals(listOf(off), leds.writes)
+        assertEquals(white, leds.note)
+    }
+
+    @Test fun aProblemStillLightsRedInTheDark() {
+        val leds = FakeLeds()
+        val ring = KnobRing(leds)
+        ring.show(RingColour.CYAN, dark = true)
+        ring.show(RingColour.RED, dark = true)
+        ring.show(RingColour.RED, dark = true)
+        assertEquals(white, leds.note)
+        ring.show(RingColour.ORANGE, dark = true)
+        assertEquals(listOf(off, red, off), leds.writes)
+    }
+
+    @Test fun darkWithTheCodeOffThenTheRingGetsItsWhiteBack() {
+        val own = Rgb(0, 0, 40)
+        val leds = FakeLeds(current = own)
+        val ring = KnobRing(leds)
+        ring.show(null)
+        assertTrue(leds.writes.isEmpty())
+        ring.show(RingColour.CYAN, dark = true)
+        ring.show(RingColour.GREEN, dark = true)
+        ring.show(RingColour.RED, dark = true)
+        ring.show(RingColour.WHITE, dark = true)
+        assertEquals(listOf(off, red, off), leds.writes)
+        ring.show(null)
+        ring.show(null)
+        assertEquals(listOf(off, red, off, own), leds.writes)
+        assertEquals(null, leds.note)
+    }
+
+    @Test fun standbyDuringADarkRecipeStaysOff() {
+        for (after in listOf(RingColour.WHITE, null)) {
+            val leds = FakeLeds()
+            val ring = KnobRing(leds)
+            ring.show(RingColour.GREEN, dark = true)
+            // Veilleuse demandée : pas de lumière, et aucune écriture de plus.
+            ring.standby(3)
+            ring.show(RingColour.CYAN, dark = true)
+            ring.wake()
+            assertEquals(listOf(off), leds.writes)
+            assertEquals(white, leds.note)
+            ring.show(after)
+            assertEquals(listOf(off, white), leds.writes)
+            assertEquals(null, leds.note)
+        }
+    }
+
+    @Test fun recipeClosedOrOpenedDuringStandby() {
+        for (usual in listOf(RingColour.WHITE, null)) {
+            val leds = FakeLeds()
+            val ring = KnobRing(leds)
+            ring.show(RingColour.GREEN, dark = true)
+            ring.standby(3)
+            // Fermée pendant la veille : la veilleuse revient.
+            ring.show(usual)
+            assertEquals(Rgb(0, 0, 3), leds.current)
+            assertEquals(white, leds.note)
+            // Rouverte : de nouveau éteint.
+            ring.show(RingColour.GREEN, dark = true)
+            assertEquals(off, leds.current)
+            ring.show(usual)
+            ring.wake()
+            assertEquals(white, leds.current)
+            assertEquals(null, leds.note)
+        }
+    }
+
+    @Test fun releaseDuringADarkRecipeRestoresWhite() {
+        val leds = FakeLeds()
+        val ring = KnobRing(leds)
+        ring.show(RingColour.CYAN, dark = true)
+        ring.standby(0)
+        ring.release()
+        assertEquals(listOf(off, white), leds.writes)
+        assertEquals(null, leds.note)
+        // La veille d'après n'est plus tenue dans le noir.
+        ring.standby(3)
+        assertEquals(Rgb(0, 0, 3), leds.current)
+    }
+
+    @Test fun restartWithTheRingOffKeepsTheNotedWhite() {
+        val own = Rgb(0, 0, 30)
+        for (after in listOf(RingColour.WHITE, null)) {
+            val leds = FakeLeds(current = own)
+            KnobRing(leds).show(RingColour.CYAN, dark = true)
+            // Toque arrêté là, puis relancé.
+            val ring = KnobRing(leds)
+            ring.show(after)
+            assertEquals(own, leds.current)
+            assertEquals(null, leds.note)
+            ring.show(RingColour.CYAN)
+            ring.show(RingColour.WHITE)
+            assertEquals(own, leds.current)
+        }
+    }
+
+    @Test fun restartWithTheCodeOffAndNoNoteLeavesTheRingAlone() {
+        val leds = FakeLeds()
+        val ring = KnobRing(leds)
+        ring.show(null)
+        ring.show(null)
+        assertTrue(leds.writes.isEmpty())
+        assertEquals(0, leds.reads)
+    }
+
+    @Test fun anUnlitRingIsNeverTakenForTheWhite() {
+        val logs = ArrayList<String>()
+        // Éteint par autre chose que Toque, sans note.
+        val leds = FakeLeds(current = off)
+        val ring = KnobRing(leds) { logs += it }
+        ring.show(RingColour.CYAN, dark = true)
+        assertEquals(Rgb.USUAL_WHITE, leds.note)
+        ring.show(RingColour.WHITE)
+        assertEquals(Rgb.USUAL_WHITE, leds.current)
+        assertEquals(1, logs.size)
     }
 }
