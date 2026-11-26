@@ -1008,5 +1008,14 @@
   "La molette montre le bloc entouré.": "El mando muestra el bloque enmarcado.",
   "Renommer %s": "Renombrar %s",
   "Nom du téléphone": "Nombre del teléfono",
-  "Laissez vide pour reprendre « %s ».": "Déjelo vacío para volver a «%s»."
+  "Laissez vide pour reprendre « %s ».": "Déjelo vacío para volver a «%s».",
+  "Réglage lu dans le texte de l'étape : vérifiez-le avant de l'enregistrer.": "Ajuste leído en el texto del paso: compruébelo antes de guardarlo.",
+  "Votre réglage reste sur ce robot, même après une synchronisation. Si le texte de cette étape change à la source, il ne s'applique plus.": "Su ajuste se queda en este robot, incluso tras una sincronización. Si el texto de este paso cambia en el origen, deja de aplicarse.",
+  "Touchez une étape pour lui donner votre réglage du robot, sans copier la recette.": "Toque un paso para darle su propio ajuste del robot, sin copiar la receta.",
+  "Étape %d : réglage de la recette": "Paso %d: ajuste de la receta",
+  "Étape %d : mon réglage enregistré": "Paso %d: mi ajuste guardado",
+  "Mon réglage : sans le robot": "Mi ajuste: sin el robot",
+  "Mon réglage": "Mi ajuste",
+  "À vérifier": "Por comprobar",
+  "Mon réglage pour l'étape %d": "Mi ajuste para el paso %d"
 }

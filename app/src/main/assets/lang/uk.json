@@ -1008,5 +1008,14 @@
   "La molette montre le bloc entouré.": "Кільце показує обведений блок.",
   "Renommer %s": "Перейменувати %s",
   "Nom du téléphone": "Назва телефона",
-  "Laissez vide pour reprendre « %s ».": "Залиште порожнім, щоб повернути «%s»."
+  "Laissez vide pour reprendre « %s ».": "Залиште порожнім, щоб повернути «%s».",
+  "Réglage lu dans le texte de l'étape : vérifiez-le avant de l'enregistrer.": "Налаштування прочитано з тексту кроку: перевірте його перед збереженням.",
+  "Votre réglage reste sur ce robot, même après une synchronisation. Si le texte de cette étape change à la source, il ne s'applique plus.": "Ваше налаштування залишається на цьому комбайні навіть після синхронізації. Якщо текст цього кроку зміниться в джерелі, воно більше не діє.",
+  "Touchez une étape pour lui donner votre réglage du robot, sans copier la recette.": "Торкніться кроку, щоб задати йому своє налаштування комбайна, не копіюючи рецепт.",
+  "Étape %d : réglage de la recette": "Крок %d: налаштування рецепта",
+  "Étape %d : mon réglage enregistré": "Крок %d: моє налаштування збережено",
+  "Mon réglage : sans le robot": "Моє налаштування: без комбайна",
+  "Mon réglage": "Моє налаштування",
+  "À vérifier": "Перевірити",
+  "Mon réglage pour l'étape %d": "Моє налаштування для кроку %d"
 }
