@@ -19,12 +19,12 @@ fonctionne pas avec le Toque de Wuki60, qui n'a pas cette API.
 
 ## Ce qui change
 
-Basé sur Toque **0.10.0**. Nos versions ajoutent un quatrième nombre (**0.10.0.1** est la première basée sur la 0.10.0).
+Basé sur Toque **0.11.0**. Nos versions ajoutent un quatrième nombre (**0.11.0.1** est la première basée sur la 0.11.0).
 Les versions plus récentes de Wuki60 ne sont pas incluses tant qu'elles n'ont pas été fusionnées ici.
 
 | | Ce fork |
 |---|---|
-| **API Home Assistant** | Une API HTTP/SSE locale, **en lecture seule** : état du robot, recette guidée en cours, recettes et diagnostics. **Désactivée par défaut** ; à activer dans *Réglages › Avancé › Home Assistant* (port 8765, jeton d'accès). Rien ne peut être commandé à distance. [Spécification](docs/HOME_ASSISTANT_API.md) (en anglais) |
+| **API Home Assistant** | Une API HTTP/SSE locale, **en lecture seule** : état du robot, recette guidée en cours, recettes et diagnostics. **Désactivée par défaut** ; à activer dans *Réglages › Avancé › Home Assistant* (port 8765, jeton d'accès). Rien ne peut être commandé à distance. Annoncée sur le réseau en `_toque-ha._tcp` depuis la 0.11.0.1 (avant : `_toque._tcp`, que la 0.11.0 d'origine utilise pour Toque Compagnon). [Spécification](docs/HOME_ASSISTANT_API.md) (en anglais) |
 | **Session de cuisson** | L'état de la recette guidée vit dans `core` (`CookSession`) : il survit à un redémarrage de l'appli et il est publié par l'API. |
 | **Mises à jour** | *Réglages › Mises à jour* lit **les releases de ce dépôt**. |
 | **APK** | `MCC-285-Toque-x.y.z.apk`, pour le **Monsieur Cuisine Connect uniquement**. Nous ne publions pas d'APK Smart : les propriétaires de Smart doivent utiliser [le dépôt d'origine](https://github.com/Wuki60/MrCuisineVibeConnect/releases/latest). |

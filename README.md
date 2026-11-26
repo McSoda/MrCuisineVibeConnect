@@ -19,12 +19,12 @@ upstream Toque, which has no such API.
 
 ## What differs
 
-Based on Toque **0.10.0**. Our releases add a fourth number (**0.10.0.1** is the first one based on 0.10.0). Newer
+Based on Toque **0.11.0**. Our releases add a fourth number (**0.11.0.1** is the first one based on 0.11.0). Newer
 upstream releases are not included until they are merged here.
 
 | | This fork |
 |---|---|
-| **Home Assistant API** | A local, **read-only** HTTP/SSE API: robot state, guided recipe in progress, recipes and diagnostics. **Off by default**; turn it on in *Settings › Advanced › Home Assistant* (port 8765, access token). Nothing can be controlled remotely. [Specification](docs/HOME_ASSISTANT_API.md) |
+| **Home Assistant API** | A local, **read-only** HTTP/SSE API: robot state, guided recipe in progress, recipes and diagnostics. **Off by default**; turn it on in *Settings › Advanced › Home Assistant* (port 8765, access token). Nothing can be controlled remotely. Announced on the network as `_toque-ha._tcp` since 0.11.0.1 (before: `_toque._tcp`, which upstream 0.11.0 uses for Toque Compagnon). [Specification](docs/HOME_ASSISTANT_API.md) |
 | **Cooking session** | The state of the guided recipe lives in `core` (`CookSession`): it survives a restart of the app and is published by the API. |
 | **Updates** | *Settings › Updates* reads **the releases of this repository**. |
 | **APK** | `MCC-285-Toque-x.y.z.apk`, for the **Monsieur Cuisine Connect only**. We publish no Smart APK: Smart owners should use [upstream](https://github.com/Wuki60/MrCuisineVibeConnect/releases/latest). |

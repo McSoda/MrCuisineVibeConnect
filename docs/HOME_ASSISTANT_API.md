@@ -20,7 +20,7 @@ over mDNS, **read-only**, the Home Assistant (HA) integration lives in a **separ
 
 ## 2. Discovery and access
 
-- mDNS service `_toque._tcp`, default port **8765**. TXT records: `api=1`, `id=<stable id>`,
+- mDNS service `_toque-ha._tcp`, default port **8765**. TXT records: `api=1`, `id=<stable id>`,
   `version=<Toque version>`, `name=<robot name>`.
 - Base: `http://<ip>:8765/api/v1`.
 - `GET /info` is public (used for discovery and to validate the address). Everything else requires
@@ -189,7 +189,7 @@ by `CookScreen` and saved in `prefs.cookSession` by `ToqueApp`. Routing, JSON fo
 ## 6. Home Assistant entities (`toque-homeassistant` repository)
 
 One device per robot (`id`); `sw_version` = Toque version, `model` = SKMC 1200, `hw_version` = board firmware.
-Config flow: `zeroconf` discovery (`_toque._tcp`) then the token. Updates: SSE, with a fallback poll of `/state` every
+Config flow: `zeroconf` discovery (`_toque-ha._tcp`) then the token. Updates: SSE, with a fallback poll of `/state` every
 60 s; unavailable when there is no more answer.
 
 | Entity | Source |

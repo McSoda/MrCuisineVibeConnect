@@ -174,14 +174,15 @@ class HomeAssistantApi(private val app: ToqueApp) : ApiBackend {
         }
     }
 
-    // ---- Publication mDNS (_toque._tcp) pour la découverte automatique
+    // ---- Publication mDNS (_toque-ha._tcp) pour la découverte automatique. « _toque._tcp » est le service du
+    // compagnon d'origine (Toque 0.11.0), annoncé en même temps par cette appli sur un autre port.
 
     private fun announce(port: Int) {
         try {
             val manager = app.getSystemService(Context.NSD_SERVICE) as NsdManager
             val info = NsdServiceInfo().apply {
                 serviceName = app.prefs.deviceId
-                serviceType = "_toque._tcp."
+                serviceType = "_toque-ha._tcp."
                 setPort(port)
                 setAttribute("api", "1")
                 setAttribute("id", app.prefs.deviceId)
