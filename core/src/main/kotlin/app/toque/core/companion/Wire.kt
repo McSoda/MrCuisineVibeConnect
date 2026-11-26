@@ -299,10 +299,12 @@ data class JobWire(
 
 /** Une commande permise ou non, avec la raison affichable d'un refus. */
 data class Permission(val allowed: Boolean, val code: String = "", val reason: String = "") {
-    fun toMap(): Map<String, Any?> = linkedMapOf("allowed" to allowed, "code" to code, "reason" to reason)
+    fun toMap(): Map<String, Any?> = if (allowed && code.isEmpty() && reason.isEmpty()) YES_MAP
+    else linkedMapOf("allowed" to allowed, "code" to code, "reason" to reason)
 
     companion object {
         val YES = Permission(true)
+        private val YES_MAP: Map<String, Any?> = linkedMapOf("allowed" to true, "code" to "", "reason" to "")
         fun no(code: String, reason: String) = Permission(false, code, reason)
         fun fromMap(m: Map<String, Any?>) = Permission(W.b(m, "allowed"), W.s(m, "code"), W.s(m, "reason"))
     }
@@ -559,11 +561,15 @@ data class LimitsWire(
     /** Chauffe lame à l'arrêt (vitesse 0) possible sur ce robot (pas le Smart) ; absent chez un robot plus ancien : oui. */
     val heatNoStir: Boolean = true,
 ) {
-    fun toMap(): Map<String, Any?> = linkedMapOf("temperaturesC" to temperaturesC, "maxSpeed" to maxSpeed,
-        "maxSpeedHeated" to maxSpeedHeated, "maxSpeedReverse" to maxSpeedReverse, "whiskMaxSpeed" to whiskMaxSpeed,
-        "maxTempNoStirC" to maxTempNoStirC, "hotC" to hotC, "minMs" to minMs, "maxMs" to maxMs,
-        "maxMsHighSpeed" to maxMsHighSpeed, "pauseMaxMs" to pauseMaxMs, "manualMinMs" to manualMinMs,
-        "highSpeedAbove" to highSpeedAbove, "heatNoStir" to heatNoStir)
+    private val cachedMap: Map<String, Any?> by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        linkedMapOf("temperaturesC" to temperaturesC, "maxSpeed" to maxSpeed,
+            "maxSpeedHeated" to maxSpeedHeated, "maxSpeedReverse" to maxSpeedReverse, "whiskMaxSpeed" to whiskMaxSpeed,
+            "maxTempNoStirC" to maxTempNoStirC, "hotC" to hotC, "minMs" to minMs, "maxMs" to maxMs,
+            "maxMsHighSpeed" to maxMsHighSpeed, "pauseMaxMs" to pauseMaxMs, "manualMinMs" to manualMinMs,
+            "highSpeedAbove" to highSpeedAbove, "heatNoStir" to heatNoStir)
+    }
+
+    fun toMap(): Map<String, Any?> = cachedMap
 
     /** Bornes de saisie d'une cuisson manuelle ; un champ absent ou nul (robot plus ancien) garde la valeur de Toque. */
     fun manual(): ManualLimits {

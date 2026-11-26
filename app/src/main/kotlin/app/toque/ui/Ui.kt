@@ -233,24 +233,50 @@ object Ui {
     /** Espaces insécables à l'intérieur des guillemets : un retour à la ligne ne sépare plus « du mot qui suit, ni » de celui qui précède. */
     fun guillemets(s: String): String = s.replace("« ", "« ").replace(" »", " »")
 
+    /** Ne modifie le texte d'un TextView que s'il a réellement changé (évite des passes de mise en page à chaque tick). */
+    fun setText(tv: TextView, s: CharSequence) {
+        if (tv.text.toString() != s.toString()) tv.text = s
+    }
+
     /** Texte d'une seule ligne, rapetissé de [size] jusqu'à [min] pour tenir dans sa largeur (jamais de retour à la ligne). */
     fun fitText(c: Context, size: Float, min: Float, color: Int = TEXT, face: Typeface = REGULAR): TextView =
         object : TextView(c) {
+            private val measurePaint = android.graphics.Paint()
+            private var lastMeasuredText = ""
+            private var lastMeasuredAvail = -1
+
             override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
                 val avail = View.MeasureSpec.getSize(widthMeasureSpec) - paddingLeft - paddingRight
                 if (View.MeasureSpec.getMode(widthMeasureSpec) != View.MeasureSpec.UNSPECIFIED && avail > 0) {
-                    val p = android.graphics.Paint(paint)
-                    var px = uf(size)
-                    p.textSize = px
                     val s = text.toString()
-                    while (px > uf(min) && p.measureText(s) > avail) { px -= 1f; p.textSize = px }
-                    if (px != textSize) setTextSize(TypedValue.COMPLEX_UNIT_PX, px)
+                    if (s != lastMeasuredText || avail != lastMeasuredAvail) {
+                        lastMeasuredText = s
+                        lastMeasuredAvail = avail
+                        val maxPx = uf(size)
+                        val minPx = uf(min)
+                        measurePaint.set(paint)
+                        measurePaint.textSize = maxPx
+                        val px = if (measurePaint.measureText(s) <= avail || maxPx <= minPx) {
+                            maxPx
+                        } else {
+                            var lo = minPx
+                            var hi = maxPx
+                            repeat(10) {
+                                val mid = (lo + hi) * 0.5f
+                                measurePaint.textSize = mid
+                                if (measurePaint.measureText(s) <= avail) lo = mid else hi = mid
+                            }
+                            lo
+                        }
+                        if (px != textSize) setTextSize(TypedValue.COMPLEX_UNIT_PX, px)
+                    }
                 }
                 super.onMeasure(widthMeasureSpec, heightMeasureSpec)
             }
 
             override fun onTextChanged(text: CharSequence?, start: Int, lengthBefore: Int, lengthAfter: Int) {
                 super.onTextChanged(text, start, lengthBefore, lengthAfter)
+                lastMeasuredAvail = -1
                 requestLayout()
             }
         }.apply {

@@ -33,6 +33,7 @@ import app.toque.core.machine.SafetyPolicy
 import app.toque.core.machine.Snapshot
 import app.toque.core.machine.Verdict
 import app.toque.core.ring.RingColour
+import app.toque.update.Updater
 import app.toque.core.robot.DeviceFacts
 import app.toque.core.robot.RobotDetector
 import app.toque.core.robot.RobotProfile
@@ -78,6 +79,7 @@ class MainActivity : Activity() {
     var knobListener: ((KeyEvent) -> Unit)? = null
     private lateinit var timerAlarm: TimerAlarm
     private var unsubscribeTimers: (() -> Unit)? = null
+    private var activityStopped = false
     /** La fenêtre ouverte laisse la barre machine (et son bouton Stop) hors du voile. */
     private var overlaySparesBar = false
 
@@ -343,6 +345,10 @@ class MainActivity : Activity() {
         updates.onStart()
         startTimers()
         root.postDelayed(syncCheck, 60_000)
+        if (activityStopped) {
+            activityStopped = false
+            current?.onShow()
+        }
     }
 
     // ------------------------------------------------------------------ minuteurs de cuisine
@@ -417,6 +423,8 @@ class MainActivity : Activity() {
         // Toque n'est plus à l'écran (appli d'origine, paramètres Android…) : blanc du robot.
         KnobLight.release()
         updates.onStop()
+        activityStopped = true
+        current?.onHide()
         super.onStop()
     }
 
@@ -426,6 +434,8 @@ class MainActivity : Activity() {
     }
 
     override fun onDestroy() {
+        main.removeCallbacksAndMessages(null)
+        Updater.onInstallError = null
         tone?.release()
         super.onDestroy()
     }
@@ -543,24 +553,12 @@ class MainActivity : Activity() {
             }
         }
         if (!isBack && event.action == KeyEvent.ACTION_DOWN && overlay.visibility != View.VISIBLE) {
-            val k = event.keyCode
-            // Par défaut : les flèches, et les touches du bouton du robot (clavier mtk-kpd :
-            // F6 à droite, F7 à gauche, F5 à l'appui).
-            val left = prefs.knobLeft.let {
-                if (it >= 0) it == k else k == KeyEvent.KEYCODE_DPAD_LEFT || k == KeyEvent.KEYCODE_F7
-            }
-            val right = prefs.knobRight.let {
-                if (it >= 0) it == k else k == KeyEvent.KEYCODE_DPAD_RIGHT || k == KeyEvent.KEYCODE_F6
-            }
-            val press = prefs.knobPress.let {
-                if (it >= 0) it == k else k == KeyEvent.KEYCODE_DPAD_CENTER || k == KeyEvent.KEYCODE_ENTER || k == KeyEvent.KEYCODE_F5
-            }
+            val k = knobKind(event.keyCode)
+            if (k != 0 && !prefs.knobSetupDone) prefs.knobSetupDone = true
             val s = current
-            if ((left || right || press) && !prefs.knobSetupDone) prefs.knobSetupDone = true
-            if (s != null && currentFocus !is android.widget.EditText) {
-                if (left && s.onKnob(-1)) return true
-                if (right && s.onKnob(1)) return true
-                if (press && s.onKnobPress()) return true
+            if (k != 0 && s != null && currentFocus !is android.widget.EditText) {
+                if (k == PRESS && s.onKnobPress()) return true
+                if (k != PRESS && s.onKnob(k)) return true
             }
         }
         return super.dispatchKeyEvent(event)

@@ -1190,8 +1190,9 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
     }
 
     override fun onSnapshot(s: Snapshot) {
-        bowlText.text = if (s.hasSample) tr("Capteur du bol en ce moment : %s. Vérifiez qu'il change quand vous retirez le bol avant d'activer cette option.",
-            if (s.bowlDetected) tr("bol détecté") else tr("bol NON détecté")) else tr("Base non connectée")
+        if (family != Family.SAFETY) return
+        Ui.setText(bowlText, if (s.hasSample) tr("Capteur du bol en ce moment : %s. Vérifiez qu'il change quand vous retirez le bol avant d'activer cette option.",
+            if (s.bowlDetected) tr("bol détecté") else tr("bol NON détecté")) else tr("Base non connectée"))
         showInvertHint(s)
     }
 

@@ -43,25 +43,28 @@ object StepDurations {
     /** Vitesse du robot : la durée voisine est un réglage machine, pas un minuteur. */
     private val SPEED = setOf("vitesse", "stufe", "velocidad", "velocitat", "speed", "turbo")
 
+    private val MARKS = Regex("\\p{Mn}+")
+
     private class Tok(val text: String, val number: Double?)
 
     private fun tokens(text: String): List<Tok> {
         val out = ArrayList<Tok>()
-        val t = text.replace(' ', ' ').replace(' ', ' ')
         var i = 0
-        while (i < t.length) {
-            val ch = t[i]
+        val len = text.length
+        while (i < len) {
+            val ch = text[i]
             when {
                 ch.isDigit() -> {
                     var j = i
-                    while (j < t.length && t[j].isDigit()) j++
+                    while (j < len && text[j].isDigit()) j++
                     // Décimale : « 1,5 h », « 1.5 hours » (le chiffre suit directement).
-                    if (j + 1 < t.length && (t[j] == ',' || t[j] == '.') && t[j + 1].isDigit()) {
+                    if (j + 1 < len && (text[j] == ',' || text[j] == '.') && text[j + 1].isDigit()) {
                         j++
-                        while (j < t.length && t[j].isDigit()) j++
+                        while (j < len && text[j].isDigit()) j++
                     }
-                    val s = t.substring(i, j)
-                    out += Tok(s, s.replace(',', '.').toDoubleOrNull())
+                    val s = text.substring(i, j)
+                    val num = if (s.indexOf(',') >= 0) s.replace(',', '.').toDoubleOrNull() else s.toDoubleOrNull()
+                    out += Tok(s, num)
                     i = j
                 }
                 ch == '½' -> { out += Tok("½", 0.5); i++ }
@@ -69,11 +72,11 @@ object StepDurations {
                 ch == '¾' -> { out += Tok("¾", 0.75); i++ }
                 ch.isLetter() -> {
                     var j = i
-                    while (j < t.length && t[j].isLetter()) j++
-                    out += Tok(fold(t.substring(i, j)), null)
+                    while (j < len && text[j].isLetter()) j++
+                    out += Tok(fold(text.substring(i, j)), null)
                     i = j
                 }
-                ch.isWhitespace() -> i++
+                ch == ' ' || ch == '\u00A0' || ch == '\u202F' || ch.isWhitespace() -> i++
                 else -> { out += Tok(ch.toString(), null); i++ }
             }
         }
@@ -84,7 +87,10 @@ object StepDurations {
     private fun fold(w: String): String {
         val l = w.lowercase()
         if (l == "à") return l
-        return Normalizer.normalize(l, Normalizer.Form.NFD).replace(Regex("\\p{Mn}+"), "")
+        var ascii = true
+        for (i in 0 until l.length) if (l[i] >= '\u0080') { ascii = false; break }
+        if (ascii) return l
+        return MARKS.replace(Normalizer.normalize(l, Normalizer.Form.NFD), "")
     }
 
     private fun unitAt(toks: List<Tok>, i: Int): Span? = toks.getOrNull(i)?.takeIf { it.number == null }?.let { UNITS[it.text] }

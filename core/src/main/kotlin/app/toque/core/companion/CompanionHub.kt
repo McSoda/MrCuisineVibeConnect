@@ -249,16 +249,17 @@ class CompanionHub(
     }
 
     // ------------------------------------------------------------------ adresses de confiance
+    // Verrou dédié : le fil d'acceptation HTTP ne bloque jamais sur le verrou principal du hub.
 
     /** Une requête authentifiée est arrivée de [remote]. */
-    internal fun noteAuthenticated(remote: String) = synchronized(lock) {
+    internal fun noteAuthenticated(remote: String) = synchronized(trustedAddresses) {
         trustedAddresses.remove(remote)
         trustedAddresses[remote] = clock.monoMs()
         while (trustedAddresses.size > MAX_TRUSTED) trustedAddresses.remove(trustedAddresses.keys.first())
     }
 
     /** [remote] s'est authentifiée il y a moins de [TRUSTED_MS] (appelé par le fil d'acceptation). */
-    fun isTrusted(remote: String): Boolean = synchronized(lock) {
+    fun isTrusted(remote: String): Boolean = synchronized(trustedAddresses) {
         val at = trustedAddresses[remote] ?: return false
         clock.monoMs() - at <= TRUSTED_MS
     }
@@ -569,7 +570,7 @@ class CompanionHub(
     private fun jobSummary(s: Snapshot): String = buildString {
         append(SafetyPolicy.formatDuration(s.totalMs))
         if (s.kind == JobKind.MANUAL && s.phaseCount == 1) {
-            if (s.jobTempLevel > 0) append(" · ").append(Mcc.celsiusForLevel(s.jobTempLevel)).append(" °C")
+            if (s.jobTempLevel > 0) append(" · ").append(s.jobTempC).append(" °C")
             append(" · ").append(if (s.jobSpeed == 0) tr("sans mélange") else tr("vitesse %d", s.jobSpeed))
             if (s.jobReverse && s.jobSpeed > 0) append(" · ").append(tr("inverse"))
         }
@@ -900,9 +901,9 @@ class CompanionHub(
         }
         val r = host.clear()
         if (r.ok) synchronized(lock) {
-            val deadline = System.nanoTime() / 1_000_000L + clearSeenMs
+            val deadline = clock.monoMs() + clearSeenMs
             while (clearLocked().allowed && jobGeneration == generation && !stopped) {
-                val left = deadline - System.nanoTime() / 1_000_000L
+                val left = deadline - clock.monoMs()
                 if (left <= 0) break
                 lock.wait(minOf(left, 200L))
             }
@@ -970,9 +971,9 @@ class CompanionHub(
         try {
             val r = unmarkOnFailure("start", host.start { synchronized(lock) { prepareStartLocked(settings, phone) } })
             if (r.ok) synchronized(lock) {
-                val deadline = System.nanoTime() / 1_000_000L + startSeenMs
+                val deadline = clock.monoMs() + startSeenMs
                 while (jobGeneration == generation && !stopped) {
-                    val left = deadline - System.nanoTime() / 1_000_000L
+                    val left = deadline - clock.monoMs()
                     if (left <= 0) break
                     lock.wait(minOf(left, 200L))
                 }
@@ -1163,7 +1164,7 @@ class CompanionHub(
             }
             JobWire(s.jobKind, runCatching { JobKind.valueOf(s.jobKind).label }.getOrElse { s.jobKind }, s.jobLabel,
                 s.jobState, s.state == JobState.RUNNING, s.endReason, s.phaseIndex, s.phaseCount, s.elapsedMs, s.totalMs,
-                s.remainingMs, s.jobSpeed, s.jobTempLevel, Mcc.celsiusForLevel(s.jobTempLevel), s.jobReverse, s.accessory,
+                s.remainingMs, s.jobSpeed, s.jobTempLevel, s.jobTempC, s.jobReverse, s.accessory,
                 s.hotBlendConfirmed, jobStartedAt, s.waitingStop, pause)
         }
         val sess = session?.let { c ->
@@ -1207,13 +1208,17 @@ class CompanionHub(
             highSpeedAbove = app.toque.core.machine.ManualLimits.HIGH_SPEED_ABOVE,
         )
 
+        private val limitsCache = java.util.concurrent.ConcurrentHashMap<String, LimitsWire>()
+
         /**
          * Bornes du robot choisi : ses températures et la chauffe sans mélange s'il la sait faire. Seulement
          * les températures de la table de Toque : le téléphone envoie un niveau de cette table (pas 40 °C).
          */
-        fun limitsFor(p: RobotProfile): LimitsWire = LIMITS.copy(
-            temperaturesC = p.capabilities.temperaturesC.filter { Mcc.levelForCelsius(it) > 0 },
-            heatNoStir = p.capabilities.has(Feature.HEAT_NO_STIR),
-        )
+        fun limitsFor(p: RobotProfile): LimitsWire = limitsCache.getOrPut(p.id) {
+            LIMITS.copy(
+                temperaturesC = p.capabilities.temperaturesC.filter { Mcc.levelForCelsius(it) > 0 },
+                heatNoStir = p.capabilities.has(Feature.HEAT_NO_STIR),
+            )
+        }
     }
 }

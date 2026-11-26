@@ -40,20 +40,44 @@ object StepIngredients {
 
     private fun norm(s: String): String = QuantityLinks.norm(s.replace("ß", "ss"))
 
-    /** Formes comparables d'un mot : lui-même, sans « s »/« x » de pluriel, sans « es », sans « n »/« en » (Zwiebeln). */
-    private fun forms(w: String): Set<String> {
-        val out = HashSet<String>()
+    private fun addForms(w: String, out: MutableSet<String>) {
         out += w
         if (w.length > 3) {
             if (w.endsWith("s") || w.endsWith("x") || w.endsWith("n")) out += w.dropLast(1)
             if (w.endsWith("es") || w.endsWith("en")) out += w.dropLast(2)
         }
-        return out
     }
 
-    private fun container(w: String): Boolean = forms(w).any { it in CONTAINERS }
+    private fun container(w: String): Boolean {
+        if (w in CONTAINERS) return true
+        if (w.length > 3) {
+            if ((w.endsWith("s") || w.endsWith("x") || w.endsWith("n")) && w.dropLast(1) in CONTAINERS) return true
+            if ((w.endsWith("es") || w.endsWith("en")) && w.dropLast(2) in CONTAINERS) return true
+        }
+        return false
+    }
 
-    private fun same(a: String, b: String): Boolean = forms(a).any { it.length >= 3 && it in forms(b) }
+    private fun inSet(w: String, set: Set<String>): Boolean {
+        if (w.length >= 3 && w in set) return true
+        if (w.length > 3) {
+            if (w.endsWith("s") || w.endsWith("x") || w.endsWith("n")) {
+                val d1 = w.dropLast(1)
+                if (d1.length >= 3 && d1 in set) return true
+            }
+            if (w.endsWith("es") || w.endsWith("en")) {
+                val d2 = w.dropLast(2)
+                if (d2.length >= 3 && d2 in set) return true
+            }
+        }
+        return false
+    }
+
+    private fun same(a: String, b: String): Boolean {
+        if (a == b && a.length >= 3) return true
+        val fb = HashSet<String>(4)
+        addForms(b, fb)
+        return inSet(a, fb)
+    }
 
     /** Mots significatifs du nom (avant la virgule et la parenthèse), dans l'ordre. */
     fun keywords(name: String): List<String> =
@@ -74,7 +98,9 @@ object StepIngredients {
     fun mentioned(ingredients: List<Ingredient>, text: String): List<Int> {
         val words = norm(text).split(' ').filter { it.length >= 3 }
         if (words.isEmpty()) return emptyList()
-        fun inText(w: String) = words.any { same(it, w) }
+        val wordForms = HashSet<String>(words.size * 2)
+        for (w in words) addForms(w, wordForms)
+        fun inText(w: String) = inSet(w, wordForms)
         // Ingrédients dont le mot principal est dans l'étape, regroupés par ce mot.
         val byHead = LinkedHashMap<String, MutableList<Int>>()
         for ((k, i) in ingredients.withIndex()) {
@@ -87,15 +113,19 @@ object StepIngredients {
         for (cands in byHead.values) {
             if (cands.size == 1) { picked += cands[0]; continue }
             // Plusieurs : ceux dont tous les mots sont dans l'étape ; aucun s'il n'y en a pas.
-            fun own(k: Int) = keywords(ingredients[k].name).filter { !container(it) }
+            val ownCache = HashMap<Int, Set<String>>(cands.size * 2)
+            fun own(k: Int): Set<String> = ownCache.getOrPut(k) {
+                keywords(ingredients[k].name).filterTo(HashSet()) { !container(it) }
+            }
             val full = cands.filter { k -> own(k).all { inText(it) } }
             if (full.isEmpty()) continue
             // « sucre » et « sucre vanillé » tous deux complets pour « ajouter le sucre vanillé » : seulement le
             // plus précis, sauf si le mot commun est écrit plusieurs fois (« le sucre et le sucre vanillé »).
-            val head = head(ingredients[full[0]].name) ?: continue
-            val times = words.count { same(it, head) }
+            val h = head(ingredients[full[0]].name) ?: continue
+            val hForms = HashSet<String>(4).also { addForms(h, it) }
+            val times = words.count { inSet(it, hForms) }
             for (k in full) {
-                val mine = own(k).toSet()
+                val mine = own(k)
                 val covered = full.any { o -> o != k && own(o).size > mine.size && own(o).containsAll(mine) }
                 if (!covered || times > 1) picked += k
             }

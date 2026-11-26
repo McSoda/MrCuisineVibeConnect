@@ -1,6 +1,7 @@
 package app.toque.machine
 
 import android.app.Notification
+import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
@@ -80,6 +81,7 @@ class MachineService : Service() {
             }
             previous?.uncaughtException(thread, error)
         }
+        ensureChannel()
         startForeground(NOTIFICATION_ID, notification(tr("Base moteur"), tr("Démarrage…")))
         createLoop()
     }
@@ -89,6 +91,8 @@ class MachineService : Service() {
     override fun onBind(intent: Intent?): IBinder = messenger.binder
 
     override fun onDestroy() {
+        main.removeCallbacksAndMessages(null)
+        clients.clear()
         loop?.shutdown()
         loop = null
         super.onDestroy()
@@ -163,8 +167,7 @@ class MachineService : Service() {
     private fun publish(s: Snapshot) {
         val now = System.currentTimeMillis()
         val prev = lastSent
-        val changed = prev == null || prev.copy(sampleAgeMs = 0, txFrames = 0, rxFrames = 0, txHex = "") !=
-            s.copy(sampleAgeMs = 0, txFrames = 0, rxFrames = 0, txHex = "")
+        val changed = prev == null || !samePublished(prev, s)
         if (!changed && now - lastSentAt < 1_000) return
         lastSent = s
         lastSentAt = now
@@ -173,6 +176,28 @@ class MachineService : Service() {
         send(m)
         updateNotification(s)
     }
+
+    private fun samePublished(a: Snapshot, b: Snapshot): Boolean =
+        a.link == b.link && a.transportName == b.transportName && a.transportUp == b.transportUp &&
+            a.faultCode == b.faultCode && a.faultMessage == b.faultMessage && a.hasSample == b.hasSample &&
+            a.actualTempC == b.actualTempC && a.targetTempC == b.targetTempC &&
+            a.rpm == b.rpm && a.speedLevel == b.speedLevel && a.weightG == b.weightG &&
+            a.scaleStable == b.scaleStable && a.scaleState == b.scaleState &&
+            a.lidOpen == b.lidOpen && a.bowlDetected == b.bowlDetected &&
+            a.bowlRemoved == b.bowlRemoved && a.bowlSenseKnown == b.bowlSenseKnown &&
+            a.bowlSenseInverted == b.bowlSenseInverted && a.motorOn == b.motorOn &&
+            a.heaterOn == b.heaterOn && a.boardErrorCode == b.boardErrorCode &&
+            a.firmware == b.firmware && a.rxHex == b.rxHex &&
+            a.jobActive == b.jobActive && a.jobKind == b.jobKind && a.jobLabel == b.jobLabel &&
+            a.jobState == b.jobState && a.pauseReason == b.pauseReason && a.endReason == b.endReason &&
+            a.phaseIndex == b.phaseIndex && a.phaseCount == b.phaseCount &&
+            a.elapsedMs == b.elapsedMs && a.totalMs == b.totalMs && a.remainingMs == b.remainingMs &&
+            a.waitingStop == b.waitingStop && a.jobSpeed == b.jobSpeed && a.jobTempLevel == b.jobTempLevel &&
+            a.jobTempC == b.jobTempC && a.jobProgram == b.jobProgram && a.jobReverse == b.jobReverse &&
+            a.accessory == b.accessory && a.hotBlendConfirmed == b.hotBlendConfirmed &&
+            a.jobFerment == b.jobFerment && a.turboActive == b.turboActive &&
+            a.wireOperation == b.wireOperation && a.wireSpeed == b.wireSpeed &&
+            a.wireTempLevel == b.wireTempLevel && a.invalidFrames == b.invalidFrames
 
     private fun updateNotification(s: Snapshot) {
         val text = when {
@@ -310,10 +335,8 @@ class MachineService : Service() {
     private fun notification(title: String, text: String): Notification {
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT)
         @Suppress("DEPRECATION")
-        val b = if (Build.VERSION.SDK_INT >= 26) {
-            ensureChannel()
-            Notification.Builder::class.java.getConstructor(Context::class.java, String::class.java).newInstance(this, CHANNEL)
-        } else Notification.Builder(this)
+        val b = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) Notification.Builder(this, CHANNEL)
+        else Notification.Builder(this)
         return b.setContentTitle(title)
             .setContentText(text)
             .setSmallIcon(android.R.drawable.ic_media_play)
@@ -322,16 +345,11 @@ class MachineService : Service() {
             .build()
     }
 
-    /** Canal de notification (Android 8+), créé par réflexion pour rester compatible Android 6. */
+    /** Canal de notification (Android 8+), créé une seule fois au démarrage du service. */
     private fun ensureChannel() {
-        try {
-            val cls = Class.forName("android.app.NotificationChannel")
-            val channel = cls.getConstructor(String::class.java, CharSequence::class.java, Int::class.javaPrimitiveType)
-                .newInstance(CHANNEL, tr("Base moteur"), 2)
-            val nm = getSystemService(Context.NOTIFICATION_SERVICE)
-            nm.javaClass.getMethod("createNotificationChannel", cls).invoke(nm, channel)
-        } catch (_: Throwable) {
-        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.createNotificationChannel(NotificationChannel(CHANNEL, tr("Base moteur"), NotificationManager.IMPORTANCE_LOW))
     }
 
     companion object {
