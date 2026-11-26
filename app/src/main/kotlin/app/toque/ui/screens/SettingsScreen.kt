@@ -46,10 +46,10 @@ import app.toque.update.Updater
  */
 class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Screen(a) {
     /** Les familles de réglages, dans l'ordre du menu : le quotidien d'abord, le technique à la fin. */
-    enum class Family { SCREEN, KNOB_SOUNDS, RECIPES, COOKING, SAFETY, PHONE, LANGUAGE_TIME, UPDATES, OTHERS, ADVANCED }
+    enum class Family { SCREEN, KNOB_SOUNDS, RECIPES, COOKING, SAFETY, PHONE, LANGUAGE_TIME, UPDATES, ADVANCED }
 
     /** D'où viennent les recettes : une pastille chacune, en haut de la famille « Recettes ». Mealie est dans « Autres ». */
-    private enum class Source { LIDL, SITE, MINE, STOCK }
+    private enum class Source { LIDL, SITE, MEALIE, MINE, STOCK }
 
     override val title = tr("Réglages")
     /** La famille ouverte. */
@@ -80,6 +80,7 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
     private lateinit var linkText: TextView
     private lateinit var timeText: TextView
     private lateinit var companionText: TextView
+    private lateinit var phonesBox: LinearLayout
     /** Point sur « Avancé » et phrase au-dessus de « Machine » : tant que Toque ne pilote pas le vrai moteur. */
     private lateinit var modeDot: View
     private lateinit var modeText: TextView
@@ -130,7 +131,6 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
                 Family.PHONE -> phonePage(page)
                 Family.LANGUAGE_TIME -> languageAndTimePage(page)
                 Family.UPDATES -> updatesPage(page)
-                Family.OTHERS -> othersPage(page)
                 Family.ADVANCED -> advancedPage(page)
             }
         }
@@ -157,7 +157,6 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         Family.PHONE -> tr("Téléphone")
         Family.LANGUAGE_TIME -> tr("Langue et heure")
         Family.UPDATES -> tr("Mises à jour")
-        Family.OTHERS -> tr("Autres")
         Family.ADVANCED -> tr("Avancé")
     }
 
@@ -170,7 +169,6 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         Family.PHONE -> Icon.Kind.PHONE
         Family.LANGUAGE_TIME -> Icon.Kind.GLOBE   // le globe se reconnaît quelle que soit la langue affichée
         Family.UPDATES -> Icon.Kind.DOWNLOAD
-        Family.OTHERS -> Icon.Kind.PLUS
         Family.ADVANCED -> Icon.Kind.SETTINGS
     }
 
@@ -267,12 +265,8 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
 
     private fun knobAndSoundsPage(p: LinearLayout) {
         group(p, tr("Molette"))
-        val knob = listOf("normal" to tr("Normale"), "dim" to tr("Plus légère"), "off" to tr("Éteinte"))
-        p.addView(choice(tr("Molette pendant la veille"), dropdown(knob, a.prefs.standbyKnob) { a.prefs.standbyKnob = it }), Ui.lp(t = 8, b = 8))
-        line(p)
-        p.addView(toggle(tr("Couleurs sur la molette"), a.prefs.knobColours) { a.prefs.knobColours = it }, Ui.lp(t = 8))
-        p.addView(hint(tr("L'anneau de la molette montre l'état du robot : rouge pour un problème, orange pendant une pause, vert quand c'est à vous, cyan pendant un programme, blanc sinon.")),
-            Ui.lp(t = 4, b = 8))
+        // L'anneau lumineux : code couleur, luminosité et couleurs, sur leur écran.
+        p.addView(link(tr("Lumière de la molette")) { a.push(KnobLightScreen(a)) })
         line(p)
         // Les touches que la molette envoie : à côté de ses autres réglages (c'était dans « Avancé »).
         p.addView(link(tr("Bouton rotatif")) { a.push(KnobScreen(a)) })
@@ -288,7 +282,12 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
 
     private fun recipesPage(p: LinearLayout) {
         sourceRow = Ui.horizontal(c)
-        p.addView(sourceRow, Ui.lp(t = 10, b = 10))
+        // Cinq pastilles : dans une langue aux mots longs, la rangée défile plutôt que de couper la dernière.
+        p.addView(android.widget.HorizontalScrollView(c).apply {
+            isHorizontalScrollBarEnabled = false
+            overScrollMode = View.OVER_SCROLL_NEVER
+            addView(sourceRow)
+        }, Ui.lp(t = 10, b = 10))
         line(p)
         for (s in Source.values()) {
             val page = Ui.vertical(c)
@@ -297,6 +296,7 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
             when (s) {
                 Source.LIDL -> lidlPage(page)
                 Source.SITE -> communityPage(page)
+                Source.MEALIE -> mealiePage(page)
                 Source.MINE -> myRecipesPage(page)
                 Source.STOCK -> stockAppPage(page)
             }
@@ -312,9 +312,11 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
             sourceRow.addView(Ui.toggleChip(c, when (s) {
                 Source.LIDL -> "Lidl"
                 Source.SITE -> "toqueapp.org"
+                Source.MEALIE -> "Mealie"
                 Source.MINE -> tr("Mes recettes")
                 Source.STOCK -> tr("Appli d'origine")
-            }, source == s) { source = s; renderSources() }, Ui.lp(Ui.WRAP, Ui.WRAP, r = 8))
+            }, source == s) { source = s; renderSources() }.apply { setPadding(Ui.u(15), Ui.u(10), Ui.u(15), Ui.u(10)) },
+                Ui.lp(Ui.WRAP, Ui.WRAP, r = if (s == Source.values().last()) 0 else 8))
             sourcePages[s.ordinal].visibility = if (source == s) View.VISIBLE else View.GONE
         }
     }
@@ -383,12 +385,6 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         accountText = hint("")
         accountButtons = Ui.horizontal(c)
         p.addView(setting(accountText, accountButtons), Ui.lp(t = 8, b = 8))
-    }
-
-    /** Famille « Autres » : ce qui vient en plus (un serveur Mealie pour l'instant), une rubrique chacun. */
-    private fun othersPage(p: LinearLayout) {
-        group(p, "Mealie")
-        mealiePage(p)
     }
 
     /** Un serveur Mealie auto-hébergé : ses recettes arrivent en lecture seule, réglages proposés à vérifier. */
@@ -527,6 +523,9 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         p.addView(setting(companionText, Ui.button(c, tr("Appairer un téléphone"), Ui.Style.SECONDARY, Icon.Kind.PHONE, height = 52, textSize = 18f) {
             if (a.app.companion != null) a.push(PairingScreen(a)) else a.toast(tr("Compagnon indisponible : voyez le journal"), Ui.WARN)
         }), Ui.lp(t = 10, b = 8))
+        // Les téléphones appairés, ici même : les retirer ne demande plus d'ouvrir l'écran d'appairage.
+        phonesBox = Ui.vertical(c)
+        p.addView(phonesBox, Ui.lp(b = 12))
         line(p)
         p.addView(toggle(tr("Lancement depuis le téléphone"), a.prefs.remoteStart) { on ->
             val comp = a.app.companion
@@ -705,31 +704,7 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         setPadding(Ui.u(14), 0, Ui.u(14), 0)
     }
 
-    private fun toggle(label: String, initial: Boolean, onChange: (Boolean) -> Unit): LinearLayout {
-        val row = Ui.horizontal(c)
-        row.addView(Ui.text(c, label, 18f, Ui.TEXT), LinearLayout.LayoutParams(0, Ui.WRAP, 1f))
-        var state = initial
-        // Interrupteur : piste arrondie, pastille à gauche (non) ou à droite (oui).
-        val sw = android.widget.FrameLayout(c)
-        val knob = View(c)
-        sw.addView(knob, Ui.flp(Ui.u(34), Ui.u(34), Gravity.CENTER_VERTICAL))
-        sw.setPadding(Ui.u(5), 0, Ui.u(5), 0)
-        fun paint() {
-            sw.background = Ui.round(if (state) Ui.ACCENT else Ui.SURFACE3, 22f, if (state) Ui.ACCENT else Ui.STROKE, 1f)
-            knob.background = Ui.round(if (state) Ui.ON_ACCENT else Ui.TEXT2, 17f)
-            (knob.layoutParams as android.widget.FrameLayout.LayoutParams).gravity =
-                Gravity.CENTER_VERTICAL or (if (state) Gravity.END else Gravity.START)
-            knob.requestLayout()
-            sw.contentDescription = if (state) tr("Oui") else tr("Non")
-        }
-        paint()
-        val flip = { _: View -> state = !state; paint(); onChange(state) }
-        sw.setOnClickListener(flip)
-        row.setOnClickListener(flip)   // toute la ligne est touchable, pas seulement l'interrupteur
-        row.minimumHeight = Ui.u(52)
-        row.addView(sw, LinearLayout.LayoutParams(Ui.u(76), Ui.u(44)).apply { leftMargin = Ui.u(14) })
-        return row
-    }
+    private fun toggle(label: String, initial: Boolean, onChange: (Boolean) -> Unit): LinearLayout = Ui.switchRow(c, label, initial, onChange)
 
     private fun link(label: String, onClick: () -> Unit): LinearLayout {
         val row = Ui.horizontal(c)
@@ -1164,6 +1139,8 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
     private fun refreshCompanion() {
         val comp = a.app.companion
         val n = comp?.hub?.pairing?.list?.size ?: 0
+        PairedPhones.fill(a, phonesBox)
+        phonesBox.visibility = if (n > 0) View.VISIBLE else View.GONE
         companionText.text = when (n) {
             0 -> tr("Aucun téléphone appairé")
             1 -> tr("1 téléphone appairé")

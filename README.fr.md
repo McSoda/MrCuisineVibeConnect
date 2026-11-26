@@ -153,7 +153,7 @@ essayés : dites-nous). Merci à @julienperrault et @flexbox.
   peuvent être publiées depuis le robot. Le site est en français, anglais, allemand, espagnol,
   catalan et ukrainien ; le robot ne garde qu'une clé révocable, jamais le mot de passe.
 - **Votre serveur [Mealie](https://mealie.io)** (recettes auto-hébergées) : reliez-y le robot
-  (*Réglages › Autres*, avec votre identifiant ou un jeton d'API) et toutes ses recettes
+  (*Réglages › Recettes › Mealie*, avec votre identifiant ou un jeton d'API) et toutes ses recettes
   arrivent sur le robot, en lecture seule, chaque nuit ou à la demande, avec une pastille « Mealie »
   dans la liste. Les réglages écrits dans les étapes (« 5 min/100 °C/vitesse 1 », « 10 sec/vitesse 5 »,
   « Turbo 3 fois », « mode pétrin 2 min ») sont proposés et à vérifier avant de partir, comme pour les
@@ -210,7 +210,10 @@ essayés : dites-nous). Merci à @julienperrault et @flexbox.
   bouton rotatif (de 2 à 30 min, ou jamais, dans Réglages › Écran), un écran noir assombri affiche
   l'heure, et la température du bol quand il est chaud. Jamais pendant un programme ni sur la
   balance. Le geste qui réveille ne fait rien d'autre. Pendant la veille, l'anneau de la molette
-  reste normal, passe en veilleuse blanche très faible ou s'éteint (Réglages › Molette et sons).
+  garde sa lumière, la baisse (cinq niveaux, jamais plus forte qu'allumé) ou s'éteint. Sa luminosité
+  allumé se règle aussi, et, si le code couleur est coupé, sa couleur allumé et en veille, parmi
+  celles que ses LED rouge, verte et blanche savent faire (Réglages › Molette et sons › Lumière de la
+  molette).
 - **Capteur du bol inversé** : sur certains robots (vu sur un SKMC 1200 C3), la base signale le bol
   présent quand il est retiré ; Réglages › Sécurité › Inverser le capteur du bol corrige cela.
 - **Pensé pour un robot sans boutons Android** : Toque s'ouvre au démarrage, et un bouton

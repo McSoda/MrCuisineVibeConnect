@@ -17,6 +17,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import app.toque.core.i18n.tr
 import app.toque.core.look.ColourWheel
 
 /**
@@ -367,6 +368,35 @@ object Ui {
         t.isClickable = true
         t.setOnClickListener { onClick() }
         return t
+    }
+
+    /**
+     * Ligne de réglage à interrupteur : [label] à gauche, à droite une piste arrondie dont la pastille
+     * est à gauche (non) ou à droite (oui). Toute la ligne se touche.
+     */
+    fun switchRow(c: Context, label: String, initial: Boolean, onChange: (Boolean) -> Unit): LinearLayout {
+        val row = horizontal(c)
+        row.addView(text(c, label, 18f, TEXT), LinearLayout.LayoutParams(0, WRAP, 1f))
+        var state = initial
+        val sw = FrameLayout(c)
+        val knob = View(c)
+        sw.addView(knob, flp(u(34), u(34), Gravity.CENTER_VERTICAL))
+        sw.setPadding(u(5), 0, u(5), 0)
+        fun paint() {
+            sw.background = round(if (state) ACCENT else SURFACE3, 22f, if (state) ACCENT else STROKE, 1f)
+            knob.background = round(if (state) ON_ACCENT else TEXT2, 17f)
+            (knob.layoutParams as FrameLayout.LayoutParams).gravity =
+                Gravity.CENTER_VERTICAL or (if (state) Gravity.END else Gravity.START)
+            knob.requestLayout()
+            sw.contentDescription = if (state) tr("Oui") else tr("Non")
+        }
+        paint()
+        val flip = { _: View -> state = !state; paint(); onChange(state) }
+        sw.setOnClickListener(flip)
+        row.setOnClickListener(flip)
+        row.minimumHeight = u(52)
+        row.addView(sw, LinearLayout.LayoutParams(u(76), u(44)).apply { leftMargin = u(14) })
+        return row
     }
 
     fun card(c: Context, radius: Float = 24f, color: Int = SURFACE): LinearLayout = vertical(c).apply {
