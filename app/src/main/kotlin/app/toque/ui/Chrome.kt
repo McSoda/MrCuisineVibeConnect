@@ -321,6 +321,8 @@ class MachineBar(private val a: MainActivity) : FrameLayout(a) {
     private var last: Snapshot? = null
     /** Fin de l'appui Turbo en cours (horloge [SystemClock.uptimeMillis]), 0 hors Turbo. */
     private var turboEndsAt = 0L
+    /** Secondes affichées pendant le Turbo (-1 : rien) : le texte ne change qu'avec elles, pas à chaque image. */
+    private var turboShownS = -1
     /** Entre deux états reçus de la base, le décompte du Turbo avance à chaque image : sa barre se vide sans à-coups. */
     private val turboFrame = object : Runnable {
         override fun run() {
@@ -453,11 +455,16 @@ class MachineBar(private val a: MainActivity) : FrameLayout(a) {
 
     /** Décompte du Turbo : les secondes entières qui restent (3, 2, 1) et la barre, pleine au départ, qui se vide. */
     private fun showTurbo(leftMs: Long) {
-        time.text = tr("%d s", ((leftMs + 999) / 1000).toInt())
+        val seconds = ((leftMs + 999) / 1000).toInt()
+        if (seconds != turboShownS) {
+            turboShownS = seconds
+            time.text = tr("%d s", seconds)
+        }
         progress.progress = leftMs.toFloat() / Limits.MAX_MS_TURBO_PRESS
     }
 
     private fun stopTurboCountdown() {
+        turboShownS = -1
         if (turboEndsAt == 0L) return
         turboEndsAt = 0L
         removeCallbacks(turboFrame)
@@ -470,9 +477,9 @@ class MachineBar(private val a: MainActivity) : FrameLayout(a) {
 
     private fun setButtons(running: Boolean, ended: Boolean, turbo: Boolean) {
         pauseBtn.visibility = if (ended || turbo) View.GONE else View.VISIBLE
-        // Turbo : pas de bouton Stop. Il s'arrête dès qu'on relâche, et de lui-même au bout de la durée
-        // maximale d'un appui (Limits.MAX_MS_TURBO_PRESS), même si le relâchement se perdait.
-        stopBtn.visibility = if (ended || turbo) View.GONE else View.VISIBLE
+        // Turbo : le bouton Stop reste, un second moyen d'arrêter (en plus du relâchement et de la durée
+        // maximale d'un appui, Limits.MAX_MS_TURBO_PRESS).
+        stopBtn.visibility = if (ended) View.GONE else View.VISIBLE
         okBtn.visibility = if (ended) View.VISIBLE else View.GONE
         (pauseBtn.getChildAt(0) as Icon).set(if (running) Icon.Kind.PAUSE else Icon.Kind.PLAY)
         chips.visibility = if (turbo) View.GONE else View.VISIBLE

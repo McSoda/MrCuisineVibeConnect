@@ -384,8 +384,8 @@ class CompanionScreensTest {
         assertEvenMargins(bar(running.copy(jobState = "PAUSED", pauseReason = "USER"), "34-barre-en-pause"))
         assertEvenMargins(bar(running.copy(jobState = "ABORTED", endReason = "Arrêté"), "35-barre-arretee"))
         assertEvenMargins(bar(running.copy(jobState = "FINISHED", endReason = "Terminé", remainingMs = 0, elapsedMs = 600_000), "36-barre-terminee"))
-        // Turbo : la même carte, à la même hauteur, sans bouton. Il s'arrête quand on relâche (3 s au plus par appui) :
-        // la barre dit les secondes qui restent, et sa ligne, pleine au départ, se vide avec elles.
+        // Turbo : la même carte, à la même hauteur, avec son bouton Stop. Il s'arrête aussi quand on relâche (3 s au
+        // plus par appui) : la barre dit les secondes qui restent, et sa ligne, pleine au départ, se vide avec elles.
         val full = bar(running.copy(jobActive = false, jobState = "", turboActive = true, turboRemainingMs = 3_000), "37a-barre-turbo-debut")
         assertNotNull(findText(full, "3 s"))
         assertEquals(1f, progressOf(full).progress, 0.001f)
@@ -401,8 +401,8 @@ class CompanionScreensTest {
         assertEquals("espace sous la carte", MachineBar.BOTTOM_GAP, MachineBar.HEIGHT - turboCard.bottom)
         assertNotNull(findText(turbo, "Turbo"))
         assertNotNull(findText(turbo, "Relâchez pour arrêter"))
-        val turboButtons = (0 until turboCard.childCount).map { turboCard.getChildAt(it) }.filter { it.visibility == View.VISIBLE && it.hasOnClickListeners() }
-        assertTrue("Turbo : ni Stop ni pause dans la barre", turboButtons.isEmpty())
+        // Le bouton Stop reste : c'est le dernier bouton de la carte, aux mêmes marges que pour un programme.
+        assertEvenMargins(turbo)
         // Un programme lancé ensuite reprend son temps et sa barre.
         turbo.update(running)
         assertNotNull(findText(turbo, "08:00"))
