@@ -16,6 +16,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.view.ViewTreeObserver
+import android.view.animation.DecelerateInterpolator
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
@@ -359,7 +360,9 @@ object Ui {
 
     /**
      * Carte modale de saisie avec en-tête (titre + bouton « Masquer le clavier »), enveloppe défilable
-     * aux coins arrondis et ouverture du clavier sur [input].
+     * aux coins arrondis et ouverture du clavier sur [input]. Elle s'ouvre en haut de l'écran, là où le
+     * clavier la laisse : elle ne bouge donc pas quand il arrive, et son bouton garde sa place d'avance.
+     * Le clavier refermé, elle glisse au milieu de l'écran ; elle remonte dès qu'on touche son champ.
      */
     fun showInputOverlay(a: MainActivity, title: String, input: EditText, body: LinearLayout.() -> Unit) {
         val card = vertical(a)
@@ -371,7 +374,7 @@ object Ui {
             background = pressable(round(SURFACE3, 14f, STROKE, 1f), 14f)
             contentDescription = tr("Masquer le clavier")
             isClickable = true
-            visibility = View.GONE
+            visibility = View.INVISIBLE
             setOnClickListener { a.hideKeyboard() }
         }
         head.addView(hideBtn, LinearLayout.LayoutParams(u(52), u(52)))
@@ -391,9 +394,38 @@ object Ui {
             }, flp(MATCH, WRAP))
         }
         a.showOverlay(box, 680, dismissOnScrim = false, spareMachineBar = true)
-        a.overlayOnKeyboard = { hideBtn.visibility = if (it) View.VISIBLE else View.GONE }
+        (box.layoutParams as FrameLayout.LayoutParams).apply {
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            topMargin = u(14)
+        }
+        box.requestLayout()
+        // La carte est placée une fois pour toutes en haut ; au milieu de l'écran, elle n'est que décalée.
+        // Un glissement ne refait donc aucune mise en page, et il part dès qu'on sait où va le clavier
+        // (le champ touché, le clavier masqué) sans attendre qu'Android annonce son arrivée ou son départ.
+        var up = true
+        fun settle() {
+            val target = if (up) 0f else ((a.overlayRoom() - box.height) / 2f - u(14)).coerceAtLeast(0f)
+            box.animate().translationY(target).setDuration(CARD_SLIDE_MS).setInterpolator(cardSlide).start()
+        }
+        fun move(toTop: Boolean) {
+            if (up == toTop) return
+            up = toTop
+            settle()
+        }
+        box.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+            if (!up && bottom - top != oldBottom - oldTop) settle()
+        }
+        input.setOnFocusChangeListener { _, has -> if (has) move(true) }
+        a.overlayOnKeyboard = {
+            hideBtn.visibility = if (it) View.VISIBLE else View.INVISIBLE
+            move(it)
+        }
         a.showKeyboard(input) { if (a.keyboardHeight > 0) hideBtn.visibility = View.VISIBLE }
     }
+
+    /** Durée du glissement d'une carte de saisie entre le haut de l'écran et son milieu. */
+    const val CARD_SLIDE_MS = 180L
+    private val cardSlide = DecelerateInterpolator()
 
     private fun yIn(ancestor: View, v: View): Int {
         var y = v.top
