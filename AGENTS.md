@@ -6,8 +6,9 @@ procedure, written so that the agent does everything it can by itself and asks t
 what needs hands, eyes or a Windows security prompt.
 
 Humans: the same procedure by hand is in [docs/INSTALLATION.md](docs/INSTALLATION.md) (Connect,
-Windows), [docs/MACOS.en.md](docs/MACOS.en.md) (Connect, macOS) and [docs/SMART.en.md](docs/SMART.en.md)
-(Smart). On **macOS**, also read *Installing from macOS (Connect)* below before starting.
+Windows), [docs/MACOS.en.md](docs/MACOS.en.md) (Connect, macOS), [docs/LINUX.en.md](docs/LINUX.en.md)
+(Connect, Linux) and [docs/SMART.en.md](docs/SMART.en.md) (Smart). On **macOS** or **Linux**, also read
+*Installing from macOS (Connect)* below, and on Linux *Installing from Linux (Connect)*, before starting.
 
 ## First: which robot?
 
@@ -281,6 +282,26 @@ Same rules, safety checks and robot steps as Windows above, with these differenc
   error* / *Failed to upload da*, check `status` shows *v2.1.4.1 + macOS serial fixes*, switch robot
   off, retry (`--libusb` tries libusb instead); (3) fallback: do only `backup` and `flash-twrp` on
   Windows, copy backups into `~/Toque/backup/`, run `backup` on the Mac, and continue from `root`.
+
+## Installing from Linux (Connect)
+
+Same script and steps as macOS above (`bash tools/setup/toque-setup.sh <step>`, work folder
+`~/Toque`), with these differences ([docs/LINUX.en.md](docs/LINUX.en.md)):
+
+- **Prerequisites**: libusb 1.0, Python 3.10+ with `venv`, git, unzip, curl. `prepare` checks them and
+  prints the distribution's install command. Those and the udev rule need **sudo**: show the person
+  the commands and let **them** run them (never type a password).
+- **USB access**: the udev rule [tools/setup/linux/51-toque-mtk.rules](tools/setup/linux/51-toque-mtk.rules)
+  (copied once to `/etc/udev/rules.d/`, then `udevadm control --reload-rules && udevadm trigger`)
+  lets the user reach MediaTek devices (`0e8d`) and keeps ModemManager away from them. `status` and
+  `prepare` say whether it is installed and whether ModemManager is running.
+- **mtkclient** goes through **libusb** by default on Linux (the macOS serial driver path is
+  `--serial`, kept as a fallback). Done end to end once, from Fedora 44 on an `spm188a` robot
+  (`own-twrp` first), in November 2026; other distributions are untested: tell the person.
+- **When mtkclient does not reach the robot**: `lsusb | grep 0e8d` right after switching on should
+  show `0e8d:2000` for a few seconds (nothing: cable, port, hub; `0e8d:2008` = Android running, switch
+  off first); `/dev/ttyACM*` present but silent: retry with `--serial`; ModemManager probing the port
+  in `journalctl -f`: the udev rule is missing.
 
 ## Monsieur Cuisine Smart (SKMS 1200): in test
 
