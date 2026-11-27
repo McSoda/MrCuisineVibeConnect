@@ -439,7 +439,7 @@ class MainActivity : Activity() {
         // Appelé à chaque mise en page de l'écran (plusieurs fois par seconde pendant une cuisson) : sans champ de
         // saisie ni clavier ouvert, rien à mesurer, et la zone visible n'est pas demandée au système (un appel
         // à WindowManager à chaque fois).
-        if (keyboardHeight == 0 && currentFocus !is EditText) return
+        if (keyboardHeight == 0 && window.currentFocus !is EditText) return
         val decorH = window.decorView.height
         if (decorH <= 0 || root.height <= 0) return
         val visible = visibleBottom()
