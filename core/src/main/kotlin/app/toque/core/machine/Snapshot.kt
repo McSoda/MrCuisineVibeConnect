@@ -81,7 +81,7 @@ data class Snapshot(
      * une base qui ne mesure pas toujours (le Smart) garde la valeur brute.
      */
     fun bowlTempText(caps: Capabilities): String {
-        val first = caps.temperaturesC.minOrNull()
+        val first = caps.lowestTempC
         return if (actualTempC == 0 && link == LinkState.READY && caps.measuresTemperature && first != null) "< $first °C"
         else "$actualTempC °C"
     }
