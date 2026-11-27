@@ -19,9 +19,10 @@ aide à le faire vivre.
 
 | Robot | Étiquette sous le robot | État | Installation |
 |---|---|---|---|
-| Monsieur Cuisine **Connect** | SKMC 1200 (A1, B2, C3) | Pris en charge | [Agent IA](AGENTS.md) ou [guide d'installation](docs/INSTALLATION.fr.md), puis `Toque-x.y.z.apk` |
+| Monsieur Cuisine **Connect** | SKMC 1200 (A1, B2, C3, D4) | Pris en charge | [Agent IA](AGENTS.md) ou [guide d'installation](docs/INSTALLATION.fr.md), puis `Toque-x.y.z.apk`. Tous les D4 et certains C3 ont la carte du SKMC 1100 A1 (`spm188a`) : même étape en plus que la ligne suivante ; le script d'installation lit la carte et dit laquelle il voit ([#115](https://github.com/Wuki60/MrCuisineVibeConnect/issues/115)) |
 | Monsieur Cuisine **Connect** | SKMC 1100 A1 | Pris en charge | Pareil, avec une étape de plus, `own-twrp` : TWRP reconstruit autour du noyau du robot ([#10](https://github.com/Wuki60/MrCuisineVibeConnect/issues/10)) |
-| Monsieur Cuisine **Smart** | SKMS 1200 | **En test** : essayé par des propriétaires de Smart, retours dans [#59](https://github.com/Wuki60/MrCuisineVibeConnect/issues/59) | [Guide du Smart](docs/SMART.md), puis `Toque-smart-x.y.z.apk` |
+| Monsieur Cuisine **Smart** | SKMS 1200 (A1, carte MediaTek, Android 8.1) | **En test** : essayé par des propriétaires de Smart, retours dans [#59](https://github.com/Wuki60/MrCuisineVibeConnect/issues/59) | [Guide du Smart](docs/SMART.md), puis `Toque-smart-x.y.z.apk` |
+| Monsieur Cuisine **Smart** | SKMS 1200 C1 (carte Allwinner, Android 10) | **Pas encore pris en charge** | Autre matériel : le guide du Smart ne s'applique pas ([#59](https://github.com/Wuki60/MrCuisineVibeConnect/issues/59)) |
 
 Chaque [version](https://github.com/Wuki60/MrCuisineVibeConnect/releases/latest) a deux APK faits du
 même code : **`Toque-x.y.z.apk` pour le Connect** et **`Toque-smart-x.y.z.apk` pour le Smart** (son
@@ -82,8 +83,14 @@ faut Toque 0.10.0 ou plus récent sur le robot.
 **Relier un téléphone** : sur le robot, *Réglages › Téléphone › Appairer un téléphone*, puis scannez
 le QR code avec l'appli, ou saisissez le code à 6 chiffres affiché dessous (valable 2 minutes). Le
 robot n'écoute qu'une fois un téléphone appairé ou l'écran d'appairage ouvert, et un téléphone non
-appairé ne le voit pas, même sur le même Wi-Fi. L'écran d'appairage liste les téléphones appairés et
-retire ceux qui ne servent plus.
+appairé ne le voit pas, même sur le même Wi-Fi. L'écran d'appairage et *Réglages › Téléphone* listent
+les téléphones appairés : renommez-les, retirez ceux qui ne servent plus, ou mettez-en un en **lecture
+seule** (il suit le robot sans rien commander : écran mural, domotique).
+
+**Home Assistant** : [Toque Companion for Home Assistant](https://github.com/gornog/toque-companion-homeassistant)
+de @gornog (dans HACS) montre l'état du robot dans Home Assistant par le même appairage, avec seulement
+Pause, Stop et Tare, ou aucune commande en mode *capteurs seulement*. Pour un tel client, appairez-le en
+lecture seule.
 
 ## Installer avec un agent IA (Connect)
 

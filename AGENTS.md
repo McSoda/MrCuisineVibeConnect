@@ -18,8 +18,9 @@ procedures. **Before anything else, ask the person to read the model on the labe
 | Label under the robot | Robot | Tablet | Follow | Toque APK |
 |---|---|---|---|---|
 | **SKMC 1200** (A1, B2, C3) | Monsieur Cuisine **Connect** | Android 6.0 | This guide, from *What you are doing* | `Toque-X.Y.Z.apk` |
-| **SKMC 1100 A1**, **SKMC 1200 D4** | Monsieur Cuisine **Connect** | Android 6.0 | This guide, with the extra step `own-twrp` (board `spm188a`) | `Toque-X.Y.Z.apk` |
-| **SKMS 1200** | Monsieur Cuisine **Smart** (in test) | Android 8.1 | *Monsieur Cuisine Smart (SKMS 1200)* below | `Toque-smart-X.Y.Z.apk` |
+| **SKMC 1100 A1**, **SKMC 1200 D4**, some **SKMC 1200 C3** | Monsieur Cuisine **Connect** | Android 6.0 | This guide, with the extra step `own-twrp` (board `spm188a`; on a C3 the backup decides, see *Which TWRP*) | `Toque-X.Y.Z.apk` |
+| **SKMS 1200** (A1, MediaTek board) | Monsieur Cuisine **Smart** (in test) | Android 8.1 | *Monsieur Cuisine Smart (SKMS 1200)* below | `Toque-smart-X.Y.Z.apk` |
+| **SKMS 1200 C1** (Allwinner board, Android 10) | Monsieur Cuisine **Smart** | Android 10 | **Stop**: not supported yet; the Smart root guide does not apply (another board, its PC shows it as `VID_1F3A&PID_EFE8`). Point to [#59](https://github.com/Wuki60/MrCuisineVibeConnect/issues/59) | none |
 | anything else | unknown | | Stop. Ask the person to open an issue with a photo of the label | |
 
 - If ADB already works (a robot rooted earlier), check that the tablet agrees with the label:
@@ -126,7 +127,7 @@ Then: Toque › Settings › Recipes › Lidl › **Sync** (about 15 minutes the
 stays at 0 and "never synced" stays shown until every recipe has been fetched: that is normal, do not
 restart the sync.
 
-### Which TWRP: the robot's own kernel on an SKMC 1100 A1
+### Which TWRP: the robot's own kernel on an SKMC 1100 A1 (and on the SKMC 1200 with that board)
 
 The TWRP image of this guide carries a kernel built in April 2018 for the SKMC 1200's board
 (project `l706_dfbh_v_695`). An SKMC 1100 A1 (system image `v4.3a_2022-09-15`, stock app 1.1.28) is
@@ -148,6 +149,11 @@ rebuilt around its own kernel.
   it: `-Step flash-twrp -Twrp own-kernel` (the choice for a board the guide's kernel was not built
   for) or `-Twrp guide`. `-Twrp guide` is refused on an SKMC 1100 A1. Ask them to report the model
   and the project name in an issue.
+
+The label is not enough: every **SKMC 1200 D4** and some **SKMC 1200 C3** (one made in 03/2020,
+[#115](https://github.com/Wuki60/MrCuisineVibeConnect/issues/115)) have the `spm188a` board too. The
+script reads it from the backup and takes the same path as on an SKMC 1100 A1; tell the person which
+board it saw. On such a C3, one owner reports in #115 that the rest went through like on an SKMC 1100 A1.
 
 Done end to end on one SKMC 1100 A1 in November 2026: TWRP started with a stable picture and
 working touch, then `root`, `flash-root` (10.98 MB and 26.98 MB sent in console mode), `android`,

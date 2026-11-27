@@ -19,9 +19,10 @@ it going.
 
 | Robot | Label under the robot | Status | How to install |
 |---|---|---|---|
-| Monsieur Cuisine **Connect** | SKMC 1200 (A1, B2, C3, D4) | Supported | [AI agent](AGENTS.md) or [install guide](docs/INSTALLATION.md), then `Toque-x.y.z.apk` |
+| Monsieur Cuisine **Connect** | SKMC 1200 (A1, B2, C3, D4) | Supported | [AI agent](AGENTS.md) or [install guide](docs/INSTALLATION.md), then `Toque-x.y.z.apk`. Every D4 and some C3 have the board of the SKMC 1100 A1 (`spm188a`): same extra step as the next line; the install script reads the board and says which one it sees ([#115](https://github.com/Wuki60/MrCuisineVibeConnect/issues/115)) |
 | Monsieur Cuisine **Connect** | SKMC 1100 A1 | Supported | Same, with one more step, `own-twrp`: TWRP rebuilt around the robot's own kernel ([#10](https://github.com/Wuki60/MrCuisineVibeConnect/issues/10)) |
-| Monsieur Cuisine **Smart** | SKMS 1200 | **In test**: tested by Smart owners, reports in [#59](https://github.com/Wuki60/MrCuisineVibeConnect/issues/59) | [Smart guide](docs/SMART.en.md), then `Toque-smart-x.y.z.apk` |
+| Monsieur Cuisine **Smart** | SKMS 1200 (A1, MediaTek board, Android 8.1) | **In test**: tested by Smart owners, reports in [#59](https://github.com/Wuki60/MrCuisineVibeConnect/issues/59) | [Smart guide](docs/SMART.en.md), then `Toque-smart-x.y.z.apk` |
+| Monsieur Cuisine **Smart** | SKMS 1200 C1 (Allwinner board, Android 10) | **Not supported yet** | Other hardware: the Smart guide does not apply to it ([#59](https://github.com/Wuki60/MrCuisineVibeConnect/issues/59)) |
 
 Each [release](https://github.com/Wuki60/MrCuisineVibeConnect/releases/latest) has two APKs built from
 the same code: **`Toque-x.y.z.apk` for the Connect** and **`Toque-smart-x.y.z.apk` for the Smart**
@@ -82,7 +83,13 @@ needs Toque 0.10.0 or later on the robot.
 **Link a phone**: on the robot, *Settings › Phone › Pair a phone*, then scan the QR code with the app,
 or type the 6-digit code shown under it (valid 2 minutes). The robot listens only once a phone is
 paired or the pairing screen is open, and a phone that is not paired cannot see it, even on the same
-Wi-Fi. The pairing screen lists the paired phones and removes the ones you no longer use.
+Wi-Fi. The pairing screen and *Settings › Phone* list the paired phones: rename them, remove the ones
+you no longer use, or set one **read-only** (it follows the robot and commands nothing: a wall screen,
+home automation).
+
+**Home Assistant**: [Toque Companion for Home Assistant](https://github.com/gornog/toque-companion-homeassistant)
+by @gornog (in HACS) shows the robot's state in Home Assistant through the same pairing, with only
+Pause, Stop and Tare, or none in its *sensor only* mode. For such a client, pair it read-only.
 
 ## Install with an AI agent (Connect)
 

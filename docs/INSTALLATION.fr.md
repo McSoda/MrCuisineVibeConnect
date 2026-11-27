@@ -55,7 +55,9 @@ erreur peut rendre la tablette du robot inutilisable. Lisez tout avant de commen
    et `recovery-original.img` (16 Mo chacun) : **à garder précieusement, c'est votre seule voie
    de retour.**
 
-   > **SKMC 1100 A1** (étiquette sous le robot, image système `v4.3a_2022-09-15`) : le TWRP du
+   > **SKMC 1100 A1** (étiquette sous le robot, image système `v4.3a_2022-09-15`), et un **SKMC 1200
+   > D4** ou certains **SKMC 1200 C3** qui ont la même carte `spm188a` (l'étape `-Step backup` du
+   > script dit quelle carte il voit, [#115](https://github.com/Wuki60/MrCuisineVibeConnect/issues/115)) : le TWRP du
    > guide de référence embarque un noyau de 2018 fait pour la carte du SKMC 1200, et sur ce robot
    > il démarre sans tactile. Avant l'étape 4, reconstruire TWRP autour de votre propre noyau :
    > placer les deux sauvegardes dans `C:\Toque\backup\`, puis lancer
