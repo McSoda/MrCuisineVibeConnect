@@ -101,7 +101,7 @@ Copilot…) do the install. Give it this message:
 
 [AGENTS.md](AGENTS.md) describes the whole procedure to the agent, and
 [`tools/setup/toque-setup.ps1`](tools/setup/toque-setup.ps1) (Windows) or
-[`tools/setup/toque-setup.sh`](tools/setup/toque-setup.sh) (macOS) does the work step by step
+[`tools/setup/toque-setup.sh`](tools/setup/toque-setup.sh) (macOS, Linux) does the work step by step
 (verified downloads, driver on Windows, backup, root, install, ADB over Wi-Fi). The agent only
 asks you for what it cannot do itself:
 
@@ -113,7 +113,7 @@ asks you for what it cannot do itself:
 - tap **Grant** once on the robot's screen.
 
 Allow 1 to 2 hours. Without an agent: [docs/INSTALLATION.md](docs/INSTALLATION.md) (Windows) or
-[docs/MACOS.en.md](docs/MACOS.en.md) (macOS).
+[docs/MACOS.en.md](docs/MACOS.en.md) (macOS) or [docs/LINUX.en.md](docs/LINUX.en.md) (Linux).
 
 ## Install from a Mac (Connect)
 
@@ -133,6 +133,16 @@ The full guide, with what to do when mtkclient does not reach the robot:
 [docs/MACOS.en.md](docs/MACOS.en.md). An AI agent can also run it for you (see above).
 Done end to end on a real SKMC 1200 C3 from an Apple silicon Mac in November 2026 (Intel Macs and the
 SKMC 1100 A1 not tested yet: please report). Thanks to @julienperrault and @flexbox.
+
+## Install from Linux (Connect)
+
+The same script, `tools/setup/toque-setup.sh`, runs on Linux: mtkclient goes through libusb, and a
+udev rule (`tools/setup/linux/51-toque-mtk.rules`) gives your user access to the robot in download
+mode and keeps ModemManager away from it. `prepare` prints the one-time `sudo` commands.
+
+The full guide: [docs/LINUX.en.md](docs/LINUX.en.md). Done end to end from Fedora 44 on a real
+robot with an `spm188a` board (labelled SKMC 1200, so `own-twrp` first) in November 2026; other
+distributions not tested yet.
 
 ## Features
 
