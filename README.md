@@ -149,7 +149,7 @@ SKMC 1100 A1 not tested yet: please report). Thanks to @julienperrault and @flex
   French, English, German, Spanish, Catalan and Ukrainian; only a revocable key of the robot is kept,
   never the password.
 - **Your own [Mealie](https://mealie.io) server** (self-hosted recipes): link the robot to it
-  (*Settings › Other*, with your username or an API token) and all its recipes arrive on
+  (*Settings › Recipes › Mealie*, with your username or an API token) and all its recipes arrive on
   the robot, read-only, nightly or on demand, with a "Mealie" chip in the list. Settings written in
   the steps ("5 min/100 °C/speed 1", "10 sec/speed 5", "Turbo 3 times", "dough mode 2 min") are
   suggested and must be checked before they start, like imported recipes. Only a token of the robot is
@@ -199,8 +199,10 @@ SKMC 1100 A1 not tested yet: please report). Thanks to @julienperrault and @flex
 - **Standby**, like the stock app: after a few minutes without a touch or a turn of the knob
   (2 to 30 min, or never, in *Settings › Screen*), a dimmed black screen shows the time, and the
   bowl temperature when it is hot. Never during a program or on the scale. The gesture that wakes
-  the screen does nothing else. During standby, the knob ring stays normal, dims to a faint white
-  night-light, or turns off (*Settings › Knob and sounds*).
+  the screen does nothing else. During standby, the knob ring keeps its light, dims it (five
+  levels, never brighter than when on) or turns off. Its brightness when on can be set too, and, with
+  the colour code switched off, its colour when on and during standby, among those its red, green and
+  white LEDs can make (*Settings › Knob and sounds › Knob light*).
 - **Bowl sensor that reads the wrong way round**: on some robots (seen on an SKMC 1200 C3 and an SKMC 1100 A1) the
   base reports the bowl as present when it is removed; *Settings › Safety › Invert the bowl
   sensor* fixes it.

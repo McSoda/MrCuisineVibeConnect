@@ -45,8 +45,10 @@ data class Phone(
     val lastSeenAt: Long,
     /** « qr » ou « code ». */
     val method: String,
+    /** Nom donné sur le robot ([PairingManager.rename]) ; vide : « Téléphone N ». */
+    val label: String = "",
 ) {
-    val name: String get() = tr("Téléphone %d", number)
+    val name: String get() = label.ifEmpty { tr("Téléphone %d", number) }
 }
 
 /** Code d'appairage affiché sur le robot. */
@@ -162,6 +164,27 @@ class PairingManager(
 
     /** Au moins un téléphone appairé (sans copier la liste : lu à chaque Snapshot). */
     val hasPhones: Boolean get() = synchronized(lock) { phones.isNotEmpty() }
+
+    /**
+     * Donne au téléphone [id] le nom [label] (« Téléphone de Léa »), nettoyé par [cleanLabel] ; vide : il
+     * reprend « Téléphone N ». Ce nom est celui du journal, des messages et de ce que le téléphone reçoit
+     * ([PhoneWire.name]). false si ce téléphone n'est pas appairé.
+     */
+    fun rename(id: String, label: String): Boolean {
+        val clean = cleanLabel(label)
+        val changed = synchronized(lock) {
+            val i = phones.indexOfFirst { it.id == id }
+            if (i < 0) return false
+            if (phones[i].label == clean) false
+            else {
+                phones[i] = phones[i].copy(label = clean)
+                saveLocked()
+                true
+            }
+        }
+        if (changed) fire(phoneListeners)
+        return true
+    }
 
     fun remove(id: String): Boolean {
         val removed = synchronized(lock) {
@@ -331,7 +354,7 @@ class PairingManager(
                 if (hash.length != 64) continue
                 val number = (m["number"] as? Number)?.toInt() ?: continue
                 phones += Phone(id, number, hash, (m["pairedAt"] as? Number)?.toLong() ?: 0L,
-                    (m["lastSeenAt"] as? Number)?.toLong() ?: 0L, m.str("method") ?: "code")
+                    (m["lastSeenAt"] as? Number)?.toLong() ?: 0L, m.str("method") ?: "code", cleanLabel(m.str("label").orEmpty()))
             }
         } catch (t: Throwable) {
             log("liste des téléphones illisible : $t")
@@ -344,7 +367,7 @@ class PairingManager(
             "robotId" to robotId,
             "phones" to phones.map {
                 linkedMapOf("id" to it.id, "number" to it.number, "tokenHash" to it.tokenHash,
-                    "pairedAt" to it.pairedAt, "lastSeenAt" to it.lastSeenAt, "method" to it.method)
+                    "pairedAt" to it.pairedAt, "lastSeenAt" to it.lastSeenAt, "method" to it.method, "label" to it.label)
             },
         )
         try {
@@ -367,6 +390,12 @@ class PairingManager(
         const val TOKEN_HEX = TOKEN_BYTES * 2
         const val SECRET_BYTES = 16
         const val ROBOT_ID_BYTES = 6
+
+        /** Longueur d'un nom de téléphone donné sur le robot. */
+        const val MAX_LABEL = 24
+
+        /** Un nom saisi, prêt à garder : sur une ligne, espaces réduits, [MAX_LABEL] caractères au plus. */
+        fun cleanLabel(s: String): String = s.replace(Regex("[\\p{Cntrl}\\s]+"), " ").trim().take(MAX_LABEL).trim()
 
         fun hex(b: ByteArray): String {
             val digits = "0123456789abcdef"

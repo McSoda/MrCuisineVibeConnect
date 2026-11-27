@@ -164,7 +164,10 @@ travels only inside the LAN request that consumes it.
 - Each phone gets its own random **256-bit token** (64 lowercase hex), sent once in the pairing reply.
   The robot keeps only its SHA-256; comparison is constant-time. At most **8** phones.
 - Phones are named "Téléphone N" (lowest free N, translated) and listed on the robot with pairing date
-  and last seen. The robot removes a phone with `hub.pairing.remove(id)`; a phone removes itself with
+  and last seen. The owner can give one another name on the robot (`hub.pairing.rename(id, label)`: one
+  line, at most 24 characters, empty to go back to "Téléphone N"); that name is the one the journal, the
+  robot's messages and `PhoneWire.name` then carry, with no change to the protocol. The robot removes a
+  phone with `hub.pairing.remove(id)`; a phone removes itself with
   `DELETE /api/phones/me` ("Oublier"). A removed phone gets `401` on every call.
 - Authentication: `Authorization: Bearer <token>` on every call except `/api/hello`, `/api/pair`
   and `/api/prove`. No cookies, no CORS headers, ever: a web page from another site can neither send

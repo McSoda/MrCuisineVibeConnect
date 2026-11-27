@@ -42,6 +42,7 @@ import app.toque.ui.screens.HomeScreen
 import app.toque.ui.screens.PairingScreen
 import app.toque.ui.screens.RecipeScreen
 import app.toque.ui.screens.RecipesScreen
+import app.toque.ui.screens.KnobLightScreen
 import app.toque.ui.screens.SettingsScreen
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -299,7 +300,7 @@ class CompanionScreensTest {
         assertNull(findText(manual.view, "Reprendre"))
         assertFalse(shown(findText(manual.view, "Démarrer")))
         assertTrue(shown(findText(activity.window.decorView, "En pause")))
-        assertEquals(RingColour.ORANGE, RingColour.of(app.machine.snapshot))
+        assertEquals(RingColour.YELLOW, RingColour.of(app.machine.snapshot))
         shot("31-cuisson-manuelle-en-pause")
 
         // La molette reprend, comme le bouton de la barre.
@@ -454,8 +455,11 @@ class CompanionScreensTest {
         val settings = SettingsScreen(activity)
         activity.push(settings)
         idle(3)
-        assertNotNull(findText(settings.view, "Couleurs sur la molette"))
         openFamily(settings, "Molette et sons")
+        assertNotNull(findText(settings.view, "Lumière de la molette"))
+        activity.push(KnobLightScreen(activity))
+        idle(3)
+        assertNotNull(findText(activity.current!!.view, "Couleurs sur la molette"))
         shot("12-reglages-couleurs-molette")
     }
 
@@ -470,11 +474,12 @@ class CompanionScreensTest {
         val settings = SettingsScreen(activity, SettingsScreen.Family.RECIPES)
         activity.push(settings)
         idle(3)
-        // Pastilles de Recettes : Lidl, toqueapp.org, Mes recettes, Appli d'origine ; Mealie est dans la famille « Autres ».
-        for (chip in listOf("Lidl", "toqueapp.org", "Mes recettes", "Appli d'origine")) assertNotNull(chip, findText(settings.view, chip))
+        // Pastilles de Recettes, une par source : Lidl, toqueapp.org, Mealie, Mes recettes, Appli d'origine.
+        for (chip in listOf("Lidl", "toqueapp.org", "Mealie", "Mes recettes", "Appli d'origine")) assertNotNull(chip, findText(settings.view, chip))
         assertNull(findText(settings.view, "Communauté"))
+        assertNull("la famille « Autres » n'existe plus", findText(settings.view, "Autres"))
         shot("39b-reglages-recettes-pastilles")
-        openFamily(settings, "Autres")
+        openFamily(settings, "Mealie")
         assertNotNull(findText(settings.view, "Relier mon serveur"))
         shot("40-reglages-mealie-non-relie")
         activity.push(MealieLinkScreen(activity))
@@ -493,9 +498,10 @@ class CompanionScreensTest {
         app.prefs.mealieLastResult = "25/11 à 03:31 : 1 ajoutée(s)"
         app.recipes.upsertAll(listOf(r))
         waitFor("recette Mealie enregistrée") { app.recipes.index.entries.any { it.id == r.id } }
-        val linked = SettingsScreen(activity, SettingsScreen.Family.OTHERS)
+        val linked = SettingsScreen(activity, SettingsScreen.Family.RECIPES)
         activity.push(linked)
         idle(3)
+        openFamily(linked, "Mealie")
         assertNotNull(findText(linked.view, "Délier"))
         shot("42-reglages-mealie-relie")
         activity.push(RecipesScreen(activity))

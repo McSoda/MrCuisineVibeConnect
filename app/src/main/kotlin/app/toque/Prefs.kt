@@ -5,6 +5,8 @@ import android.content.SharedPreferences
 import app.toque.core.i18n.I18n
 import app.toque.core.i18n.tr
 import app.toque.core.i18n.trKey
+import app.toque.core.ring.Rgb
+import app.toque.core.ring.RingLook
 import app.toque.core.robot.RobotProfile
 import app.toque.core.robot.RobotProfiles
 
@@ -165,8 +167,9 @@ class Prefs(context: Context) {
         }
 
     /**
-     * Molette pendant la veille : « normal » (inchangée), « dim » (veilleuse blanche faible) ou
-     * « off » (éteinte). Reprend l'ancien interrupteur « standbyKnobLight » s'il a été réglé.
+     * Ancien réglage de la molette pendant la veille : « normal » (inchangée), « dim » (veilleuse blanche
+     * faible) ou « off » (éteinte). Reprend l'ancien interrupteur « standbyKnobLight » s'il a été réglé.
+     * Remplacé par [ringStandbyLevel], qui le reprend tant qu'il n'a pas été réglé.
      */
     var standbyKnob: String
         get() = p.getString("standbyKnob", null)
@@ -181,6 +184,61 @@ class Prefs(context: Context) {
         set(v) {
             p.edit().putBoolean("knobColours", v).commit()
         }
+
+    /** Luminosité de l'anneau allumé : niveau 1 à 5 ; 0 tant que rien n'a été choisi (le blanc propre au robot). */
+    var ringLevel: Int
+        get() = p.getInt("ringLevel", 0)
+        set(v) {
+            p.edit().putInt("ringLevel", v).commit()
+        }
+
+    /** Couleur de l'anneau allumé quand le code couleur est coupé (clé de [RingLook.Tint]). */
+    var ringTint: String
+        get() = p.getString("ringTint", null) ?: RingLook.Tint.WHITE.key
+        set(v) {
+            p.edit().putString("ringTint", v).commit()
+        }
+
+    /**
+     * Luminosité de l'anneau pendant la veille : niveau 0 (éteint) à 5, ramené au niveau de l'anneau
+     * allumé s'il le dépasse. Tant qu'il n'a pas été réglé, reprend l'ancien choix [standbyKnob] :
+     * comme allumé, la veilleuse (niveau 1) ou éteint.
+     */
+    var ringStandbyLevel: Int
+        get() = if (p.contains("ringStandbyLevel")) p.getInt("ringStandbyLevel", 0) else when (standbyKnob) {
+            "off" -> 0
+            "dim" -> 1
+            else -> RingLook.MAX_LEVEL
+        }
+        set(v) {
+            p.edit().putInt("ringStandbyLevel", v).commit()
+        }
+
+    /** Couleur de l'anneau pendant la veille quand le code couleur est coupé (clé de [RingLook.Tint]). */
+    var ringStandbyTint: String
+        get() = p.getString("ringStandbyTint", null) ?: RingLook.Tint.WHITE.key
+        set(v) {
+            p.edit().putString("ringStandbyTint", v).commit()
+        }
+
+    /** Couleur personnalisée de l'anneau allumé : son mélange de rouge, de vert et de blanc ; null tant que rien n'est composé. */
+    var ringCustom: Rgb?
+        get() = RingLook.parseMix(p.getString("ringCustom", null))
+        set(v) {
+            p.edit().putString("ringCustom", v?.toString()).commit()
+        }
+
+    /** Couleur personnalisée de l'anneau pendant la veille. */
+    var ringStandbyCustom: Rgb?
+        get() = RingLook.parseMix(p.getString("ringStandbyCustom", null))
+        set(v) {
+            p.edit().putString("ringStandbyCustom", v?.toString()).commit()
+        }
+
+    /** Les réglages de l'anneau réunis, tels que l'anneau les applique. */
+    val ring: RingLook.Settings
+        get() = RingLook.Settings(knobColours, ringLevel, RingLook.Tint.of(ringTint), ringStandbyLevel, RingLook.Tint.of(ringStandbyTint),
+            ringCustom, ringStandbyCustom)
 
     /** Fuseau horaire : « auto » (d'après la connexion Internet) ou un identifiant IANA choisi à la main. */
     var timeZone: String

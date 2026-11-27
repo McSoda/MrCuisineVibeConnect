@@ -154,6 +154,7 @@ class MainActivity : Activity() {
         updates = UpdateAlert(this)
         standby.onWake = { updates.onWake() }
         KnobLight.log = { m -> app.log.write("molette", m) }
+        KnobLight.idle(prefs.ring.on)
 
         try {
             tone = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 85)
