@@ -24,6 +24,7 @@ class Icon(context: Context, var kind: Kind, color: Int) : View(context) {
 
     var color: Int = color
         set(v) {
+            if (v == field) return
             field = v
             stroke.color = v
             fill.color = v
@@ -144,7 +145,7 @@ class Icon(context: Context, var kind: Kind, color: Int) : View(context) {
                 canvas.drawLine(9f, 12.5f, 11f, 14.5f, stroke); canvas.drawLine(13f, 12.5f, 15f, 14.5f, stroke)
             }
             Kind.STEAM -> {
-                for (x in floatArrayOf(7f, 12f, 17f)) {
+                for (x in STEAM_X) {
                     p.reset(); p.moveTo(x, 20f); p.cubicTo(x - 3f, 16f, x + 3f, 13f, x, 9f); p.cubicTo(x - 2f, 7f, x + 1f, 5f, x, 3.5f)
                     canvas.drawPath(p, stroke)
                 }
@@ -250,5 +251,9 @@ class Icon(context: Context, var kind: Kind, color: Int) : View(context) {
             }
         }
         canvas.restore()
+    }
+
+    companion object {
+        private val STEAM_X = floatArrayOf(7f, 12f, 17f)
     }
 }

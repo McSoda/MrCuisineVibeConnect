@@ -181,7 +181,7 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
             if (curW > 5) {
                 val time = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date())
                 val ing = recipe.steps.getOrNull(index)?.weigh?.label ?: recipe.steps.getOrNull(index)?.text?.take(30)
-                ScaleScreen.history.add(ScaleScreen.WeightEntry(time, curW, ing))
+                ScaleScreen.recordHistory(ScaleScreen.WeightEntry(time, curW, ing))
             }
             a.machine.tare()
         })

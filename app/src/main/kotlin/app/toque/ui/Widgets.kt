@@ -110,12 +110,16 @@ class TempRing(c: Context) : View(c) {
     var actual = 0
     var target = 0
     var rpmLevel = 0
+    private var actualLabel = "0°"
+    private var targetLabel = tr("mesuré")
     private val arc = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
     private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
     private val r = RectF()
 
     fun set(actual: Int, target: Int, rpmLevel: Int) {
         if (actual == this.actual && target == this.target && rpmLevel == this.rpmLevel) return
+        if (actual != this.actual) actualLabel = "$actual°"
+        if (target != this.target) targetLabel = if (target > 0) tr("consigne %d °C", target) else tr("mesuré")
         this.actual = actual
         this.target = target
         this.rpmLevel = rpmLevel
@@ -147,11 +151,11 @@ class TempRing(c: Context) : View(c) {
         text.typeface = Ui.THIN
         text.color = Ui.TEXT
         text.textSize = size * 0.30f
-        canvas.drawText("$actual°", cx + size * 0.03f, cy + size * 0.08f, text)
+        canvas.drawText(actualLabel, cx + size * 0.03f, cy + size * 0.08f, text)
         text.typeface = Ui.REGULAR
         text.color = Ui.TEXT2
         text.textSize = size * 0.075f
-        canvas.drawText(if (target > 0) tr("consigne %d °C", target) else tr("mesuré"), cx, cy + size * 0.22f, text)
+        canvas.drawText(targetLabel, cx, cy + size * 0.22f, text)
         // barres de vitesse réelle
         val bw = size * 0.035f
         val gap = size * 0.018f

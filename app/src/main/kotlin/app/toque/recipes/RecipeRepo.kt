@@ -73,7 +73,11 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
         }
 
         override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {}
+    }.apply {
+        setWriteAheadLoggingEnabled(true)
     }
+    /** Cache mémoire borné des recettes décodées : évite de relire SQLite et redécoder le JSON sur le fil principal. */
+    private val recipeCache = android.util.LruCache<String, Recipe>(24)
     private val exec = Executors.newSingleThreadExecutor { r -> Thread(r, "toque-recettes").apply { priority = Thread.NORM_PRIORITY - 1 } }
     /** Mises à jour de l'index en mémoire (recette perso enregistrée) sans attendre la base. */
     private val memo = Executors.newSingleThreadExecutor { r -> Thread(r, "toque-index") }
@@ -127,11 +131,14 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
     val imagesDir: File by lazy { File(context.filesDir, "images").apply { mkdirs() } }
 
     fun onChange(l: () -> Unit): () -> Unit {
-        listeners += l
-        return { listeners -= l }
+        synchronized(listeners) { listeners += l }
+        return { synchronized(listeners) { listeners -= l } }
     }
 
-    private fun notifyChanged() = main.post { for (l in ArrayList(listeners)) l() }
+    private fun notifyChanged() = main.post {
+        val copy = synchronized(listeners) { ArrayList(listeners) }
+        for (l in copy) l()
+    }
 
     /** Premier chargement du catalogue (une seule fois par processus, même si l'écran est recréé). */
     fun load() {
@@ -177,6 +184,7 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
 
     /** Recharge l'index après des écritures de la synchro : directement l'index complet (pas de retour aux titres seuls). */
     private fun reloadNow() {
+        recipeCache.evictAll()
         val db = helper.writableDatabase
         loadUserState(db)
         val snap = writtenSeq
@@ -431,6 +439,7 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
         v.put("json", RecipeCodec.encode(clean))
         v.put("updated", now)
         db.insertWithOnConflict("recipes", null, v, SQLiteDatabase.CONFLICT_REPLACE)
+        recipeCache.remove(r.id)
         if (summariesOk) {
             // Sans fiche (erreur), la recette est simplement refaite au prochain démarrage.
             try {
@@ -454,9 +463,10 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
         pending.lastOrNull { it.id == id && it.seq > written }
     }
 
-    /** Lecture d'une recette (rapide : une seule ligne). */
+    /** Lecture d'une recette (rapide : cache mémoire LRU, sinon une seule ligne SQLite). */
     fun get(id: String): Recipe? {
         pendingFor(id)?.let { return it.recipe?.copy(favorite = isFavorite(id)) }
+        recipeCache.get(id)?.let { return it.copy(favorite = isFavorite(id)) }
         helper.readableDatabase.rawQuery("SELECT json FROM recipes WHERE id = ?", arrayOf(id)).use { c ->
             if (!c.moveToFirst()) return null
             val r = try {
@@ -464,6 +474,7 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
             } catch (_: Exception) {
                 null
             } ?: return null
+            recipeCache.put(id, r)
             return r.copy(favorite = isFavorite(id))
         }
     }
@@ -666,6 +677,7 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
         try {
             db.delete("recipes", "id NOT LIKE ? AND id NOT LIKE ? AND id NOT LIKE ?",
                 arrayOf(UserRecipes.ID_PREFIX + "%", CommunityRecipes.ID_PREFIX + "%", MealieRecipes.ID_PREFIX + "%"))
+            recipeCache.evictAll()
             val now = System.currentTimeMillis()
             for (r in recipes) {
                 writeRecipe(db, r, now)
@@ -714,7 +726,10 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
             val gone = titles(db).filterKeys { it !in keep && isLidl(it) }
             db.beginTransaction()
             try {
-                for (id in gone.keys) db.delete("recipes", "id = ?", arrayOf(id))
+                for (id in gone.keys) {
+                    db.delete("recipes", "id = ?", arrayOf(id))
+                    recipeCache.remove(id)
+                }
                 carryOver(db, gone)
                 db.setTransactionSuccessful()
             } finally {
@@ -739,7 +754,10 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
             if (gone.isEmpty()) return@submit
             db.beginTransaction()
             try {
-                for (id in gone) db.delete("recipes", "id = ?", arrayOf(id))
+                for (id in gone) {
+                    db.delete("recipes", "id = ?", arrayOf(id))
+                    recipeCache.remove(id)
+                }
                 db.setTransactionSuccessful()
             } finally {
                 db.endTransaction()
@@ -764,7 +782,10 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
             if (gone.isEmpty()) return@submit
             db.beginTransaction()
             try {
-                for (id in gone) db.delete("recipes", "id = ?", arrayOf(id))
+                for (id in gone) {
+                    db.delete("recipes", "id = ?", arrayOf(id))
+                    recipeCache.remove(id)
+                }
                 db.setTransactionSuccessful()
             } finally {
                 db.endTransaction()
@@ -782,6 +803,7 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
     fun saveUser(r: Recipe) {
         require(UserRecipes.isUser(r.id))
         val rec = r.copy(source = RecipeSource.USER)
+        recipeCache.put(rec.id, rec)
         val ix = SearchWords.of(rec.copy(favorite = false))
         change(Change(0, rec.id, rec, ix)) { db ->
             db.beginTransaction()
@@ -797,11 +819,18 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
     /** Supprime une recette perso, avec sa note, ses corrections, son favori et ses cuissons. */
     fun deleteUser(id: String) {
         if (!UserRecipes.isUser(id)) return
+        recipeCache.remove(id)
         adjustments.remove(id)
         cooked.remove(id)
         synchronized(favorites) { favorites -= id }
         change(Change(0, id, null, null)) { db ->
-            for (table in listOf("recipes", "favorites", "adjustments", "cooked")) db.delete(table, "id = ?", arrayOf(id))
+            db.beginTransaction()
+            try {
+                for (table in listOf("recipes", "favorites", "adjustments", "cooked")) db.delete(table, "id = ?", arrayOf(id))
+                db.setTransactionSuccessful()
+            } finally {
+                db.endTransaction()
+            }
         }
     }
 

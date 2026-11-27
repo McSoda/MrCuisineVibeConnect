@@ -266,20 +266,23 @@ class TopBar(private val a: MainActivity) : LinearLayout(a) {
     }
 
     fun update(s: Snapshot) {
-        lid.visibility = if (s.hasSample && s.lidOpen) View.VISIBLE else View.GONE
+        val lidVis = if (s.hasSample && s.lidOpen) View.VISIBLE else View.GONE
+        if (lid.visibility != lidVis) lid.visibility = lidVis
         // Bol retiré : pour la base le couvercle est « ouvert », mais ce n'est pas lui qu'il faut fermer.
-        Ui.chipText(lid).text = if (s.bowlRemoved) tr("Bol retiré") else tr("Couvercle ouvert")
+        Ui.setText(Ui.chipText(lid), if (s.bowlRemoved) tr("Bol retiré") else tr("Couvercle ouvert"))
         (lid.getChildAt(0) as Icon).set(if (s.bowlRemoved) Icon.Kind.POT else Icon.Kind.LID)
         // Capteur du bol seul (couvercle vu fermé) : seulement si la détection du bol est exigée, la personne
         // a alors vérifié que le capteur est fiable (sens réglé). Jamais deux fois « Bol retiré ».
-        bowl.visibility = if (s.hasSample && a.prefs.requireBowl && !s.bowlDetected && !s.bowlRemoved) View.VISIBLE else View.GONE
+        val bowlVis = if (s.hasSample && a.prefs.requireBowl && !s.bowlDetected && !s.bowlRemoved) View.VISIBLE else View.GONE
+        if (bowl.visibility != bowlVis) bowl.visibility = bowlVis
         if (s.hasSample) {
-            temp.visibility = View.VISIBLE
-            Ui.chipText(temp).text = s.bowlTempText(app.toque.core.robot.RobotProfiles.active.capabilities)
+            if (temp.visibility != View.VISIBLE) temp.visibility = View.VISIBLE
+            val tv = Ui.chipText(temp)
+            Ui.setText(tv, s.bowlTempText(app.toque.core.robot.RobotProfiles.active.capabilities))
             val col = if (s.actualTempC >= 40) Ui.tempColor(s.actualTempC) else Ui.TEXT2
-            Ui.chipText(temp).setTextColor(col)
+            if (tv.currentTextColor != col) tv.setTextColor(col)
             tempIcon.color = col
-        } else temp.visibility = View.GONE
+        } else if (temp.visibility != View.GONE) temp.visibility = View.GONE
         showHot(s.hot)
         linkAlert = s.hasFault || s.link == LinkState.LOST
         refreshKeyboardBar()
@@ -299,8 +302,9 @@ class TopBar(private val a: MainActivity) : LinearLayout(a) {
             s.link == LinkState.LOST -> tr("Liaison perdue") to Ui.DANGER
             else -> tr("Base absente") to Ui.TEXT3
         }
-        Ui.chipText(link).text = label
-        Ui.chipText(link).setTextColor(color)
+        val ltv = Ui.chipText(link)
+        Ui.setText(ltv, label)
+        if (ltv.currentTextColor != color) ltv.setTextColor(color)
         (link.getChildAt(0) as Icon).color = color
     }
 
@@ -321,10 +325,17 @@ class TopBar(private val a: MainActivity) : LinearLayout(a) {
 class ProgressLine(c: Context) : View(c) {
     var progress = 0f
         set(v) {
-            field = v.coerceIn(0f, 1f)
+            val c = v.coerceIn(0f, 1f)
+            if (c == field) return
+            field = c
             invalidate()
         }
     var color = Ui.ACCENT
+        set(v) {
+            if (v == field) return
+            field = v
+            invalidate()
+        }
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val r = RectF()
 
@@ -444,13 +455,13 @@ class MachineBar(private val a: MainActivity) : FrameLayout(a) {
         jobRow.visibility = if (!s.hasFault && showJob) View.VISIBLE else View.GONE
         if (s.hasFault || !s.turboActive) stopTurboCountdown()
         if (s.hasFault) {
-            faultText.text = s.faultMessage
+            Ui.setText(faultText, s.faultMessage)
             return
         }
         if (!showJob) return
         if (s.turboActive) {
-            label.text = "Turbo"
-            state.text = tr("Relâchez pour arrêter")
+            Ui.setText(label, "Turbo")
+            Ui.setText(state, tr("Relâchez pour arrêter"))
             state.setTextColor(Ui.TEXT2)
             progress.color = Ui.WARN
             // Le temps qu'il reste à l'appui (3 s au plus), et la barre qui se vide avec lui.
@@ -461,8 +472,8 @@ class MachineBar(private val a: MainActivity) : FrameLayout(a) {
             setButtons(running = false, ended = false, turbo = true)
             return
         }
-        label.text = s.jobLabel
-        state.text = when (st) {
+        Ui.setText(label, s.jobLabel)
+        Ui.setText(state, when (st) {
             JobState.STARTING -> if (s.elapsedMs == 0L) tr("Démarrage…") else tr("Reprise…")
             JobState.RUNNING -> if (s.waitingStop) tr("Changement de sens…") else if (s.phaseCount > 1) tr("En cours · phase %d/%d", s.phaseIndex + 1, s.phaseCount) else tr("En cours")
             JobState.STOPPING -> tr("Arrêt du moteur…")
@@ -474,25 +485,28 @@ class MachineBar(private val a: MainActivity) : FrameLayout(a) {
             JobState.FINISHED -> tr("Terminé")
             JobState.ABORTED -> s.endReason
             null -> ""
-        }
-        state.setTextColor(when (st) {
+        })
+        val stCol = when (st) {
             JobState.PAUSED -> Ui.WARN
             JobState.FINISHED -> Ui.OK
             JobState.ABORTED -> Ui.DANGER
             else -> Ui.TEXT2
-        })
-        time.text = if (st == JobState.FINISHED) "00:00" else Ui.clock(s.remainingMs)
+        }
+        if (state.currentTextColor != stCol) state.setTextColor(stCol)
+        Ui.setText(time, if (st == JobState.FINISHED) "00:00" else Ui.clock(s.remainingMs))
         progress.progress = if (s.totalMs > 0) s.elapsedMs.toFloat() / s.totalMs else 0f
         progress.color = if (s.jobTempLevel > 0) Ui.ACCENT else Ui.COOL
-        Ui.chipText(speedChip).text = when {
+        Ui.setText(Ui.chipText(speedChip), when {
             s.jobKind == "STEAM" -> tr("Vapeur")
             s.jobKind == "MANUAL" && s.jobSpeed == 0 -> tr("Sans mélange")
             else -> tr("Vitesse %d", s.jobSpeed)
-        }
-        tempChip.visibility = if (s.jobTempLevel > 0) View.VISIBLE else View.GONE
+        })
+        val tempVis = if (s.jobTempLevel > 0) View.VISIBLE else View.GONE
+        if (tempChip.visibility != tempVis) tempChip.visibility = tempVis
         // °C exacts du programme (40 °C et programmes du Smart compris), pas le niveau de Toque juste en dessous.
-        Ui.chipText(tempChip).text = "${s.jobTempC} °C"
-        dirChip.visibility = if (s.jobReverse && s.jobKind == "MANUAL") View.VISIBLE else View.GONE
+        Ui.setText(Ui.chipText(tempChip), "${s.jobTempC} °C")
+        val dirVis = if (s.jobReverse && s.jobKind == "MANUAL") View.VISIBLE else View.GONE
+        if (dirChip.visibility != dirVis) dirChip.visibility = dirVis
         val ended = st == JobState.FINISHED || st == JobState.ABORTED
         setButtons(running = st != JobState.PAUSED, ended = ended, turbo = false)
     }

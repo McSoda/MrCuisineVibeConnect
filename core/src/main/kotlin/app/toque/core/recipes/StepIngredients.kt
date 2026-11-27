@@ -58,9 +58,11 @@ object StepIngredients {
 
     private fun polish(s: String): Boolean = s.any { it in POLISH_LETTERS }
 
-    /** Formes comparables d'un mot : lui-même, sans « s »/« x » de pluriel, sans « es », sans « n »/« en » (Zwiebeln). */
-    private fun forms(w: String, pl: Boolean = false): Set<String> {
-        val out = HashSet<String>()
+    /**
+     * Ajoute à [out] les formes comparables de [w] : lui-même, sans « s »/« x » de pluriel, sans « es », sans
+     * « n »/« en » (Zwiebeln) ; en polonais ([pl]), aussi le radical sans la terminaison de cas.
+     */
+    private fun addForms(w: String, out: MutableSet<String>, pl: Boolean = false) {
         out += w
         if (pl) {
             // Polonais : le radical sans la terminaison de cas (cebula, cebulę, cebuli → cebul), au moins 4 lettres.
@@ -78,12 +80,42 @@ object StepIngredients {
             if (w.endsWith("s") || w.endsWith("x") || w.endsWith("n")) out += w.dropLast(1)
             if (w.endsWith("es") || w.endsWith("en")) out += w.dropLast(2)
         }
-        return out
     }
 
-    private fun container(w: String, pl: Boolean = false): Boolean = forms(w, pl).any { it in CONTAINERS }
+    /** Toutes les formes de [w] (polonais seulement : ailleurs, [container] et [inSet] n'allouent rien). */
+    private fun formsOf(w: String, pl: Boolean): Set<String> = HashSet<String>(8).also { addForms(w, it, pl) }
 
-    private fun same(a: String, b: String, pl: Boolean = false): Boolean = forms(a, pl).any { it.length >= 3 && it in forms(b, pl) }
+    private fun container(w: String, pl: Boolean = false): Boolean {
+        if (pl) return formsOf(w, true).any { it in CONTAINERS }
+        if (w in CONTAINERS) return true
+        if (w.length > 3) {
+            if ((w.endsWith("s") || w.endsWith("x") || w.endsWith("n")) && w.dropLast(1) in CONTAINERS) return true
+            if ((w.endsWith("es") || w.endsWith("en")) && w.dropLast(2) in CONTAINERS) return true
+        }
+        return false
+    }
+
+    /** Une forme de [w] d'au moins 3 lettres est dans [set] (les formes d'un autre mot, ou de tous ceux d'une étape). */
+    private fun inSet(w: String, set: Set<String>, pl: Boolean = false): Boolean {
+        if (pl) return formsOf(w, true).any { it.length >= 3 && it in set }
+        if (w.length >= 3 && w in set) return true
+        if (w.length > 3) {
+            if (w.endsWith("s") || w.endsWith("x") || w.endsWith("n")) {
+                val d1 = w.dropLast(1)
+                if (d1.length >= 3 && d1 in set) return true
+            }
+            if (w.endsWith("es") || w.endsWith("en")) {
+                val d2 = w.dropLast(2)
+                if (d2.length >= 3 && d2 in set) return true
+            }
+        }
+        return false
+    }
+
+    private fun same(a: String, b: String, pl: Boolean = false): Boolean {
+        if (a == b && a.length >= 3) return true
+        return inSet(a, formsOf(b, pl), pl)
+    }
 
     /** Mots significatifs du nom (avant la virgule et la parenthèse), dans l'ordre. */
     fun keywords(name: String): List<String> =
@@ -106,7 +138,9 @@ object StepIngredients {
         if (words.isEmpty()) return emptyList()
         // Polonais : reconnu à ses lettres (ł, ą, ę…), dans l'étape ou dans la liste.
         val pl = polish(text) || ingredients.any { polish(it.name) }
-        fun inText(w: String) = words.any { same(it, w, pl) }
+        val wordForms = HashSet<String>(words.size * 2)
+        for (w in words) addForms(w, wordForms, pl)
+        fun inText(w: String) = inSet(w, wordForms, pl)
         // Ingrédients dont le mot principal est dans l'étape, regroupés par ce mot.
         val byHead = LinkedHashMap<String, MutableList<Int>>()
         for ((k, i) in ingredients.withIndex()) {
@@ -119,15 +153,19 @@ object StepIngredients {
         for (cands in byHead.values) {
             if (cands.size == 1) { picked += cands[0]; continue }
             // Plusieurs : ceux dont tous les mots sont dans l'étape ; aucun s'il n'y en a pas.
-            fun own(k: Int) = keywords(ingredients[k].name).filter { !container(it, pl) }
+            val ownCache = HashMap<Int, Set<String>>(cands.size * 2)
+            fun own(k: Int): Set<String> = ownCache.getOrPut(k) {
+                keywords(ingredients[k].name).filterTo(HashSet()) { !container(it, pl) }
+            }
             val full = cands.filter { k -> own(k).all { inText(it) } }
             if (full.isEmpty()) continue
             // « sucre » et « sucre vanillé » tous deux complets pour « ajouter le sucre vanillé » : seulement le
             // plus précis, sauf si le mot commun est écrit plusieurs fois (« le sucre et le sucre vanillé »).
-            val head = head(ingredients[full[0]].name, pl) ?: continue
-            val times = words.count { same(it, head, pl) }
+            val h = head(ingredients[full[0]].name, pl) ?: continue
+            val hForms = formsOf(h, pl)
+            val times = words.count { inSet(it, hForms, pl) }
             for (k in full) {
-                val mine = own(k).toSet()
+                val mine = own(k)
                 val covered = full.any { o -> o != k && own(o).size > mine.size && own(o).containsAll(mine) }
                 if (!covered || times > 1) picked += k
             }
