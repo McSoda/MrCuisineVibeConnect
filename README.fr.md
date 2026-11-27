@@ -95,7 +95,7 @@ Le plus simple : confiez l'installation à un agent IA qui peut piloter votre PC
 
 Le fichier [AGENTS.md](AGENTS.md) lui décrit toute la procédure, et le script
 [`tools/setup/toque-setup.ps1`](tools/setup/toque-setup.ps1) (Windows) ou
-[`tools/setup/toque-setup.sh`](tools/setup/toque-setup.sh) (macOS) fait le travail étape par étape
+[`tools/setup/toque-setup.sh`](tools/setup/toque-setup.sh) (macOS, Linux) fait le travail étape par étape
 (téléchargements vérifiés, pilote sous Windows, sauvegarde, root, installation, ADB par Wi-Fi).
 L'agent ne vous demande que ce qu'il ne peut pas faire lui-même :
 
@@ -107,7 +107,7 @@ L'agent ne vous demande que ce qu'il ne peut pas faire lui-même :
 - appuyer une fois sur **Autoriser** sur l'écran du robot.
 
 Comptez 1 à 2 heures. Sans agent : [docs/INSTALLATION.fr.md](docs/INSTALLATION.fr.md) (Windows) ou
-[docs/MACOS.md](docs/MACOS.md) (macOS).
+[docs/MACOS.md](docs/MACOS.md) (macOS) ou [docs/LINUX.md](docs/LINUX.md) (Linux).
 
 ## Installer depuis un Mac (Connect)
 
@@ -128,6 +128,16 @@ Le guide complet, avec quoi faire si mtkclient n'atteint pas le robot : [docs/MA
 Un agent IA peut aussi le faire pour vous (voir plus haut). Testé de bout en bout sur un vrai
 SKMC 1200 C3 depuis un Mac Apple silicon en novembre 2026 (Mac Intel et SKMC 1100 A1 pas encore
 essayés : dites-nous). Merci à @julienperrault et @flexbox.
+
+## Installer depuis Linux (Connect)
+
+Le même script, `tools/setup/toque-setup.sh`, tourne sous Linux : mtkclient passe par libusb, et une
+règle udev (`tools/setup/linux/51-toque-mtk.rules`) donne à votre utilisateur l'accès au robot en mode
+téléchargement et tient ModemManager à l'écart. `prepare` affiche les commandes `sudo` à lancer une fois.
+
+Le guide complet : [docs/LINUX.md](docs/LINUX.md). Testé de bout en bout depuis Fedora 44 sur un vrai
+robot à carte `spm188a` (étiqueté SKMC 1200, donc `own-twrp` d'abord) en novembre 2026 ; autres
+distributions pas encore essayées.
 
 ## Ce que fait Toque
 
