@@ -5,7 +5,7 @@ import java.text.Normalizer
 /**
  * Durée écrite dans le texte d'une étape à la main (« laisser reposer 30 min », « enfourner 1 h 30 »),
  * pour proposer un minuteur tout prêt. Français d'abord, et les mêmes unités en anglais, espagnol,
- * allemand et catalan (le catalogue existe dans ces langues).
+ * allemand, catalan et polonais (le catalogue existe dans ces langues).
  *
  * Prudente : dans le doute, rien. Pas de durée en notation machine (« 5 min/100 °C/vitesse 1 »),
  * pas d'intervalle (« toutes les 5 min »), rien au-delà de [MAX_SECONDS]. Une fourchette
@@ -19,29 +19,31 @@ object StepDurations {
     private enum class Span(val seconds: Int) { HOUR(3600), MINUTE(60), SECOND(1) }
 
     private val UNITS: Map<String, Span> = HashMap<String, Span>().apply {
-        for (w in listOf("h", "hr", "hrs", "heure", "heures", "hour", "hours", "hora", "horas", "hores", "std", "stunde", "stunden"))
+        for (w in listOf("h", "hr", "hrs", "heure", "heures", "hour", "hours", "hora", "horas", "hores", "std", "stunde", "stunden",
+            "godz", "godzina", "godziny", "godzin", "godzine"))
             put(w, Span.HOUR)
-        for (w in listOf("min", "mins", "mn", "minute", "minutes", "minuto", "minutos", "minuten", "minut", "minuts"))
+        for (w in listOf("min", "mins", "mn", "minute", "minutes", "minuto", "minutos", "minuten", "minut", "minuts",
+            "minuta", "minuty", "minute"))
             put(w, Span.MINUTE)
         for (w in listOf("s", "sec", "secs", "seconde", "secondes", "second", "seconds", "seg", "segs", "segundo", "segundos",
-            "sek", "sekunde", "sekunden", "segon", "segons"))
+            "sek", "sekunde", "sekunden", "segon", "segons", "sekunda", "sekundy", "sekund"))
             put(w, Span.SECOND)
     }
 
     /** Entre deux nombres : une fourchette (« 20 à 25 », « 2-3 », « 20 bis 25 »). */
-    private val RANGE = setOf("-", "–", "—", "à", "a", "to", "bis", "ou", "or", "o", "y", "i", "und", "and", "et", "al")
+    private val RANGE = setOf("-", "–", "—", "à", "a", "to", "bis", "ou", "or", "o", "y", "i", "und", "and", "et", "al", "do", "lub")
     /** « 1 heure et demie », « 1 hora y media », « 1 hour and a half ». */
     private val AND = setOf("et", "y", "i", "and", "und")
-    private val HALF = setOf("demie", "demi", "media", "mitja", "half", "halb")
+    private val HALF = setOf("demie", "demi", "media", "mitja", "half", "halb", "poł")
     /** « une heure », « an hour », « eine Stunde » : un seul mot pour 1. */
-    private val ONE = setOf("une", "un", "one", "an", "a", "una", "eine", "einer", "ein")
+    private val ONE = setOf("une", "un", "one", "an", "a", "una", "eine", "einer", "ein", "jedna", "jeden", "jedno")
     /** Mots qui font d'une durée un intervalle : « toutes les 5 min », « every 5 minutes », « cada 5 minutos », « alle 5 Minuten ». */
-    private val EVERY = setOf("every", "cada", "alle", "chaque")
+    private val EVERY = setOf("every", "cada", "alle", "chaque", "co")
     /** Une quantité, pas une durée : « 1 h 30 g » n'est pas « 1 h 30 ». */
     private val MEASURES = setOf("g", "kg", "mg", "l", "ml", "cl", "dl", "cm", "mm", "c", "cs", "cc")
 
     /** Vitesse du robot : la durée voisine est un réglage machine, pas un minuteur. */
-    private val SPEED = setOf("vitesse", "stufe", "velocidad", "velocitat", "speed", "turbo")
+    private val SPEED = setOf("vitesse", "stufe", "velocidad", "velocitat", "speed", "turbo", "predkosc", "predkosci")
 
     private class Tok(val text: String, val number: Double?)
 
@@ -142,6 +144,12 @@ object StepDurations {
                 val u = unitAt(toks, k)
                 if (u != Span.HOUR || toks[k].text == "h") return null
                 return finish(toks, i, 1800, afterUnit(toks, k))
+            }
+            // « półtorej godziny » (une heure et demie).
+            if (t.text == "połtorej") {
+                val u = unitAt(toks, k + 1)
+                if (u != Span.HOUR || toks[k + 1].text == "h") return null
+                return finish(toks, i, 5400, afterUnit(toks, k + 1))
             }
             // « un quart d'heure », « a quarter of an hour », « un cuarto de hora », « un quart d'hora ».
             if (toks.getOrNull(k)?.text == "quart" || toks.getOrNull(k)?.text == "quarter" || toks.getOrNull(k)?.text == "cuarto") {

@@ -36,8 +36,8 @@ robot sans rien envoyer à sa base moteur et demande de le confirmer.
 > en charge du Smart vient des portages de Flav974 et de Tidusneo24150 ; le projet n'a pas de Smart.
 > À utiliser à vos risques, en suivant la procédure de premier essai.
 >
-> L'interface existe en **français**, **anglais**, **allemand**, **espagnol**, **catalan** et
-> **ukrainien** (*Réglages › Langue et heure*).
+> L'interface existe en **français**, **anglais**, **allemand**, **espagnol**, **catalan**,
+> **polonais** et **ukrainien** (*Réglages › Langue et heure*).
 
 ## Le site communautaire : [toqueapp.org](https://toqueapp.org)
 
