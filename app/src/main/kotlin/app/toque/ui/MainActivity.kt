@@ -100,6 +100,12 @@ class MainActivity : Activity() {
         private set
     private var swallowTouch = false
     var knobListener: ((KeyEvent) -> Unit)? = null
+    private var knobLongHandled = false
+    private var lastKnobPressTime = 0L
+    private val knobLongPressRunnable = Runnable {
+        knobLongHandled = true
+        (current as? app.toque.ui.screens.ProgramsScreen)?.onKnobLongPress()
+    }
     private lateinit var timerAlarm: TimerAlarm
     private var unsubscribeTimers: (() -> Unit)? = null
     private var activityStopped = false
@@ -484,7 +490,13 @@ class MainActivity : Activity() {
         if (prefs.vendorSession) endVendorSession()
     }
 
+    override fun onPause() {
+        main.removeCallbacks(knobLongPressRunnable)
+        super.onPause()
+    }
+
     override fun onStop() {
+        main.removeCallbacks(knobLongPressRunnable)
         unsubscribeTimers?.invoke()
         unsubscribeTimers = null
         Timers.of(this).onRing = null
@@ -576,6 +588,8 @@ class MainActivity : Activity() {
     }
 
     private fun show(s: Screen) {
+        lastKnobPressTime = 0L
+        main.removeCallbacks(knobLongPressRunnable)
         content.removeAllViews()
         val v = s.view
         (v.parent as? FrameLayout)?.removeView(v)
@@ -638,11 +652,33 @@ class MainActivity : Activity() {
                 return true
             }
         }
-        if (!isBack && event.action == KeyEvent.ACTION_DOWN && !overlayShown) {
+        if (!isBack && !overlayShown) {
             val k = knobKind(event.keyCode)
-            if (k != 0 && !prefs.knobSetupDone) prefs.knobSetupDone = true
+            if (k != 0 && event.action == KeyEvent.ACTION_DOWN && !prefs.knobSetupDone) prefs.knobSetupDone = true
             val s = current
-            if (k != 0 && s != null && currentFocus !is EditText) {
+            // Programmes (#105) : appui long = retour, double appui ; l'appui simple part au relâchement.
+            if (k == PRESS && s is app.toque.ui.screens.ProgramsScreen && currentFocus !is EditText) {
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    if (event.repeatCount == 0) {
+                        knobLongHandled = false
+                        main.postDelayed(knobLongPressRunnable, 500L)
+                    }
+                    return true
+                } else if (event.action == KeyEvent.ACTION_UP) {
+                    main.removeCallbacks(knobLongPressRunnable)
+                    if (!knobLongHandled) {
+                        val now = android.os.SystemClock.uptimeMillis()
+                        if (now - lastKnobPressTime < 350L && s.onKnobDoubleClick()) {
+                            lastKnobPressTime = 0L
+                        } else {
+                            lastKnobPressTime = now
+                            s.onKnobPress()
+                        }
+                    }
+                    return true
+                }
+            }
+            if (k != 0 && event.action == KeyEvent.ACTION_DOWN && s != null && currentFocus !is EditText) {
                 if (k == PRESS && s.onKnobPress()) return true
                 if (k != PRESS && s.onKnob(k)) return true
             }
