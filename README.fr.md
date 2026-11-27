@@ -211,7 +211,7 @@ essayés : dites-nous). Merci à @julienperrault et @flexbox.
   l'heure, et la température du bol quand il est chaud. Jamais pendant un programme ni sur la
   balance. Le geste qui réveille ne fait rien d'autre. Pendant la veille, l'anneau de la molette
   reste normal, passe en veilleuse blanche très faible ou s'éteint (Réglages › Molette et sons).
-- **Capteur du bol inversé** : sur certains robots (vu sur un SKMC 1200 C3), la base signale le bol
+- **Capteur du bol inversé** : sur certains robots (vu sur un SKMC 1200 C3 et un SKMC 1100 A1), la base signale le bol
   présent quand il est retiré ; Réglages › Sécurité › Inverser le capteur du bol corrige cela.
 - **Pensé pour un robot sans boutons Android** : Toque s'ouvre au démarrage, et un bouton
   **« Retour à Toque »** reste affiché par-dessus l'appli d'origine quand on l'ouvre.

@@ -201,7 +201,7 @@ SKMC 1100 A1 not tested yet: please report). Thanks to @julienperrault and @flex
   bowl temperature when it is hot. Never during a program or on the scale. The gesture that wakes
   the screen does nothing else. During standby, the knob ring stays normal, dims to a faint white
   night-light, or turns off (*Settings › Knob and sounds*).
-- **Bowl sensor that reads the wrong way round**: on some robots (seen on an SKMC 1200 C3) the
+- **Bowl sensor that reads the wrong way round**: on some robots (seen on an SKMC 1200 C3 and an SKMC 1100 A1) the
   base reports the bowl as present when it is removed; *Settings › Safety › Invert the bowl
   sensor* fixes it.
 - **Made for a robot without Android buttons**: Toque opens at startup, and a **Back to Toque**

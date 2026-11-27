@@ -140,7 +140,9 @@ disconnect the USB cable and perform all subsequent steps and updates over Wi-Fi
 3. Empty bowl, lid closed, **hand near the main switch**:
    - Manual cooking: 10 s, speed 2 → the motor runs, then stops on its own.
    - Open the lid during a run → immediate stop, "Paused: lid open".
-   - 30 s at 37 °C, speed 1 → the displayed temperature rises.
+   - 30 s at 37 °C, speed 1 → the heater starts (Diagnostics: target 37 °C). Some bases report the
+     bowl temperature in steps (0 below 37 °C, then 37, 45, 50…, shown as "< 37 °C" at first): on
+     those, the displayed value only changes once the bowl reaches 37 °C.
    - Scale: put an object of known weight on it, Tare.
    - Diagnostics: remove the bowl and watch "Bowl detected". If it changes correctly, you can
      enable Settings › Safety › Require bowl detection.

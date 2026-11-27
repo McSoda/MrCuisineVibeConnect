@@ -337,6 +337,7 @@ Undo: Toque › Settings › Advanced › *Back to the stock app* (it re-enables
 | `prepare`: SP Flash Tool checksum mismatch, file sizes right | The RAR was extracted without its password: some tools write garbage of the right size | Extract again with the password `spflashtool.com` and check that no error is reported |
 | Magisk app: *Requires additional setup*, then *reinstall Magisk… recovery mode cannot get device info* | Magisk app's own check, harmless here | Accept a reboot if offered; **never** use *Direct install* (it rewrites `boot`). Back out of the install screen |
 | Toque says "bowl not detected" with the bowl in place, and "detected" without it | The bowl sensor is reversed on many robots (B2, C3, SKMC 1100) | Settings › Safety › **Invert the bowl sensor**; check *Settings › Advanced › Motor base diagnostics*, then enable *Require bowl detection* |
+| The temperature shows "< 37 °C" (or 0 °C on older versions) at rest | The base reports the measured temperature in steps (0, 37, 45, 50… °C) and sends 0 below 37 °C (SKMC 1100 A1, firmware 4924) | Normal. Heating works: a 60 °C setting showed 37 → 45 → 50 → 60 °C |
 | The rotary knob does nothing | Knob keys not set up | Tap the *Rotary knob not set up* pill on Home and follow the 3 steps |
 | Scale shows "overload · 0 g" right after the install | The robot was resting on the cable or the open cover | Put the robot flat on its feet with nothing under it, screw the cover back, restart it |
 
