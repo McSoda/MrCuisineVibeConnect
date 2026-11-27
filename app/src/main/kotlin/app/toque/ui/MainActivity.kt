@@ -520,7 +520,11 @@ class MainActivity : Activity() {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) immersive()
+        if (hasFocus) {
+            immersive()
+            // Smart : la rotation du système reste sur le paysage de Toque (#59). Rien sur le Connect.
+            RotationLock.apply(this, prefs) { m -> app.log.write("écran", m) }
+        }
     }
 
     @Suppress("DEPRECATION")
