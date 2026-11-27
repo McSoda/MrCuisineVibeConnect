@@ -19,6 +19,7 @@ import app.toque.core.recipes.RecipeSource
 import app.toque.core.recipes.Step
 import app.toque.core.ring.Rgb
 import app.toque.core.ring.RingLook
+import app.toque.core.robot.Feature
 import app.toque.core.robot.RobotProfiles
 import app.toque.machine.MachineService
 import app.toque.ui.KnobLight
@@ -568,6 +569,62 @@ class KnobLightAndSettingsTest {
             assertTrue("« Démarrer » du nettoyage est à l'écran", clean.getGlobalVisibleRect(seen))
             assertEquals("« Démarrer » du nettoyage se voit en entier", clean.height, seen.height())
         } finally {
+            app.prefs.robotId = RobotProfiles.MC_CONNECT.id
+            RobotProfiles.active = RobotProfiles.MC_CONNECT
+        }
+    }
+
+    /** #130, partie « masquer » : Réglages › Cuisson et balance cache des programmes, jamais tous. */
+    @Test fun hiddenProgramsLeaveTheProgramsScreen() {
+        val app = start()
+        fun shownTexts() = texts(activity.window.decorView).filter { shown(it) }.map { it.text.toString() }
+        try {
+            app.prefs.robotId = RobotProfiles.MC_CONNECT.id
+            RobotProfiles.active = RobotProfiles.MC_CONNECT
+            app.prefs.hiddenPrograms = emptySet()
+            val settings = SettingsScreen(activity)
+            activity.push(settings)
+            idle(3)
+            click(settings.view, "Cuisson et balance")
+            assertTrue(onScreen(settings.pane, "Programmes affichés sur l'écran Programmes :"))
+            click(settings.pane, "Vapeur")
+            assertEquals(setOf("STEAM"), app.prefs.hiddenPrograms)
+
+            activity.push(ProgramsScreen(activity))
+            idle(3)
+            assertFalse("« Vapeur » masqué", "Vapeur" in shownTexts())
+            assertTrue("« Rissoler » reste", "Rissoler" in shownTexts())
+            activity.home()
+            idle(2)
+
+            // Le dernier programme affiché ne se masque pas : l'interrupteur revient et rien n'est enregistré.
+            val others = ProgramsScreen.features().filter { it != Feature.TOAST }.map { it.name }.toSet()
+            app.prefs.hiddenPrograms = others
+            val again = SettingsScreen(activity)
+            activity.push(again)
+            idle(3)
+            click(again.view, "Cuisson et balance")
+            click(again.pane, "Rissoler")
+            idle(3)
+            assertEquals(others, app.prefs.hiddenPrograms)
+            activity.home()
+            idle(2)
+
+            // Tout masqué (réglage d'une version future, par exemple) : l'écran montre tout plutôt que rien.
+            app.prefs.hiddenPrograms = ProgramsScreen.features().map { it.name }.toSet()
+            activity.push(ProgramsScreen(activity))
+            idle(3)
+            assertTrue("Vapeur" in shownTexts() && "Rissoler" in shownTexts())
+            activity.home()
+            idle(2)
+
+            // Ouvert pour le nettoyage (fin de recette) : sa carte est là même masquée.
+            app.prefs.hiddenPrograms = setOf("CLEANING")
+            activity.push(ProgramsScreen(activity, openOnCleaning = true))
+            idle(3)
+            assertTrue("Nettoyage" in shownTexts())
+        } finally {
+            app.prefs.hiddenPrograms = emptySet()
             app.prefs.robotId = RobotProfiles.MC_CONNECT.id
             RobotProfiles.active = RobotProfiles.MC_CONNECT
         }

@@ -1036,5 +1036,7 @@
   "lecture seule": "read-only",
   "Lecture seule": "Read-only",
   "Rendre les commandes": "Give controls back",
-  "Ce téléphone est en lecture seule : les commandes se font sur le robot": "This phone is read-only: controls are on the robot"
+  "Ce téléphone est en lecture seule : les commandes se font sur le robot": "This phone is read-only: controls are on the robot",
+  "Programmes affichés sur l'écran Programmes :": "Programs shown on the Programs screen:",
+  "Gardez au moins un programme affiché": "Keep at least one program shown"
 }

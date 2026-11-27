@@ -1036,5 +1036,7 @@
   "lecture seule": "solo lectura",
   "Lecture seule": "Solo lectura",
   "Rendre les commandes": "Devolver el control",
-  "Ce téléphone est en lecture seule : les commandes se font sur le robot": "Este teléfono es de solo lectura: el control se hace en el robot"
+  "Ce téléphone est en lecture seule : les commandes se font sur le robot": "Este teléfono es de solo lectura: el control se hace en el robot",
+  "Programmes affichés sur l'écran Programmes :": "Programas que se muestran en la pantalla Programas:",
+  "Gardez au moins un programme affiché": "Deja al menos un programa visible"
 }

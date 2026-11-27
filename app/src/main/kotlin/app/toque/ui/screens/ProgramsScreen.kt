@@ -79,13 +79,28 @@ class ProgramsScreen(a: MainActivity, openOnCleaning: Boolean = false) : Screen(
             Programs.smartNettoyageLong(Feature.LONG_CLEAN.label)
         },
     )
-    private val progs = all.filter { RobotProfiles.active.capabilities.has(it.feature) }
+    private val progs = all.filter { RobotProfiles.active.capabilities.has(it.feature) }.let { shown ->
+        // Réglages › Cuisson › Programmes affichés (#130) ; le nettoyage reste là quand on l'ouvre pour lui.
+        val hidden = a.prefs.hiddenPrograms
+        shown.filter { it.feature.name !in hidden || (openOnCleaning && it.feature == Feature.CLEANING) }.ifEmpty { shown }
+    }
     private val cleaning = progs.indexOfFirst { it.feature == Feature.CLEANING }
     private var selected = if (openOnCleaning && cleaning >= 0) cleaning else 0
     private var focusedIndex = selected
     private var editing = false
     private var lastStartMs = 0L
     private lateinit var turbo: HoldButton
+
+    companion object {
+        /** Programmes de l'écran, dans son ordre, pour le robot choisi (Réglages › Cuisson). */
+        private val ORDER = listOf(
+            Feature.KNEAD, Feature.STEAM, Feature.TOAST, Feature.YOGURT, Feature.CLEANING, Feature.MIXER,
+            Feature.SMOOTHIE, Feature.EGGS, Feature.SOUS_VIDE, Feature.SLOW_COOK, Feature.FERMENT, Feature.RICE,
+            Feature.KETTLE, Feature.PREWASH, Feature.LONG_CLEAN,
+        )
+
+        fun features(): List<Feature> = ORDER.filter { RobotProfiles.active.capabilities.has(it) }
+    }
 
     override fun build(): View {
         val root = Ui.vertical(c)

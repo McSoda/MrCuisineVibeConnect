@@ -1036,5 +1036,7 @@
   "lecture seule": "лише перегляд",
   "Lecture seule": "Лише перегляд",
   "Rendre les commandes": "Повернути керування",
-  "Ce téléphone est en lecture seule : les commandes se font sur le robot": "Цей телефон лише для перегляду: керування — на роботі"
+  "Ce téléphone est en lecture seule : les commandes se font sur le robot": "Цей телефон лише для перегляду: керування — на роботі",
+  "Programmes affichés sur l'écran Programmes :": "Програми, показані на екрані «Програми»:",
+  "Gardez au moins un programme affiché": "Залиште показаною хоча б одну програму"
 }

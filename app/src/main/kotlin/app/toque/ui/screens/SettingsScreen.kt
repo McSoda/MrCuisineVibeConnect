@@ -520,6 +520,26 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         bowl.addView(bowlState, LinearLayout.LayoutParams(0, Ui.WRAP, 1f))
         bowl.addView(button, Ui.lp(Ui.WRAP, Ui.WRAP, l = 16))
         p.addView(bowl, Ui.lp(t = 2, b = 8))
+
+        // Programmes affichés (#130, partie « masquer ») : au moins un reste visible.
+        group(p, tr("Programmes"))
+        p.addView(hint(tr("Programmes affichés sur l'écran Programmes :")), Ui.lp(t = 4, b = 4))
+        val features = ProgramsScreen.features()
+        val switches = ArrayList<LinearLayout>()
+        for (f in features) {
+            switches += toggle(f.label, f.name !in a.prefs.hiddenPrograms) { on ->
+                val hidden = a.prefs.hiddenPrograms.toMutableSet()
+                if (on) hidden.remove(f.name) else hidden.add(f.name)
+                if (features.all { it.name in hidden }) {
+                    a.toast(tr("Gardez au moins un programme affiché"), Ui.WARN)
+                    // Remet l'interrupteur sur « affiché » (son clic le rallume et enregistre l'état d'avant).
+                    switches[features.indexOf(f)].let { row -> row.post { row.performClick() } }
+                } else {
+                    a.prefs.hiddenPrograms = hidden
+                }
+            }
+            p.addView(switches.last(), Ui.lp(t = 6))
+        }
     }
 
     private fun safetyPage(p: LinearLayout) {

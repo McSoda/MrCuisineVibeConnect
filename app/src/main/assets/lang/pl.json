@@ -1036,5 +1036,7 @@
   "lecture seule": "tylko odczyt",
   "Lecture seule": "Tylko odczyt",
   "Rendre les commandes": "Przywróć sterowanie",
-  "Ce téléphone est en lecture seule : les commandes se font sur le robot": "Ten telefon jest tylko do odczytu: sterowanie odbywa się na robocie"
+  "Ce téléphone est en lecture seule : les commandes se font sur le robot": "Ten telefon jest tylko do odczytu: sterowanie odbywa się na robocie",
+  "Programmes affichés sur l'écran Programmes :": "Programy widoczne na ekranie Programy:",
+  "Gardez au moins un programme affiché": "Zostaw widoczny co najmniej jeden program"
 }

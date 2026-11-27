@@ -119,6 +119,8 @@ class Prefs(context: Context) {
     var autoTareSteps: Boolean by boolPref("autoTareSteps", true)
     /** Recettes : enchaîner sans appui les étapes machine qui se suivent sans geste à faire. */
     var chainSteps: Boolean by boolPref("chainSteps", true)
+    /** Programmes masqués de l'écran Programmes (noms de [app.toque.core.robot.Feature]), d'après #130. */
+    var hiddenPrograms: Set<String> by stringSetPref("hiddenPrograms")
     var sound: Boolean by boolPref("sound", true)
     /** Mise en veille de l'écran après ce nombre de minutes sans geste (0 : jamais). */
     var standbyMinutes: Int by intPref("standbyMinutes", 10)
