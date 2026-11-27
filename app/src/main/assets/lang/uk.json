@@ -991,5 +991,8 @@
   "%d retirée(s)": "прибрано: %d",
   "%d illisible(s)": "нечитабельних: %d",
   "Déjà à jour": "Уже актуально",
-  "Autres": "Інше"
+  "Autres": "Інше",
+  "Magisk est introuvable sur ce robot : désinstallé, ou masqué sous un autre nom.": "Magisk не знайдено на цьому комбайні: видалено або приховано під іншою назвою.",
+  "Ouvrir Magisk ?": "Відкрити Magisk?",
+  "Magisk donne à Toque l'accès root dont il a besoin. Vous pouvez y régler ses notifications. N'y lancez jamais « Installation directe » et refusez toute réinstallation proposée : elle réécrit le démarrage du robot.": "Magisk надає Toque потрібний root-доступ. Там можна налаштувати його сповіщення. Ніколи не запускайте там «Пряме встановлення» і відхиляйте будь-яке запропоноване перевстановлення: воно переписує завантаження комбайна."
 }
