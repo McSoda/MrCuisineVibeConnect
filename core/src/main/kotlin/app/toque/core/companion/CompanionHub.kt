@@ -116,6 +116,9 @@ class CompanionHub(
     private var session: CookSession? = null
     private var sessionActivity: Journal.Activity? = null
     private var sessionStartedAt = 0L
+    /** Recette guidée quittée sans être finie ni arrêtée : « Reprendre » sur l'accueil du robot (`suspendedSession`). */
+    private var suspended: CookSession? = null
+    private var suspendedStartedAt = 0L
     private var waitingKey = ""
 
     private var waiting: WaitingRecipe? = null
@@ -207,6 +210,18 @@ class CompanionHub(
         return after
     }
 
+    /**
+     * Met le téléphone [id] en lecture seule ([on]) ou lui rend ses commandes ([PairingManager.setReadOnly]).
+     * Ses « can » changent tout de suite (nouvelle révision). Le téléphone, ou null s'il n'est plus appairé.
+     */
+    fun setPhoneReadOnly(id: String, on: Boolean): Phone? {
+        val before = pairing.list.firstOrNull { it.id == id } ?: return null
+        if (!pairing.setReadOnly(id, on)) return null
+        val after = pairing.list.firstOrNull { it.id == id } ?: return null
+        if (after.readOnly != before.readOnly) synchronized(lock) { bumpLocked() }
+        return after
+    }
+
     private fun fireWaiting() {
         val copy = synchronized(lock) { ArrayList(waitingListeners) }
         for (l in copy) try {
@@ -288,7 +303,9 @@ class CompanionHub(
         val now = clock.wallMs()
         val old = session
         if (old == null || old.recipeId != s.recipeId) {
-            if (old != null) endSessionLocked(false)
+            if (old != null) endSessionLocked(false, resumable = false)
+            // Reprise de la recette quittée, ou une autre recette : celle qui attendait n'attend plus.
+            suspended = null
             sessionStartedAt = now
             val a = journal.start(now, "recipe", s.title, s.recipeId, s.steps.size, s.steps.count { it.step.machine == null })
             sessionActivity = a
@@ -306,15 +323,38 @@ class CompanionHub(
         bumpLocked()
     }
 
-    /** La recette guidée est quittée : [completed] si elle a été menée au bout (« Bon appétit »). */
-    fun endSession(completed: Boolean) = synchronized(lock) {
+    /**
+     * La recette guidée est quittée : [completed] si elle a été menée au bout (« Bon appétit »). [resumable] :
+     * elle reste proposée sur l'accueil du robot (« Reprendre ») ; les téléphones la voient alors en
+     * `suspendedSession` jusqu'à sa reprise, son abandon ([clearSuspended]) ou une autre recette.
+     */
+    fun endSession(completed: Boolean, resumable: Boolean = false) = synchronized(lock) {
         if (session != null) {
-            endSessionLocked(completed)
+            endSessionLocked(completed, resumable)
             bumpLocked()
         }
     }
 
-    private fun endSessionLocked(completed: Boolean) {
+    /**
+     * Après un redémarrage de Toque : la recette que l'accueil propose de reprendre, à l'étape où elle en
+     * était. Rien si une recette est déjà suivie.
+     */
+    fun suspendSession(s: CookSession) = synchronized(lock) {
+        if (session != null) return@synchronized
+        suspended = s
+        suspendedStartedAt = 0L
+        bumpLocked()
+    }
+
+    /** La recette à reprendre ne l'est plus (abandonnée sur l'accueil du robot). */
+    fun clearSuspended() = synchronized(lock) {
+        if (suspended != null) {
+            suspended = null
+            bumpLocked()
+        }
+    }
+
+    private fun endSessionLocked(completed: Boolean, resumable: Boolean) {
         val now = clock.wallMs()
         val a = sessionActivity
         // Arrêtée par un téléphone (POST /api/session/stop) juste avant : à lui.
@@ -327,6 +367,10 @@ class CompanionHub(
                 else -> journal.add(now, "recipe_abandoned", tr("Recette quittée sur le robot"), activityId = a.id)
             }
         }
+        // Quittée sur le robot (ni finie, ni arrêtée par un téléphone) : elle attend sa reprise.
+        val keep = session?.takeIf { resumable && !completed && by == null }
+        suspended = keep
+        suspendedStartedAt = if (keep != null) sessionStartedAt else 0L
         session = null
         sessionActivity = null
         waitingKey = ""
@@ -1191,6 +1235,23 @@ class CompanionHub(
      * La base mesure la température en ce moment : toujours sur le Connect ; sur le Smart, seulement en
      * chauffant ou pendant une cuisson chauffée (sa base ne mesure qu'après une chauffe).
      */
+    private fun sessionWire(c: CookSession, startedAt: Long) =
+        SessionWire(c.recipeId, c.title, c.servings, c.steps.size, c.current, c.done.sorted(), c.running,
+            c.waitingFor.key, startedAt, c.steps.mapIndexed { i, st -> Wires.step(i, st.step, st.weighedG, st.hotBlendOnRobot) })
+
+    /** `machine.weightValid` : une vraie pesée (base prête, balance normale, moteur et Turbo arrêtés). */
+    private fun weightValid(s: Snapshot): Boolean = s.hasSample && s.link == LinkState.READY && s.scaleState == "normal" &&
+        !s.motorOn && !s.turboActive && RobotProfiles.active.capabilities.scale
+
+    /** `machine.heating` : Toque fait chauffer la base (le programme en cours a une température). */
+    private fun heating(s: Snapshot): Boolean = s.jobActive && s.state == JobState.RUNNING && s.jobTempC > 0 && !s.hasFault
+
+    /** Ce que peut un téléphone en lecture seule : rien commander (il peut seulement se renommer). */
+    private fun readOnlyPermissions(): Permissions {
+        val no = Permission.no("read_only", tr("Ce téléphone est en lecture seule : les commandes se font sur le robot"))
+        return Permissions(no, no, no, no, no, no, no, no, no, no, no, no, no, Permission.YES, no)
+    }
+
     private fun tempKnown(s: Snapshot): Boolean =
         RobotProfiles.active.capabilities.measuresTemperature || s.heaterOn || (s.jobActive && s.jobTempLevel > 0)
 
@@ -1214,7 +1275,7 @@ class CompanionHub(
         val wall = clock.wallMs()
         val machine = MachineWire(s.link.name, s.link.label, s.ready, s.faultCode, s.faultMessage, s.hasSample,
             s.actualTempC, s.targetTempC, s.hot, s.weightG, s.scaleStable, s.lidOpen, s.bowlDetected, s.bowlRemoved,
-            s.motorOn, s.heaterOn, s.turboActive, tempKnown(s))
+            s.motorOn, s.heaterOn, s.turboActive, tempKnown(s), weightValid(s), heating(s))
         val job = if (!s.jobActive) null else {
             val pause = if (s.state != JobState.PAUSED) null else {
                 val autoAt = if (pauseSinceWall > 0) pauseSinceWall + pauseMaxMs else 0L
@@ -1227,16 +1288,15 @@ class CompanionHub(
                 s.remainingMs, s.jobSpeed, s.jobTempLevel, s.jobTempC, s.jobReverse, s.accessory,
                 s.hotBlendConfirmed, jobStartedAt, s.waitingStop, pause)
         }
-        val sess = session?.let { c ->
-            SessionWire(c.recipeId, c.title, c.servings, c.steps.size, c.current, c.done.sorted(), c.running,
-                c.waitingFor.key, sessionStartedAt, c.steps.mapIndexed { i, st -> Wires.step(i, st.step, st.weighedG, st.hotBlendOnRobot) })
-        }
+        val sess = session?.let { sessionWire(it, sessionStartedAt) }
+        val left = if (session == null) suspended?.let { sessionWire(it, suspendedStartedAt) } else null
         val wait = waiting?.let { w ->
             WaitingWire(w.recipeId, w.title, w.stepCount, w.totalMinutes, w.servings, w.category, w.user, w.hasImage,
                 w.sentAt, w.sender.wire(phone.id))
         }
-        StateWire(COMPANION_PROTOCOL, revision, wall, robotWire(), PhoneWire.of(phone), machine, job, permissionsLocked(), sess, wait, journal.lastEnded()?.wire(phone.id),
-            journal.lastSeq, limitsFor(RobotProfiles.active))
+        val can = if (phone.readOnly) readOnlyPermissions() else permissionsLocked()
+        StateWire(COMPANION_PROTOCOL, revision, wall, robotWire(), PhoneWire.of(phone), machine, job, can, sess, wait, journal.lastEnded()?.wire(phone.id),
+            journal.lastSeq, limitsFor(RobotProfiles.active), left)
     }
 
     internal fun hostRef(): CompanionHost = host

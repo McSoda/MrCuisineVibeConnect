@@ -154,17 +154,20 @@ data class PhoneWire(
      * celui-ci sert à préremplir le champ « Renommer » du téléphone.
      */
     val label: String = "",
+    /** Ce téléphone est en lecture seule (voir [Phone.readOnly]) : écrit seulement quand il l'est. */
+    val readOnly: Boolean = false,
 ) {
-    /** [label] n'est écrit que s'il existe : un téléphone sans nom garde exactement son JSON d'avant. */
+    /** [label] et [readOnly] ne sont écrits que s'ils existent : un téléphone sans nom garde exactement son JSON d'avant. */
     fun toMap(): Map<String, Any?> = linkedMapOf<String, Any?>("id" to id, "number" to number, "name" to name,
         "pairedAt" to pairedAt, "lastSeenAt" to lastSeenAt, "method" to method).apply {
         if (label.isNotEmpty()) put("label", label)
+        if (readOnly) put("readOnly", true)
     }
 
     companion object {
-        fun of(p: Phone) = PhoneWire(p.id, p.number, p.name, p.pairedAt, p.lastSeenAt, p.method, p.label)
+        fun of(p: Phone) = PhoneWire(p.id, p.number, p.name, p.pairedAt, p.lastSeenAt, p.method, p.label, p.readOnly)
         fun fromMap(m: Map<String, Any?>) = PhoneWire(W.s(m, "id"), W.i(m, "number"), W.s(m, "name"),
-            W.l(m, "pairedAt"), W.l(m, "lastSeenAt"), W.s(m, "method"), W.s(m, "label"))
+            W.l(m, "pairedAt"), W.l(m, "lastSeenAt"), W.s(m, "method"), W.s(m, "label"), m["readOnly"] == true)
     }
 }
 
@@ -239,6 +242,17 @@ data class MachineWire(
      * sur le Connect. À lire avec [hasSample]. Écrit seulement quand il est faux : absent = vrai.
      */
     val tempKnown: Boolean = true,
+    /**
+     * [weightG] est une vraie pesée : base prête, balance en état normal, moteur et Turbo arrêtés (lame en
+     * marche, la base du Connect envoie 0). Écrit seulement quand il est faux : absent = vrai (ou robot plus ancien).
+     */
+    val weightValid: Boolean = true,
+    /**
+     * Toque demande à la base de chauffer en ce moment (le programme en cours a une température). À préférer
+     * à [heaterOn], que la base dit aussi pendant des programmes qui ne chauffent pas. Toujours écrit
+     * (absent : robot plus ancien, se fier à [heaterOn]).
+     */
+    val heating: Boolean = false,
 ) {
     fun toMap(): Map<String, Any?> = linkedMapOf<String, Any?>("link" to link, "linkLabel" to linkLabel, "ready" to ready,
         "faultCode" to faultCode, "faultMessage" to faultMessage, "hasSample" to hasSample, "tempC" to tempC,
@@ -246,6 +260,8 @@ data class MachineWire(
         "lidOpen" to lidOpen, "bowlDetected" to bowlDetected, "bowlRemoved" to bowlRemoved,
         "motorOn" to motorOn, "heaterOn" to heaterOn, "turbo" to turbo).apply {
         if (!tempKnown) put("tempKnown", false)
+        if (!weightValid) put("weightValid", false)
+        put("heating", heating)
     }
 
     companion object {
@@ -253,7 +269,7 @@ data class MachineWire(
             W.b(m, "ready"), W.s(m, "faultCode"), W.s(m, "faultMessage"), W.b(m, "hasSample"), W.i(m, "tempC"),
             W.i(m, "targetTempC"), W.b(m, "hot"), W.i(m, "weightG"), W.b(m, "scaleStable"), W.b(m, "lidOpen"),
             W.b(m, "bowlDetected"), W.b(m, "bowlRemoved"), W.b(m, "motorOn"), W.b(m, "heaterOn"), W.b(m, "turbo"),
-            m["tempKnown"] as? Boolean ?: true)
+            m["tempKnown"] as? Boolean ?: true, m["weightValid"] as? Boolean ?: true, W.b(m, "heating"))
     }
 }
 
@@ -670,11 +686,19 @@ data class StateWire(
     /** Numéro de la dernière ligne du journal (voir GET /api/journal?after=). */
     val journalSeq: Long = 0,
     val limits: LimitsWire = LimitsWire(),
+    /**
+     * Recette guidée quittée sur le robot sans être finie ni arrêtée (« Reprendre » sur son accueil), même
+     * forme que [session] ; aussi après un redémarrage de Toque. null quand il n'y en a pas, et pendant
+     * une session (elle la remplace). Écrit seulement quand elle existe.
+     */
+    val suspendedSession: SessionWire? = null,
 ) {
-    fun toMap(): Map<String, Any?> = linkedMapOf("protocol" to protocol, "revision" to revision,
+    fun toMap(): Map<String, Any?> = linkedMapOf<String, Any?>("protocol" to protocol, "revision" to revision,
         "serverTime" to serverTime, "robot" to robot.toMap(), "me" to me.toMap(), "machine" to machine.toMap(),
         "job" to job?.toMap(), "can" to can.toMap(), "session" to session?.toMap(), "waiting" to waiting?.toMap(),
-        "last" to last?.toMap(), "journalSeq" to journalSeq, "limits" to limits.toMap())
+        "last" to last?.toMap(), "journalSeq" to journalSeq, "limits" to limits.toMap()).apply {
+        if (suspendedSession != null) put("suspendedSession", suspendedSession.toMap())
+    }
 
     companion object {
         fun fromMap(m: Map<String, Any?>) = StateWire(W.i(m, "protocol"), W.l(m, "revision"), W.l(m, "serverTime"),
@@ -682,7 +706,8 @@ data class StateWire(
             MachineWire.fromMap(W.o(m, "machine") ?: emptyMap()), W.o(m, "job")?.let { JobWire.fromMap(it) },
             Permissions.fromMap(W.o(m, "can") ?: emptyMap()), W.o(m, "session")?.let { SessionWire.fromMap(it) },
             W.o(m, "waiting")?.let { WaitingWire.fromMap(it) }, W.o(m, "last")?.let { ActivityWire.fromMap(it) },
-            W.l(m, "journalSeq"), LimitsWire.fromMap(W.o(m, "limits") ?: emptyMap()))
+            W.l(m, "journalSeq"), LimitsWire.fromMap(W.o(m, "limits") ?: emptyMap()),
+            W.o(m, "suspendedSession")?.let { SessionWire.fromMap(it) })
     }
 }
 

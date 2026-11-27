@@ -1032,5 +1032,9 @@
   "Soutenir Toque": "Donar suport a Toque",
   "Toque est gratuit et sans publicité. Si l'appli vous rend service, vous pouvez soutenir son développement en offrant un café : scannez le code avec l'appareil photo de votre téléphone.": "Toque és gratuït i sense publicitat. Si l'aplicació et fa servei, pots donar suport al seu desenvolupament convidant a un cafè: escaneja el codi amb la càmera del mòbil.",
   "Offrir un café": "Convidar a un cafè",
-  "Merci pour votre soutien !": "Gràcies pel teu suport!"
+  "Merci pour votre soutien !": "Gràcies pel teu suport!",
+  "lecture seule": "només lectura",
+  "Lecture seule": "Només lectura",
+  "Rendre les commandes": "Retornar el control",
+  "Ce téléphone est en lecture seule : les commandes se font sur le robot": "Aquest telèfon és de només lectura: el control es fa al robot"
 }

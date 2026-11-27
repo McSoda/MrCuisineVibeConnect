@@ -47,6 +47,11 @@ data class Phone(
     val method: String,
     /** Nom donné sur le robot ([PairingManager.rename]) ; vide : « Téléphone N ». */
     val label: String = "",
+    /**
+     * Lecture seule ([PairingManager.setReadOnly]) : il lit l'état, le journal et les recettes, mais ne
+     * commande rien (ni pause, ni arrêt, ni tare, ni recette envoyée). Pour un écran mural ou la domotique.
+     */
+    val readOnly: Boolean = false,
 ) {
     val name: String get() = label.ifEmpty { tr("Téléphone %d", number) }
 }
@@ -178,6 +183,26 @@ class PairingManager(
             if (phones[i].label == clean) false
             else {
                 phones[i] = phones[i].copy(label = clean)
+                saveLocked()
+                true
+            }
+        }
+        if (changed) fire(phoneListeners)
+        return true
+    }
+
+    /**
+     * Met le téléphone [id] en lecture seule ([on]) ou lui rend ses commandes. Le robot fait les deux
+     * (Réglages › Téléphone) ; un téléphone peut seulement se mettre lui-même en lecture seule
+     * (POST /api/phones/me/read-only), jamais en sortir. false si ce téléphone n'est pas appairé.
+     */
+    fun setReadOnly(id: String, on: Boolean): Boolean {
+        val changed = synchronized(lock) {
+            val i = phones.indexOfFirst { it.id == id }
+            if (i < 0) return false
+            if (phones[i].readOnly == on) false
+            else {
+                phones[i] = phones[i].copy(readOnly = on)
                 saveLocked()
                 true
             }
@@ -354,7 +379,8 @@ class PairingManager(
                 if (hash.length != 64) continue
                 val number = (m["number"] as? Number)?.toInt() ?: continue
                 phones += Phone(id, number, hash, (m["pairedAt"] as? Number)?.toLong() ?: 0L,
-                    (m["lastSeenAt"] as? Number)?.toLong() ?: 0L, m.str("method") ?: "code", cleanLabel(m.str("label").orEmpty()))
+                    (m["lastSeenAt"] as? Number)?.toLong() ?: 0L, m.str("method") ?: "code", cleanLabel(m.str("label").orEmpty()),
+                    m["readOnly"] == true)
             }
         } catch (t: Throwable) {
             log("liste des téléphones illisible : $t")
@@ -366,8 +392,9 @@ class PairingManager(
             "version" to 1,
             "robotId" to robotId,
             "phones" to phones.map {
-                linkedMapOf("id" to it.id, "number" to it.number, "tokenHash" to it.tokenHash,
+                linkedMapOf<String, Any?>("id" to it.id, "number" to it.number, "tokenHash" to it.tokenHash,
                     "pairedAt" to it.pairedAt, "lastSeenAt" to it.lastSeenAt, "method" to it.method, "label" to it.label)
+                    .apply { if (it.readOnly) put("readOnly", true) }
             },
         )
         try {

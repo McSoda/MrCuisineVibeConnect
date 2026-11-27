@@ -884,6 +884,19 @@ for itself (`state.can.renamePhone`, always allowed by a robot that has this rou
 this route has no `can.renamePhone` and answers `405 method_not_allowed`: the phone offers no
 « Renommer »; an older phone ignores the flag and the `label` field.
 
+### POST /api/phones/me/read-only
+
+Puts this phone in **read-only** (Toque 0.12.0 or later), for a wall screen or a home-automation
+client that should never command anything: body `{}` (or none), reply `200` with this phone's
+`PhoneWire` (`"readOnly":true`). One way only: a phone cannot leave read-only itself; the owner gives
+the controls back on the robot (*Settings › Phone*, « Rendre les commandes »), and can also put any
+phone in read-only there. A read-only phone reads everything (`GET` routes, the long poll, the
+journal, recipes, images) and keeps what concerns itself only (`POST /api/phones/me`,
+`POST /api/phones/me/read-only`, `DELETE /api/phones/me`). Every other `POST` or `DELETE` is answered
+`403 read_only`, whatever `can` says; in `state.can` every action but `renamePhone` reads
+`{"allowed":false,"code":"read_only",…}`. `state.me.readOnly` is written only when true. An older robot
+answers `405 method_not_allowed` and has no `readOnly`.
+
 ### DELETE /api/phones/me
 
 Removes this phone from the robot. Reply `{"ok":true,"revision":…}`; the token is dead afterwards.
@@ -932,11 +945,12 @@ differ, so compute countdowns from the moment the response arrived, not from `se
 | `revision` | grows on every visible change; pass it back as `since` |
 | `serverTime` | robot wall clock at the response |
 | `robot` | `id` (stable random id, 12 hex), `name`, `appVersion`, `language` (UI language code), `protocol`, and its look so that the phone can match it: `accent` (the colour chosen in Settings › Screen, `#RRGGBB` in upper case) and `theme` (`dark` or `light`). Both are absent on a robot that does not know them (before 0.8.0): the phone then keeps its own colour and theme. A change of colour or theme on the robot moves `revision` like any visible change. `anyAccent`: `true` when `POST /api/robot/appearance` takes any colour of the colour wheel (any colour its guard accepts), not only the ten; written only when true, so absent on an older robot (read as false: offer it only the ten) and an older phone ignores it. `accent` may then be a wheel colour: a phone shows it as is. `model`: the robot model, the id of its profile (`mc-connect` or `mc-smart`); written only when known, so absent on an older robot (the phone then infers it from `limits`: `heatNoStir` false is the Smart) |
-| `me` | this phone: `id`, `number`, `name`, `pairedAt`, `lastSeenAt`, `method` (`qr` / `code`); `label`: the name given to it (on the robot or with `POST /api/phones/me`), written only when there is one, so absent for « Téléphone N » and on an older robot |
+| `me` | this phone: `id`, `number`, `name`, `pairedAt`, `lastSeenAt`, `method` (`qr` / `code`); `label`: the name given to it (on the robot or with `POST /api/phones/me`), written only when there is one, so absent for « Téléphone N » and on an older robot; `readOnly`: `true` when this phone is read-only (`POST /api/phones/me/read-only`), written only then |
 | `machine` | the base, always present |
 | `job` | the current or last job, `null` when none is shown on the robot; an ended job (`FINISHED`, `ABORTED`) stays until OK is pressed on the robot or sent by a phone (`POST /api/machine/clear`) |
 | `can` | what this phone may do now (section 6): `pause`, `resume`, `stop`, `adjust`, `tare`, `sendRecipe`, `removeWaiting`, `start`, `clear`, `favorite`, `stopRecipe`, `editRecipes`, `setAppearance`, `renamePhone`, `ownSettings` |
 | `session` | the guided recipe on the robot, `null` when none |
+| `suspendedSession` | the guided recipe left on the robot without being finished or stopped, the one its home screen offers to resume (« Reprendre »), same shape as `session`; also after a restart of Toque (then `startedAt` is 0, the steps before `current` are in `done`, `running` is empty). Gone when it is resumed (it becomes `session` again), dropped on the robot, or another recipe is started. Written only when there is one and no `session` (Toque 0.12.0 or later) |
 | `waiting` | the recipe waiting on the robot's home screen, `null` when none |
 | `last` | the last finished activity (journal), `null` when none ("Dernière activité") |
 | `journalSeq` | `seq` of the last journal line (0: empty); fetch `/api/journal?after=` when it moves |
@@ -960,6 +974,8 @@ differ, so compute countdowns from the moment the response arrived, not from `se
 | `motorOn`, `heaterOn` | reported by the base |
 | `turbo` | a Turbo press is running |
 | `tempKnown` | the base is measuring the temperature right now. Written only when `false`: absent means `true` (the Connect, an older robot). `false` on the Smart outside a heating (its base measures only while heating, and during a heated job): `tempC` is then not a measurement, do not show it. Read it together with `hasSample` |
+| `weightValid` | `weightG` is a real weighing: link `READY`, a sample, scale state normal, motor and Turbo stopped (with the blade turning, the Connect's base sends 0). Written only when `false`: absent means `true` (or an older robot). Toque 0.12.0 or later |
+| `heating` | Toque asks the base to heat right now: a job runs (`RUNNING`, not paused) and its setting has a temperature, no fault. Prefer it to `heaterOn`, which the base also reports during programs that do not heat. Always written by Toque 0.12.0 or later; absent: an older robot, fall back on `heaterOn` |
 
 **`job`**
 
@@ -1145,6 +1161,8 @@ Each pause, step end and job end appears once. A job end inside a recipe gives `
 | Stop the guided recipe (« Arrêter la recette ») | yes, any paired phone, after the phone's own confirmation | a guided recipe is open on the robot (`can.stopRecipe`) | `no_recipe`, `unsupported` |
 | Change the robot's colour or theme | yes, any paired phone, after the person said yes on the phone (`can.setAppearance`) | one of the robot's ten colours, `dark` or `light`; no program, Home alone on the robot's screen, no dialog | `bad_request` (400), `busy`, `unsupported` |
 | Rename this phone | yes, each phone its own name only (`can.renamePhone`) | the phone is still paired | `bad_request` (400) |
+| Put this phone in read-only | yes, each phone itself only, one way (`POST /api/phones/me/read-only`) | the phone is still paired | |
+| Anything else, from a read-only phone | **never** (`403 read_only`) | the owner gives the controls back on the robot | `read_only` |
 | Clear an ended job (OK) | yes, any paired phone | the robot shows a job `FINISHED` or `ABORTED` (whoever started or stopped it); only removes it from the display | `nothing_ended` |
 | Start a manual cooking | yes, if the robot's switch « Lancement depuis le téléphone » is on | (1) switch on; (2) link `READY`, a sample, no fault; (3) no job starting, running, stopping or paused, no Turbo (a finished job still shown is fine); (4) no guided recipe open on the robot; (5) lid closed, bowl in place (detected, not removed); (6) settings inside the bounds of the robot's Cuisson manuelle screen; (7) `SafetyPolicy.checkJob` finds no violation, hot blend included. `state.can.start` reflects (1)–(5). | `disabled`, `link`, `fault`, `busy`, `recipe`, `lid`, `bowl`, bounds codes, `hot_blend`, controller codes |
 | Start a recipe, a step, a program | **never** (no endpoint) | | |
@@ -1174,7 +1192,7 @@ English technical message.
 | 400 | `bad_request`, `bad_json`, and malformed HTTP |
 | 401 | `unauthorized` (no token, unknown token, phone removed) |
 | 422 | a recipe written on the phone refused by the editor's limits (`title_missing`, `weigh_range`, `step_machine`…), with `field` and `step` |
-| 403 | `wrong_code` |
+| 403 | `wrong_code`; `read_only` (a command from a read-only phone) |
 | 404 | `not_found` |
 | 405 | `method_not_allowed` (also `OPTIONS`, so no CORS preflight can succeed) |
 | 408 | `request_timeout` (request too slow) |

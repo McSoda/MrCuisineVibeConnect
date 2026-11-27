@@ -829,11 +829,12 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
         }
     }
 
-    private fun endSession(completed: Boolean) {
+    /** [resumable] : la recette reste proposée sur l'accueil (« Reprendre ») ; les téléphones la voient en attente. */
+    private fun endSession(completed: Boolean, resumable: Boolean = false) {
         if (sessionEnded) return
         sessionEnded = true
         try {
-            a.app.companion?.hub?.endSession(completed)
+            a.app.companion?.hub?.endSession(completed, resumable)
         } catch (t: Throwable) {
             a.app.log.write("compagnon", "fin de session : $t")
         }
@@ -846,7 +847,7 @@ class CookScreen(a: MainActivity, private val recipe: Recipe, startStep: Int) : 
     override fun onHide() {
         unsubTimers?.invoke()
         unsubTimers = null
-        view.post { if (!a.isOnStack(this)) endSession(completed = false) }
+        view.post { if (!a.isOnStack(this)) endSession(completed = false, resumable = a.prefs.guidedRecipe == recipe.id) }
     }
 
     /**

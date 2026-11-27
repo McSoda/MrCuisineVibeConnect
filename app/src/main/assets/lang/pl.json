@@ -1032,5 +1032,9 @@
   "Soutenir Toque": "Wesprzyj Toque",
   "Toque est gratuit et sans publicité. Si l'appli vous rend service, vous pouvez soutenir son développement en offrant un café : scannez le code avec l'appareil photo de votre téléphone.": "Toque jest darmowy i bez reklam. Jeśli aplikacja jest Ci przydatna, możesz wesprzeć jej rozwój, stawiając kawę: zeskanuj kod aparatem telefonu.",
   "Offrir un café": "Postaw kawę",
-  "Merci pour votre soutien !": "Dziękujemy za wsparcie!"
+  "Merci pour votre soutien !": "Dziękujemy za wsparcie!",
+  "lecture seule": "tylko odczyt",
+  "Lecture seule": "Tylko odczyt",
+  "Rendre les commandes": "Przywróć sterowanie",
+  "Ce téléphone est en lecture seule : les commandes se font sur le robot": "Ten telefon jest tylko do odczytu: sterowanie odbywa się na robocie"
 }

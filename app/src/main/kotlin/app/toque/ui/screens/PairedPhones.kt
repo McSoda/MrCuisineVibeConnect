@@ -23,7 +23,8 @@ import java.util.Date
 
 /**
  * Les téléphones appairés, une ligne chacun : son nom, quand il a été appairé et vu pour la dernière
- * fois, un crayon pour le renommer et « Retirer ». Montrés sur l'écran d'appairage et dans
+ * fois, un crayon pour le renommer, « Lecture seule » (il suit le robot sans rien commander : écran
+ * mural, domotique) ou « Rendre les commandes », et « Retirer ». Montrés sur l'écran d'appairage et dans
  * Réglages › Téléphone.
  */
 internal object PairedPhones {
@@ -54,7 +55,8 @@ internal object PairedPhones {
         row.addView(Icon(a, Icon.Kind.PHONE, Ui.ACCENT_INK), LinearLayout.LayoutParams(Ui.u(26), Ui.u(26)).apply { rightMargin = Ui.u(14) })
         val col = Ui.vertical(a)
         col.addView(Ui.ellipsize(Ui.text(a, p.name, 18f, Ui.TEXT, Ui.MEDIUM)))
-        col.addView(Ui.ellipsize(Ui.text(a, seen(p, dates), 15f, Ui.TEXT2)), Ui.lp(t = 2))
+        val seenText = if (p.readOnly) seen(p, dates) + " · " + tr("lecture seule") else seen(p, dates)
+        col.addView(Ui.ellipsize(Ui.text(a, seenText, 15f, Ui.TEXT2)), Ui.lp(t = 2))
         row.addView(col, LinearLayout.LayoutParams(0, Ui.WRAP, 1f))
         val pencil = FrameLayout(a).apply {
             background = Ui.pressable(Ui.round(0, 23f, Ui.STROKE, 1f), 23f)
@@ -64,6 +66,10 @@ internal object PairedPhones {
             setOnClickListener { rename(a, p) }
         }
         row.addView(pencil, LinearLayout.LayoutParams(Ui.u(46), Ui.u(46)).apply { leftMargin = Ui.u(14) })
+        // Par le hub : une nouvelle révision, le téléphone voit tout de suite ce qu'il peut faire.
+        row.addView(Ui.button(a, if (p.readOnly) tr("Rendre les commandes") else tr("Lecture seule"), Ui.Style.GHOST, height = 46, textSize = 16f) {
+            a.app.companion?.hub?.setPhoneReadOnly(p.id, !p.readOnly)
+        }, Ui.lp(Ui.WRAP, Ui.WRAP, l = 10))
         row.addView(Ui.button(a, tr("Retirer"), Ui.Style.GHOST, height = 46, textSize = 16f) { remove(a, p) }, Ui.lp(Ui.WRAP, Ui.WRAP, l = 10))
         return row
     }

@@ -112,6 +112,10 @@ class CompanionApi(private val hub: CompanionHub) : HttpHandler {
         val phone = hub.pairing.authenticate(bearer(request))
             ?: return ApiError.response(401, "unauthorized", tr("Ce téléphone n'est pas appairé avec le robot"))
         hub.noteAuthenticated(request.remote)
+        // Téléphone en lecture seule : il lit tout, ne commande rien. Il garde seulement ce qui le concerne
+        // lui-même (se renommer, se désappairer, se mettre en lecture seule).
+        if (phone.readOnly && method != "GET" && !(seg.size >= 2 && seg[0] == "phones" && seg[1] == "me"))
+            return ApiError.response(403, "read_only", tr("Ce téléphone est en lecture seule : les commandes se font sur le robot"))
 
         return when {
             seg == listOf("robot") && method == "GET" -> ok(WhoAmI(hub.robotWire(), PhoneWire.of(phone)).toMap())
@@ -136,6 +140,10 @@ class CompanionApi(private val hub: CompanionHub) : HttpHandler {
             seg == listOf("waiting") && method == "DELETE" ->
                 if (hub.removeWaiting(phone)) done() else ApiError.response(409, "no_waiting", tr("Aucune recette en attente"))
             seg == listOf("phones", "me") && method == "POST" -> renameMe(request, phone)
+            // Sens unique : un téléphone se met lui-même en lecture seule ; seul le robot la lui retire.
+            seg == listOf("phones", "me", "read-only") && method == "POST" ->
+                hub.setPhoneReadOnly(phone.id, true)?.let { ok(PhoneWire.of(it).toMap()) }
+                    ?: ApiError.response(401, "unauthorized", tr("Ce téléphone n'est pas appairé avec le robot"))
             seg == listOf("phones", "me") && method == "DELETE" -> {
                 hub.pairing.remove(phone.id)
                 done()
@@ -147,7 +155,7 @@ class CompanionApi(private val hub: CompanionHub) : HttpHandler {
     }
 
     private fun known(seg: List<String>): Boolean = seg in listOf(listOf("robot"), listOf("state"), listOf("journal"),
-        listOf("recipes"), listOf("waiting"), listOf("phones", "me"), listOf("session", "stop"), listOf("robot", "appearance"), listOf("editor")) || (seg.size == 2 && seg[0] == "machine" && seg[1] in MACHINE) ||
+        listOf("recipes"), listOf("waiting"), listOf("phones", "me"), listOf("phones", "me", "read-only"), listOf("session", "stop"), listOf("robot", "appearance"), listOf("editor")) || (seg.size == 2 && seg[0] == "machine" && seg[1] in MACHINE) ||
         (seg.size in 2..3 && seg[0] == "recipes") || (seg.size == 4 && seg[0] == "recipes" && seg[2] == "steps")
 
     private fun ok(m: Map<String, Any?>) = HttpResponse.json(200, m)
