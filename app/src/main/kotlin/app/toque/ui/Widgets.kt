@@ -173,6 +173,7 @@ class TempRing(c: Context) : View(c) {
 /** Bouton « maintenir pour Turbo ». */
 class HoldButton(c: Context, label: String, private val onDown: () -> Unit, private val onUp: () -> Unit) : LinearLayout(c) {
     private val text: TextView
+    private val icon = Icon(c, Icon.Kind.BOLT, Ui.WARN)
 
     init {
         orientation = HORIZONTAL
@@ -180,7 +181,7 @@ class HoldButton(c: Context, label: String, private val onDown: () -> Unit, priv
         setPadding(Ui.u(22), 0, Ui.u(22), 0)
         minimumHeight = Ui.u(64)
         background = Ui.round(Ui.SURFACE3, 32f)
-        addView(Icon(c, Icon.Kind.BOLT, Ui.WARN), LayoutParams(Ui.u(26), Ui.u(26)).apply { rightMargin = Ui.u(10) })
+        addView(icon, LayoutParams(Ui.u(26), Ui.u(26)).apply { rightMargin = Ui.u(10) })
         text = Ui.text(c, label, 20f, Ui.TEXT, Ui.MEDIUM)
         addView(text)
         isClickable = true
@@ -192,11 +193,14 @@ class HoldButton(c: Context, label: String, private val onDown: () -> Unit, priv
             MotionEvent.ACTION_DOWN -> {
                 background = Ui.round(Ui.WARN, 32f)
                 text.setTextColor(Ui.ON_WARN)
+                // L'éclair est de la couleur du bouton allumé : il passe en blanc, sinon il disparaît.
+                icon.color = android.graphics.Color.WHITE
                 onDown()
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 background = Ui.round(Ui.SURFACE3, 32f)
                 text.setTextColor(Ui.TEXT)
+                icon.color = Ui.WARN
                 onUp()
             }
         }

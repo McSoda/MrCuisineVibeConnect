@@ -381,8 +381,16 @@ class ControllerTest {
 
     @Test fun turboRules() {
         val b = Bench().ready()
+        assertEquals(0L, b.c.snapshot().turboRemainingMs)
         assertTrue(b.c.turboPress().ok)
-        b.step(5_000)
+        // Ce qu'il reste de l'appui se lit dans l'état : de 3 s à 0, pour le décompte affiché.
+        assertEquals(Limits.MAX_MS_TURBO_PRESS, b.c.snapshot().turboRemainingMs)
+        b.step(1_000)
+        assertTrue(b.c.snapshot().turboActive)
+        assertEquals(2_000L, b.c.snapshot().turboRemainingMs)
+        b.step(4_000)
+        assertFalse(b.c.snapshot().turboActive)
+        assertEquals(0L, b.c.snapshot().turboRemainingMs)
         val turbo = b.tx.count { it[1] == Operation.TURBO.wire }
         assertTrue("turbo limité à 3 s : $turbo", turbo in 28..31)
         assertTrue(b.events.any { it.type == EventType.TURBO_END })

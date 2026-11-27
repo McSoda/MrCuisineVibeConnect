@@ -9,6 +9,7 @@ import android.graphics.RectF
 import android.graphics.drawable.InsetDrawable
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
@@ -16,6 +17,7 @@ import android.widget.LinearLayout
 import app.toque.Prefs
 import app.toque.core.i18n.tr
 import app.toque.core.machine.JobState
+import app.toque.core.machine.Limits
 import app.toque.core.machine.LinkState
 import app.toque.core.machine.MachineEvent
 import app.toque.core.machine.Snapshot
@@ -317,6 +319,17 @@ class MachineBar(private val a: MainActivity) : FrameLayout(a) {
     private val okBtn: LinearLayout
     private val faultText = Ui.text(a, "", 19f, Ui.TEXT, Ui.MEDIUM)
     private var last: Snapshot? = null
+    /** Fin de l'appui Turbo en cours (horloge [SystemClock.uptimeMillis]), 0 hors Turbo. */
+    private var turboEndsAt = 0L
+    /** Entre deux états reçus de la base, le décompte du Turbo avance à chaque image : sa barre se vide sans à-coups. */
+    private val turboFrame = object : Runnable {
+        override fun run() {
+            if (turboEndsAt == 0L) return
+            val left = (turboEndsAt - SystemClock.uptimeMillis()).coerceAtLeast(0)
+            showTurbo(left)
+            if (left > 0) postOnAnimation(this)
+        }
+    }
 
     init {
         // Transparente autour de la carte : le dégradé du fond passe derrière, comme pour la barre du haut.
@@ -324,6 +337,8 @@ class MachineBar(private val a: MainActivity) : FrameLayout(a) {
         // Programme
         jobRow.background = Ui.round(Ui.SURFACE, RADIUS, Ui.STROKE, 1f)
         jobRow.setPadding(Ui.u(TEXT_INSET), Ui.u(INSET), Ui.u(INSET), Ui.u(INSET))
+        // La hauteur de ses boutons, même quand aucun n'est affiché (Turbo).
+        jobRow.minimumHeight = Ui.u(BUTTON + 2 * INSET)
         val left = Ui.vertical(a)
         left.addView(label)
         left.addView(state, Ui.lp(t = 4))
@@ -381,6 +396,7 @@ class MachineBar(private val a: MainActivity) : FrameLayout(a) {
         visibility = if (shownFor(s)) View.VISIBLE else View.GONE
         faultRow.visibility = if (s.hasFault) View.VISIBLE else View.GONE
         jobRow.visibility = if (!s.hasFault && showJob) View.VISIBLE else View.GONE
+        if (s.hasFault || !s.turboActive) stopTurboCountdown()
         if (s.hasFault) {
             faultText.text = s.faultMessage
             return
@@ -389,8 +405,13 @@ class MachineBar(private val a: MainActivity) : FrameLayout(a) {
         if (s.turboActive) {
             label.text = "Turbo"
             state.text = tr("Relâchez pour arrêter")
-            time.text = "●"
-            progress.progress = 0f
+            state.setTextColor(Ui.TEXT2)
+            progress.color = Ui.WARN
+            // Le temps qu'il reste à l'appui (3 s au plus), et la barre qui se vide avec lui.
+            turboEndsAt = SystemClock.uptimeMillis() + s.turboRemainingMs
+            showTurbo(s.turboRemainingMs)
+            removeCallbacks(turboFrame)
+            postOnAnimation(turboFrame)
             setButtons(running = false, ended = false, turbo = true)
             return
         }
@@ -430,9 +451,28 @@ class MachineBar(private val a: MainActivity) : FrameLayout(a) {
         setButtons(running = st != JobState.PAUSED, ended = ended, turbo = false)
     }
 
+    /** Décompte du Turbo : les secondes entières qui restent (3, 2, 1) et la barre, pleine au départ, qui se vide. */
+    private fun showTurbo(leftMs: Long) {
+        time.text = tr("%d s", ((leftMs + 999) / 1000).toInt())
+        progress.progress = leftMs.toFloat() / Limits.MAX_MS_TURBO_PRESS
+    }
+
+    private fun stopTurboCountdown() {
+        if (turboEndsAt == 0L) return
+        turboEndsAt = 0L
+        removeCallbacks(turboFrame)
+    }
+
+    override fun onDetachedFromWindow() {
+        stopTurboCountdown()
+        super.onDetachedFromWindow()
+    }
+
     private fun setButtons(running: Boolean, ended: Boolean, turbo: Boolean) {
         pauseBtn.visibility = if (ended || turbo) View.GONE else View.VISIBLE
-        stopBtn.visibility = if (ended) View.GONE else View.VISIBLE
+        // Turbo : pas de bouton Stop. Il s'arrête dès qu'on relâche, et de lui-même au bout de la durée
+        // maximale d'un appui (Limits.MAX_MS_TURBO_PRESS), même si le relâchement se perdait.
+        stopBtn.visibility = if (ended || turbo) View.GONE else View.VISIBLE
         okBtn.visibility = if (ended) View.VISIBLE else View.GONE
         (pauseBtn.getChildAt(0) as Icon).set(if (running) Icon.Kind.PAUSE else Icon.Kind.PLAY)
         chips.visibility = if (turbo) View.GONE else View.VISIBLE

@@ -1077,6 +1077,7 @@ class MachineController(
             hotBlendConfirmed = j?.spec?.hotBlendConfirmed ?: false,
             jobFerment = j?.spec?.ferment ?: false,
             turboActive = turboStartedAt != null,
+            turboRemainingMs = turboStartedAt?.let { (Limits.MAX_MS_TURBO_PRESS - (now - it)).coerceIn(0, Limits.MAX_MS_TURBO_PRESS) } ?: 0,
             wireOperation = lastWire.operation.name,
             wireSpeed = lastWire.speed,
             wireTempLevel = lastWire.temperatureLevel,
