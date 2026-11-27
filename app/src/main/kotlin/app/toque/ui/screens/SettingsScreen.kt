@@ -30,11 +30,13 @@ import app.toque.recipes.OnlineSync
 import app.toque.recipes.SyncProgress
 import app.toque.recipes.RecipeFiles
 import app.toque.core.mealie.MealieRecipes
+import app.toque.core.qr.QrCode
 import app.toque.core.recipes.CommunityRecipes
 import app.toque.core.recipes.UserRecipes
 import app.toque.ui.AccentWheel
 import app.toque.ui.Icon
 import app.toque.ui.MainActivity
+import app.toque.ui.QrView
 import app.toque.ui.Screen
 import app.toque.ui.Sounds
 import app.toque.ui.Ui
@@ -46,8 +48,8 @@ import app.toque.update.Updater
  * [startOn] : la famille à ouvrir (sinon la première). Voir [reopened] quand l'interface est refaite.
  */
 class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Screen(a) {
-    /** Les familles de réglages, dans l'ordre du menu : le quotidien d'abord, le technique à la fin. */
-    enum class Family { SCREEN, KNOB_SOUNDS, RECIPES, COOKING, SAFETY, PHONE, LANGUAGE_TIME, UPDATES, ADVANCED }
+    /** Les familles de réglages, dans l'ordre du menu : le quotidien d'abord, le technique ensuite, le soutien en dernier. */
+    enum class Family { SCREEN, KNOB_SOUNDS, RECIPES, COOKING, SAFETY, PHONE, LANGUAGE_TIME, UPDATES, ADVANCED, SUPPORT }
 
     /** D'où viennent les recettes : une pastille chacune, en haut de la famille « Recettes ». Mealie est dans « Autres ». */
     private enum class Source { LIDL, SITE, MEALIE, MINE, STOCK }
@@ -104,6 +106,8 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
     private lateinit var siteBtn: View
     private lateinit var mealieText: TextView
     private lateinit var mealieButtons: LinearLayout
+    /** Code QR de la page « Soutien » : calculé à la première ouverture de la famille seulement. */
+    private lateinit var supportQr: QrView
 
     override fun build(): View {
         val root = Ui.horizontal(c, Gravity.TOP)
@@ -113,7 +117,7 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         // barre de cuisson prend de la place en bas.
         val list = Ui.vertical(c)
         val families = Family.values()
-        for (f in families) list.addView(entry(f), Ui.lp(Ui.MATCH, Ui.u(ENTRY), b = if (f == families.last()) 0 else 4))
+        for (f in families) list.addView(entry(f), Ui.lp(Ui.MATCH, Ui.u(ENTRY), b = if (f == families.last()) 0 else ENTRY_GAP))
         menu = Ui.scroll(c, list)
         root.addView(menu, LinearLayout.LayoutParams(Ui.u(256), Ui.MATCH).apply { rightMargin = Ui.u(16) })
 
@@ -134,6 +138,7 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
                 Family.LANGUAGE_TIME -> languageAndTimePage(page)
                 Family.UPDATES -> updatesPage(page)
                 Family.ADVANCED -> advancedPage(page)
+                Family.SUPPORT -> supportPage(page)
             }
         }
         pane = Ui.scroll(c, box)
@@ -160,6 +165,7 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         Family.LANGUAGE_TIME -> tr("Langue et heure")
         Family.UPDATES -> tr("Mises à jour")
         Family.ADVANCED -> tr("Avancé")
+        Family.SUPPORT -> tr("Soutien")
     }
 
     private fun icon(f: Family): Icon.Kind = when (f) {
@@ -172,6 +178,7 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         Family.LANGUAGE_TIME -> Icon.Kind.GLOBE   // le globe se reconnaît quelle que soit la langue affichée
         Family.UPDATES -> Icon.Kind.DOWNLOAD
         Family.ADVANCED -> Icon.Kind.SETTINGS
+        Family.SUPPORT -> Icon.Kind.COFFEE
     }
 
     /** Une ligne du menu : l'icône de la famille et son nom (rapetissé plutôt que coupé dans une langue aux mots longs). */
@@ -196,6 +203,9 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         a.hideKeyboard()
         family = f
         last = f
+        if (f == Family.SUPPORT && supportQr.code == null) {
+            supportQr.code = try { QrCode.encode(DONATE_URL) } catch (t: Throwable) { null }
+        }
         for (x in Family.values()) {
             val on = x == f
             pages[x.ordinal].visibility = if (on) View.VISIBLE else View.GONE
@@ -387,6 +397,27 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
         accountText = hint("")
         accountButtons = Ui.horizontal(c)
         p.addView(setting(accountText, accountButtons), Ui.lp(t = 8, b = 8))
+    }
+
+    /**
+     * Famille « Soutien » : de quoi offrir un café au projet. Un code QR à scanner avec son téléphone
+     * (le robot n'a pas de navigateur) et l'adresse écrite en clair. Rien n'est envoyé ni ouvert depuis le
+     * robot ; le code n'est calculé qu'à la première ouverture de la famille (voir [open]).
+     */
+    private fun supportPage(p: LinearLayout) {
+        group(p, tr("Soutenir Toque"))
+        p.addView(hint(tr("Toque est gratuit et sans publicité. Si l'appli vous rend service, vous pouvez soutenir son développement en offrant un café : scannez le code avec l'appareil photo de votre téléphone.")),
+            Ui.lp(t = 6, b = 14))
+        val row = Ui.horizontal(c, Gravity.CENTER_VERTICAL)
+        supportQr = QrView(c)
+        row.addView(supportQr, LinearLayout.LayoutParams(Ui.u(SUPPORT_QR), Ui.u(SUPPORT_QR)).apply { rightMargin = Ui.u(24) })
+        val col = Ui.vertical(c)
+        col.addView(Icon(c, Icon.Kind.COFFEE, Ui.ACCENT_INK), LinearLayout.LayoutParams(Ui.u(44), Ui.u(44)))
+        col.addView(Ui.text(c, tr("Offrir un café"), 20f, Ui.TEXT, Ui.MEDIUM), Ui.lp(t = 10))
+        col.addView(Ui.text(c, DONATE_URL.removePrefix("https://"), 17f, Ui.TEXT2), Ui.lp(t = 4))
+        col.addView(Ui.text(c, tr("Merci pour votre soutien !"), 16f, Ui.TEXT2).apply { setLineSpacing(0f, 1.15f) }, Ui.lp(t = 14))
+        row.addView(col, LinearLayout.LayoutParams(0, Ui.WRAP, 1f))
+        p.addView(row, Ui.lp(b = 12))
     }
 
     /** Un serveur Mealie auto-hébergé : ses recettes arrivent en lecture seule, réglages proposés à vérifier. */
@@ -1231,9 +1262,16 @@ class SettingsScreen(a: MainActivity, private val startOn: Family? = null) : Scr
             }
         }
 
-        /** Hauteur d'une ligne du menu, en pixels de référence. */
-        /** Hauteur d'une ligne du menu : les 10 familles tiennent dans la hauteur de l'écran du robot (600). */
+        /**
+         * Hauteur d'une ligne du menu et espace entre deux lignes, en pixels de référence : les 10 familles
+         * tiennent dans la hauteur de l'écran du robot (600 − 68 de barre du haut − 16 de marge = 516 ;
+         * 10 × 48 + 9 × 4 = 516).
+         */
         private const val ENTRY = 48
+        private const val ENTRY_GAP = 4
+        /** Page « Soutien » : la page Buy Me a Coffee du projet et le côté de son code QR. */
+        private const val DONATE_URL = "https://buymeacoffee.com/toqueapp"
+        private const val SUPPORT_QR = 220
         /** Hauteur la plus grande d'une liste déroulante (au-delà elle défile), et sa marge avec le bord de l'écran. */
         private const val LIST_MAX = 400
         private const val LIST_MARGIN = 8

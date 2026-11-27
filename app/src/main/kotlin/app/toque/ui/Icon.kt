@@ -13,7 +13,7 @@ class Icon(context: Context, var kind: Kind, color: Int) : View(context) {
         BACK, SEARCH, PLAY, PAUSE, STOP, THERMO, SPEED, CLOCK, REVERSE, SCALE, BOOK, STAR, STAR_FILLED,
         SETTINGS, PLUS, MINUS, CHECK, CLOSE, KNEAD, STEAM, FLAME, BOLT, SYNC, LID, WARNING, HOME, WHISK,
         CHEVRON, LINK, INFO, POT, TIMER, DROP, EDIT, TRASH, PEOPLE, DOWNLOAD, UPLOAD, GLOBE, BELL,
-        PHONE, WARNING_FILLED, SCREEN, KNOB, KEYBOARD_HIDE,
+        PHONE, WARNING_FILLED, SCREEN, KNOB, KEYBOARD_HIDE, COFFEE,
     }
 
     init {
@@ -248,6 +248,17 @@ class Icon(context: Context, var kind: Kind, color: Int) : View(context) {
                 canvas.drawCircle(6.5f, 10.8f, 1f, fill); canvas.drawCircle(17.5f, 10.8f, 1f, fill)
                 canvas.drawLine(9.2f, 10.8f, 14.8f, 10.8f, stroke)
                 p.moveTo(8.5f, 17.5f); p.lineTo(12f, 21f); p.lineTo(15.5f, 17.5f); canvas.drawPath(p, stroke)
+            }
+            Kind.COFFEE -> {
+                // Tasse fumante : le corps arrondi en bas, l'anse à droite, deux volutes de vapeur.
+                p.moveTo(4f, 10f); p.lineTo(16f, 10f); p.lineTo(16f, 15.5f)
+                p.cubicTo(16f, 18.8f, 13.6f, 21f, 10f, 21f); p.cubicTo(6.4f, 21f, 4f, 18.8f, 4f, 15.5f); p.close()
+                canvas.drawPath(p, stroke)
+                rect.set(12.5f, 11.2f, 20.2f, 17.4f); canvas.drawArc(rect, -90f, 180f, false, stroke)
+                for (x in floatArrayOf(8f, 12f)) {
+                    p.reset(); p.moveTo(x, 7f); p.cubicTo(x - 1.4f, 5.6f, x + 1.4f, 4.4f, x, 2.8f)
+                    canvas.drawPath(p, stroke)
+                }
             }
         }
         canvas.restore()

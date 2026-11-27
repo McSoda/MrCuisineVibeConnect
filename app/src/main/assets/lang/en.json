@@ -1027,5 +1027,10 @@
   "Le robot ne prend pas votre réglage depuis le téléphone": "The robot does not take your setting from the phone",
   "Étape %d : réglage du téléphone vérifié": "Step %d: phone setting checked",
   "Du téléphone : à vérifier": "From the phone: to check",
-  "Réglage saisi sur le téléphone : vérifiez-le avant de l'enregistrer.": "Setting typed on the phone: check it before saving."
+  "Réglage saisi sur le téléphone : vérifiez-le avant de l'enregistrer.": "Setting typed on the phone: check it before saving.",
+  "Soutien": "Support",
+  "Soutenir Toque": "Support Toque",
+  "Toque est gratuit et sans publicité. Si l'appli vous rend service, vous pouvez soutenir son développement en offrant un café : scannez le code avec l'appareil photo de votre téléphone.": "Toque is free and has no ads. If the app is useful to you, you can support its development by buying a coffee: scan the code with your phone's camera.",
+  "Offrir un café": "Buy a coffee",
+  "Merci pour votre soutien !": "Thank you for your support!"
 }

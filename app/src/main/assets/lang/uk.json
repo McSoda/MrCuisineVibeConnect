@@ -1027,5 +1027,10 @@
   "Le robot ne prend pas votre réglage depuis le téléphone": "Робот не приймає ваше налаштування з телефона",
   "Étape %d : réglage du téléphone vérifié": "Крок %d: налаштування з телефона перевірено",
   "Du téléphone : à vérifier": "З телефона: перевірити",
-  "Réglage saisi sur le téléphone : vérifiez-le avant de l'enregistrer.": "Налаштування введено на телефоні: перевірте його перед збереженням."
+  "Réglage saisi sur le téléphone : vérifiez-le avant de l'enregistrer.": "Налаштування введено на телефоні: перевірте його перед збереженням.",
+  "Soutien": "Підтримка",
+  "Soutenir Toque": "Підтримати Toque",
+  "Toque est gratuit et sans publicité. Si l'appli vous rend service, vous pouvez soutenir son développement en offrant un café : scannez le code avec l'appareil photo de votre téléphone.": "Toque безкоштовний і без реклами. Якщо застосунок вам корисний, ви можете підтримати його розвиток, пригостивши кавою: відскануйте код камерою телефона.",
+  "Offrir un café": "Пригостити кавою",
+  "Merci pour votre soutien !": "Дякуємо за вашу підтримку!"
 }
