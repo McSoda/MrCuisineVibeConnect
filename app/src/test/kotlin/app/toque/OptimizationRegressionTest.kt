@@ -2,6 +2,10 @@ package app.toque
 
 import android.view.View
 import android.widget.ImageView
+import app.toque.core.recipes.Recipe
+import app.toque.core.recipes.RecipeSource
+import app.toque.core.recipes.Step
+import app.toque.recipes.RecipeRepo
 import app.toque.ui.ImageLoader
 import app.toque.ui.MainActivity
 import app.toque.ui.Screen
@@ -77,5 +81,25 @@ class OptimizationRegressionTest {
         ImageLoader.load(view, dummy, 0)
         ImageLoader.load(view, dummy, -100)
         assertNull(view.drawable)
+    }
+
+    @Test
+    fun recipeRepoCacheEvictsOnUpsertWithoutRebuildAndOnDelete() {
+        val ctx = RuntimeEnvironment.getApplication()
+        val repo = RecipeRepo(ctx)
+        val v1 = Recipe(id = "web-cache-test", title = "V1", category = "Test", servings = 2,
+            steps = listOf(Step("Étape 1")), source = RecipeSource.IMPORTED)
+        val v2 = v1.copy(title = "V2")
+
+        repo.upsertAll(listOf(v1), rebuild = false)
+        assertEquals("V1", repo.get("web-cache-test")?.title)
+
+        // Mise à jour sans rebuild (ex. synchro interrompue avant reloadNow) : le cache ne doit pas garder V1.
+        repo.upsertAll(listOf(v2), rebuild = false)
+        assertEquals("V2", repo.get("web-cache-test")?.title)
+
+        // Suppression sans rebuild : le cache ne doit plus renvoyer V2.
+        repo.removeAllExcept(emptySet(), rebuild = false)
+        assertNull(repo.get("web-cache-test"))
     }
 }

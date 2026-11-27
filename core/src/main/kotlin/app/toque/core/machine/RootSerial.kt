@@ -252,12 +252,13 @@ class RootSerialTransport(
 
     override fun write(frame: ByteArray) {
         val p = process ?: throw IOException(tr("port fermé"))
-        val locked = writeLock.tryLock(100, java.util.concurrent.TimeUnit.MILLISECONDS)
+        if (!writeLock.tryLock(100, java.util.concurrent.TimeUnit.MILLISECONDS))
+            throw IOException("port occupé")
         try {
             p.outputStream.write(frame)
             p.outputStream.flush()
         } finally {
-            if (locked) writeLock.unlock()
+            writeLock.unlock()
         }
     }
 

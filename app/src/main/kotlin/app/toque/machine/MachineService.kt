@@ -1,5 +1,6 @@
 package app.toque.machine
 
+import android.annotation.TargetApi
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -335,7 +336,7 @@ class MachineService : Service() {
     private fun notification(title: String, text: String): Notification {
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT)
         @Suppress("DEPRECATION")
-        val b = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) Notification.Builder(this, CHANNEL)
+        val b = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) Api26.builder(this, CHANNEL)
         else Notification.Builder(this)
         return b.setContentTitle(title)
             .setContentText(text)
@@ -345,11 +346,19 @@ class MachineService : Service() {
             .build()
     }
 
-    /** Canal de notification (Android 8+), créé une seule fois au démarrage du service. */
+    /** Canal de notification (Android 8+), isolé dans [Api26] pour garder MachineService vérifiable sur Android 6. */
     private fun ensureChannel() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        nm.createNotificationChannel(NotificationChannel(CHANNEL, tr("Base moteur"), NotificationManager.IMPORTANCE_LOW))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) Api26.ensureChannel(this, CHANNEL, tr("Base moteur"))
+    }
+
+    @TargetApi(Build.VERSION_CODES.O)
+    private object Api26 {
+        fun ensureChannel(c: Context, id: String, name: String) {
+            val nm = c.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.createNotificationChannel(NotificationChannel(id, name, NotificationManager.IMPORTANCE_LOW))
+        }
+
+        fun builder(c: Context, channelId: String): Notification.Builder = Notification.Builder(c, channelId)
     }
 
     companion object {

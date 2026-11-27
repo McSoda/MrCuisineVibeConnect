@@ -435,6 +435,7 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
         v.put("json", RecipeCodec.encode(clean))
         v.put("updated", now)
         db.insertWithOnConflict("recipes", null, v, SQLiteDatabase.CONFLICT_REPLACE)
+        recipeCache.remove(r.id)
         if (summariesOk) {
             // Sans fiche (erreur), la recette est simplement refaite au prochain démarrage.
             try {
@@ -598,6 +599,7 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
         try {
             db.delete("recipes", "id NOT LIKE ? AND id NOT LIKE ? AND id NOT LIKE ?",
                 arrayOf(UserRecipes.ID_PREFIX + "%", CommunityRecipes.ID_PREFIX + "%", MealieRecipes.ID_PREFIX + "%"))
+            recipeCache.evictAll()
             val now = System.currentTimeMillis()
             for (r in recipes) {
                 writeRecipe(db, r, now)
@@ -645,7 +647,10 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
             val gone = titles(db).filterKeys { it !in keep && isLidl(it) }
             db.beginTransaction()
             try {
-                for (id in gone.keys) db.delete("recipes", "id = ?", arrayOf(id))
+                for (id in gone.keys) {
+                    db.delete("recipes", "id = ?", arrayOf(id))
+                    recipeCache.remove(id)
+                }
                 carryOver(db, gone)
                 db.setTransactionSuccessful()
             } finally {
@@ -670,7 +675,10 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
             if (gone.isEmpty()) return@submit
             db.beginTransaction()
             try {
-                for (id in gone) db.delete("recipes", "id = ?", arrayOf(id))
+                for (id in gone) {
+                    db.delete("recipes", "id = ?", arrayOf(id))
+                    recipeCache.remove(id)
+                }
                 db.setTransactionSuccessful()
             } finally {
                 db.endTransaction()
@@ -693,7 +701,10 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
             if (gone.isEmpty()) return@submit
             db.beginTransaction()
             try {
-                for (id in gone) db.delete("recipes", "id = ?", arrayOf(id))
+                for (id in gone) {
+                    db.delete("recipes", "id = ?", arrayOf(id))
+                    recipeCache.remove(id)
+                }
                 db.setTransactionSuccessful()
             } finally {
                 db.endTransaction()
