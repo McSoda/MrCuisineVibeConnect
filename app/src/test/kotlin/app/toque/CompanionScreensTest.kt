@@ -514,6 +514,29 @@ class CompanionScreensTest {
         app.prefs.forgetMealie()
     }
 
+    /**
+     * Soutien : la dernière famille du menu (11 lignes qui tiennent dans les 600 px), son code QR calculé à
+     * l'ouverture seulement et lu tel qu'il est dessiné, et l'adresse écrite en clair.
+     */
+    @Test fun supportScreen() {
+        start()
+        val settings = SettingsScreen(activity)
+        activity.push(settings)
+        idle(3)
+        assertNull("code QR calculé avant l'ouverture de la famille", findQr(settings.view)!!.code)
+        val entry = findText(settings.view, "Soutien")!!
+        var row: View = entry
+        while (!row.isClickable) row = row.parent as View
+        val at = IntArray(2)
+        row.getLocationInWindow(at)
+        assertTrue("ligne « Soutien » hors de l'écran : ${at[1] + row.height}", at[1] + row.height <= 600)
+        openFamily(settings, "Soutien")
+        assertNotNull(findText(settings.view, "Offrir un café"))
+        assertNotNull(findText(settings.view, "buymeacoffee.com/toqueapp"))
+        shot("45-reglages-soutien")
+        assertEquals("https://buymeacoffee.com/toqueapp", decodeQr(activity.window.decorView))
+    }
+
     @Test fun companionScreens() {
         start()
         val app = androidx_free_app()
