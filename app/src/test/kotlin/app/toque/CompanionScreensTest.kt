@@ -32,8 +32,10 @@ import app.toque.core.robot.RobotProfiles
 import app.toque.machine.MachineService
 import app.toque.ui.MachineBar
 import app.toque.ui.MainActivity
+import app.toque.ui.ProgressLine
 import app.toque.ui.Splash
 import app.toque.ui.TopBar
+import app.toque.ui.Ui
 import app.toque.ui.screens.ManualScreen
 import app.toque.ui.screens.MealieLinkScreen
 import app.toque.ui.screens.HomeScreen
@@ -361,6 +363,11 @@ class CompanionScreensTest {
             return button to card
         }
 
+        fun progressOf(b: MachineBar): ProgressLine {
+            fun find(v: View): ProgressLine? = if (v is ProgressLine) v else if (v is ViewGroup) (0 until v.childCount).firstNotNullOfOrNull { find(v.getChildAt(it)) } else null
+            return find(b)!!
+        }
+
         fun assertEvenMargins(b: MachineBar) {
             val (button, card) = lastButton(b)
             assertEquals("carte à gauche", MachineBar.SIDE, card.left)
@@ -377,8 +384,15 @@ class CompanionScreensTest {
         assertEvenMargins(bar(running.copy(jobState = "PAUSED", pauseReason = "USER"), "34-barre-en-pause"))
         assertEvenMargins(bar(running.copy(jobState = "ABORTED", endReason = "Arrêté"), "35-barre-arretee"))
         assertEvenMargins(bar(running.copy(jobState = "FINISHED", endReason = "Terminé", remainingMs = 0, elapsedMs = 600_000), "36-barre-terminee"))
-        // Turbo : la même carte, à la même hauteur, sans bouton. Il s'arrête quand on relâche (3 s au plus par appui).
-        val turbo = bar(running.copy(jobActive = false, jobState = "", turboActive = true), "37-barre-turbo")
+        // Turbo : la même carte, à la même hauteur, sans bouton. Il s'arrête quand on relâche (3 s au plus par appui) :
+        // la barre dit les secondes qui restent, et sa ligne, pleine au départ, se vide avec elles.
+        val full = bar(running.copy(jobActive = false, jobState = "", turboActive = true, turboRemainingMs = 3_000), "37a-barre-turbo-debut")
+        assertNotNull(findText(full, "3 s"))
+        assertEquals(1f, progressOf(full).progress, 0.001f)
+        val turbo = bar(running.copy(jobActive = false, jobState = "", turboActive = true, turboRemainingMs = 1_800), "37-barre-turbo")
+        assertNotNull("1,8 s restantes : « 2 s »", findText(turbo, "2 s"))
+        assertEquals(0.6f, progressOf(turbo).progress, 0.001f)
+        assertEquals(Ui.WARN, progressOf(turbo).color)
         val turboCard = (0 until turbo.childCount).map { turbo.getChildAt(it) }.first { it.visibility == View.VISIBLE } as ViewGroup
         assertEquals("carte à gauche", MachineBar.SIDE, turboCard.left)
         assertEquals("carte à droite", 1024 - MachineBar.SIDE, turboCard.right)
@@ -389,6 +403,10 @@ class CompanionScreensTest {
         assertNotNull(findText(turbo, "Relâchez pour arrêter"))
         val turboButtons = (0 until turboCard.childCount).map { turboCard.getChildAt(it) }.filter { it.visibility == View.VISIBLE && it.hasOnClickListeners() }
         assertTrue("Turbo : ni Stop ni pause dans la barre", turboButtons.isEmpty())
+        // Un programme lancé ensuite reprend son temps et sa barre.
+        turbo.update(running)
+        assertNotNull(findText(turbo, "08:00"))
+        assertEquals(0.2f, progressOf(turbo).progress, 0.001f)
         assertEvenMargins(bar(running.copy(faultCode = "COMM_LOST", faultMessage = "Liaison avec la base moteur perdue"), "38-barre-alerte"))
         // Programme d'une heure et plus, titre de recette long.
         assertEvenMargins(bar(running.copy(jobLabel = "Velouté de potimarron aux châtaignes", totalMs = 5_400_000, remainingMs = 5_025_000),
