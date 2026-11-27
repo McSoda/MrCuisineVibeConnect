@@ -214,6 +214,8 @@ class MachineController(
     private var lastLidOpen = false
     /** Dernier échantillon où la carte indiquait un moteur en marche. */
     private var lastMotionAtMs = Long.MIN_VALUE / 4
+    /** La base a déjà mesuré un régime lame non nul : sinon, le bit moteur est le seul signe d'arrêt. */
+    private var rpmMeasured = false
 
     /**
      * Valeur du bit « bol » quand le bol est en place, relevée couvercle fermé : le couvercle ne se
@@ -288,6 +290,7 @@ class MachineController(
         }
         val now = clock.nowMs()
         if (t.motorOn || t.actualRpm > 0) lastMotionAtMs = now
+        if (t.actualRpm > 0) rpmMeasured = true
         seq++
         rxFrames++
         latest = t
@@ -690,9 +693,9 @@ class MachineController(
         if (j != null && !j.ended) return Verdict.refuse("busy", tr("Arrêtez d'abord le programme en cours"))
         val v = ArrayList(baseChecks(now))
         val t = latest
-        // Le Smart ne mesure pas le régime : on attend aussi stopSettleMs après le dernier écho
+        // Base sans mesure du régime (Smart, SKMC 1100 A1) : on attend aussi stopSettleMs() après le dernier écho
         // « moteur en marche » (ex. arrêt d'un programme en sens inverse puis Turbo).
-        if (v.isEmpty() && ((t != null && !t.motorStopped) || now - lastMotionAtMs < codec.stopSettleMs || !lastWire.isRest))
+        if (v.isEmpty() && ((t != null && !t.motorStopped) || now - lastMotionAtMs < stopSettleMs() || !lastWire.isRest))
             v += Violation("moving", tr("Attendez l'arrêt complet du moteur"))
         // Température non mesurée (Smart) : Turbo seulement après confirmation « contenu froid » ;
         // une température réellement mesurée au-dessus de 60 °C l'interdit dans tous les cas.
@@ -794,7 +797,7 @@ class MachineController(
 
     private fun barrierMet(b: Barrier, now: Long): Boolean {
         val t = latest ?: return false
-        return seq > b.afterSeq && fresh(now) && t.motorStopped && now - lastMotionAtMs >= codec.stopSettleMs
+        return seq > b.afterSeq && fresh(now) && t.motorStopped && now - lastMotionAtMs >= stopSettleMs()
     }
 
     private fun updateJob(now: Long) {
@@ -906,10 +909,19 @@ class MachineController(
         return seq > j.phaseSeq && fresh(now) && t.aboveTargetTemperature && t.targetTemperatureLevel == level
     }
 
-    /** Lame arrêtée depuis au moins [BoardCodec.stopSettleMs], d'après un échantillon récent. */
+    /**
+     * Délai minimal après le dernier écho « moteur en marche ». Une base qui ne mesure pas le régime
+     * (Smart, et certaines bases du Connect : SKMC 1100 A1 / carte spm188a, issue #10) peut faire
+     * tomber le bit moteur alors que la lame ralentit encore : on attend alors au moins
+     * [NO_RPM_STOP_SETTLE_MS] avant un redémarrage, un changement de sens ou un Turbo.
+     */
+    private fun stopSettleMs(): Long =
+        if (rpmMeasured) codec.stopSettleMs else maxOf(codec.stopSettleMs, NO_RPM_STOP_SETTLE_MS)
+
+    /** Lame arrêtée depuis au moins [stopSettleMs], d'après un échantillon récent. */
     private fun settled(now: Long): Boolean {
         val t = latest ?: return false
-        return fresh(now) && t.motorStopped && now - lastMotionAtMs >= codec.stopSettleMs
+        return fresh(now) && t.motorStopped && now - lastMotionAtMs >= stopSettleMs()
     }
 
     /** Fin d'un travail : un pétrissage de plus de 30 s fait attendre 30 min avant le suivant. */
@@ -1015,6 +1027,8 @@ class MachineController(
         const val KNEAD_COOLDOWN = "knead_cooldown"
         /** Un pétrissage compte pour l'attente de 30 min s'il a duré au moins ceci. */
         const val KNEAD_COUNTS_MS = 30_000L
+        /** Attente après arrêt quand la base n'a jamais mesuré de régime lame (comme le Smart). */
+        const val NO_RPM_STOP_SETTLE_MS = 2_000L
     }
 
     fun snapshot(): Snapshot {
