@@ -324,6 +324,8 @@ class MachineBar(private val a: MainActivity) : FrameLayout(a) {
         // Programme
         jobRow.background = Ui.round(Ui.SURFACE, RADIUS, Ui.STROKE, 1f)
         jobRow.setPadding(Ui.u(TEXT_INSET), Ui.u(INSET), Ui.u(INSET), Ui.u(INSET))
+        // La hauteur de ses boutons, même quand aucun n'est affiché (Turbo).
+        jobRow.minimumHeight = Ui.u(BUTTON + 2 * INSET)
         val left = Ui.vertical(a)
         left.addView(label)
         left.addView(state, Ui.lp(t = 4))
@@ -432,7 +434,9 @@ class MachineBar(private val a: MainActivity) : FrameLayout(a) {
 
     private fun setButtons(running: Boolean, ended: Boolean, turbo: Boolean) {
         pauseBtn.visibility = if (ended || turbo) View.GONE else View.VISIBLE
-        stopBtn.visibility = if (ended) View.GONE else View.VISIBLE
+        // Turbo : pas de bouton Stop. Il s'arrête dès qu'on relâche, et de lui-même au bout de la durée
+        // maximale d'un appui (Limits.MAX_MS_TURBO_PRESS), même si le relâchement se perdait.
+        stopBtn.visibility = if (ended || turbo) View.GONE else View.VISIBLE
         okBtn.visibility = if (ended) View.VISIBLE else View.GONE
         (pauseBtn.getChildAt(0) as Icon).set(if (running) Icon.Kind.PAUSE else Icon.Kind.PLAY)
         chips.visibility = if (turbo) View.GONE else View.VISIBLE

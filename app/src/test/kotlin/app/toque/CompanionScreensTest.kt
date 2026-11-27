@@ -377,7 +377,18 @@ class CompanionScreensTest {
         assertEvenMargins(bar(running.copy(jobState = "PAUSED", pauseReason = "USER"), "34-barre-en-pause"))
         assertEvenMargins(bar(running.copy(jobState = "ABORTED", endReason = "Arrêté"), "35-barre-arretee"))
         assertEvenMargins(bar(running.copy(jobState = "FINISHED", endReason = "Terminé", remainingMs = 0, elapsedMs = 600_000), "36-barre-terminee"))
-        assertEvenMargins(bar(running.copy(jobActive = false, jobState = "", turboActive = true), "37-barre-turbo"))
+        // Turbo : la même carte, à la même hauteur, sans bouton. Il s'arrête quand on relâche (3 s au plus par appui).
+        val turbo = bar(running.copy(jobActive = false, jobState = "", turboActive = true), "37-barre-turbo")
+        val turboCard = (0 until turbo.childCount).map { turbo.getChildAt(it) }.first { it.visibility == View.VISIBLE } as ViewGroup
+        assertEquals("carte à gauche", MachineBar.SIDE, turboCard.left)
+        assertEquals("carte à droite", 1024 - MachineBar.SIDE, turboCard.right)
+        assertEquals("carte en haut", 0, turboCard.top)
+        assertEquals("hauteur de la carte", MachineBar.BUTTON + 2 * MachineBar.INSET, turboCard.height)
+        assertEquals("espace sous la carte", MachineBar.BOTTOM_GAP, MachineBar.HEIGHT - turboCard.bottom)
+        assertNotNull(findText(turbo, "Turbo"))
+        assertNotNull(findText(turbo, "Relâchez pour arrêter"))
+        val turboButtons = (0 until turboCard.childCount).map { turboCard.getChildAt(it) }.filter { it.visibility == View.VISIBLE && it.hasOnClickListeners() }
+        assertTrue("Turbo : ni Stop ni pause dans la barre", turboButtons.isEmpty())
         assertEvenMargins(bar(running.copy(faultCode = "COMM_LOST", faultMessage = "Liaison avec la base moteur perdue"), "38-barre-alerte"))
         // Programme d'une heure et plus, titre de recette long.
         assertEvenMargins(bar(running.copy(jobLabel = "Velouté de potimarron aux châtaignes", totalMs = 5_400_000, remainingMs = 5_025_000),
