@@ -16,9 +16,11 @@ import app.toque.core.protocol.Mcc
 import app.toque.core.robot.Feature
 import app.toque.core.robot.RobotProfile
 import app.toque.core.robot.RobotProfiles
+import app.toque.core.recipes.OwnStepSettings
 import app.toque.core.recipes.Portions
 import app.toque.core.recipes.Recipe
 import app.toque.core.recipes.RecipeRules
+import app.toque.core.recipes.StepMachine
 import app.toque.core.recipes.UserRecipes
 import java.io.IOException
 import java.net.InetAddress
@@ -190,6 +192,20 @@ class CompanionHub(
 
     fun onPhonesChanged(l: () -> Unit): () -> Unit = pairing.onPhonesChanged(l)
     fun onPairingChanged(l: () -> Unit): () -> Unit = pairing.onPairingChanged(l)
+
+    /**
+     * Donne au téléphone [id] le nom [label] ([PairingManager.rename] : même nettoyage, vide = « Téléphone N »),
+     * depuis le robot ou depuis ce téléphone (POST /api/phones/me). Un nom qui change fait une nouvelle
+     * révision : les téléphones qui suivent l'état voient leur `me.name` tout de suite. Le téléphone
+     * renommé, ou null s'il n'est plus appairé.
+     */
+    fun renamePhone(id: String, label: String): Phone? {
+        val before = pairing.list.firstOrNull { it.id == id } ?: return null
+        if (!pairing.rename(id, label)) return null
+        val after = pairing.list.firstOrNull { it.id == id } ?: return null
+        if (after.label != before.label) synchronized(lock) { bumpLocked() }
+        return after
+    }
 
     private fun fireWaiting() {
         val copy = synchronized(lock) { ArrayList(waitingListeners) }
@@ -673,8 +689,9 @@ class CompanionHub(
         val edit = if (host.writesRecipes) Permission.YES else Permission.no("unsupported", tr("Le robot n'enregistre pas les recettes du téléphone"))
         val look = if (host.setsAppearance) Permission.YES
             else Permission.no("unsupported", tr("Le robot ne change pas son apparence depuis le téléphone"))
+        val own = if (host.takesOwnSteps) Permission.YES else Permission.no("unsupported", tr("Le robot ne prend pas votre réglage depuis le téléphone"))
         return Permissions(pause, resumeLocked(), stop, adjust, tare, Permission.YES, remove, startLocked(), clearLocked(),
-            favorite, stopRecipeLocked(), edit, look)
+            favorite, stopRecipeLocked(), edit, look, Permission.YES, own)
     }
 
     /** « Arrêter la recette » : une recette guidée est ouverte sur le robot (et l'hôte sait l'arrêter). */
@@ -876,6 +893,49 @@ class CompanionHub(
         }
         if (changed) fireWaiting()
         return w
+    }
+
+    // ------------------------------------------------------------------ réglage du propriétaire d'une étape (Mealie)
+
+    private fun ownUnsupported() = EditError(409, "unsupported", tr("Le robot ne prend pas votre réglage depuis le téléphone"))
+
+    /**
+     * La fiche de [rec] (telle que le robot l'affiche) pour un téléphone : chez un hôte qui prend le réglage du
+     * propriétaire depuis un téléphone, une recette qui en prend (Mealie) porte `ownSettings`, l'empreinte et
+     * l'auteur du réglage de chaque étape.
+     */
+    internal fun detail(rec: Recipe, baseServings: Int): RecipeDetail {
+        val own = if (host.takesOwnSteps && OwnStepSettings.appliesTo(rec)) host.ownSteps(rec.id)?.takeIf { OwnStepSettings.appliesTo(it.source) } else null
+        return Wires.recipe(rec, baseServings, own)
+    }
+
+    private fun ownWire(r: OwnStepsRead) = OwnStepsWire.of(r, StepSettingsWire.of(RobotProfiles.active))
+
+    /** GET /api/recipes/{id}/steps : les étapes d'une recette qui prend le réglage du propriétaire, et l'éditeur d'étape du robot. */
+    internal fun ownSteps(id: String): Pair<OwnStepsWire?, EditError?> {
+        if (!host.takesOwnSteps) return null to ownUnsupported()
+        val r = host.ownSteps(id) ?: return null to notFound()
+        if (!OwnStepSettings.appliesTo(r.source)) return null to OwnStepEdits.notAllowed()
+        return ownWire(r) to null
+    }
+
+    /**
+     * Le réglage de l'étape [index] de la recette [id] donné depuis [phone] ([clear] : retour au réglage de la
+     * recette ; sinon [machine], null pour « sans le robot ») ; [key] : l'empreinte de l'étape que le téléphone a
+     * lue. Refusé (409) pendant que la recette est cuisinée sur le robot, ou si l'étape n'est plus celle-là
+     * (« stale ») ; jugé ensuite ([OwnStepEdits.decide]). Tout se revérifie sur le fil de l'appli, juste avant
+     * d'écrire. Enregistré comme venu d'un téléphone : à vérifier sur le robot avant son lancement.
+     */
+    internal fun writeOwnStep(phone: Phone, id: String, index: Int, key: String, machine: StepMachine?, clear: Boolean): Pair<OwnStepsWire?, EditError?> {
+        if (!host.takesOwnSteps) return null to ownUnsupported()
+        if (synchronized(lock) { session?.recipeId == id }) return null to cooking()
+        val w = host.writeOwnStep(id) { read ->
+            if (synchronized(lock) { session?.recipeId == id }) OwnStepWrite(error = cooking())
+            else OwnStepEdits.decide(read, index, key, machine, clear).from(phone.name)
+        }
+        val after = w.after
+        if (w.error != null || after == null) return null to (w.error ?: EditError.of(CommandResult.noAnswer()))
+        return ownWire(after) to null
     }
 
     /** « OK » : un programme terminé ou arrêté est encore affiché sur le robot. */

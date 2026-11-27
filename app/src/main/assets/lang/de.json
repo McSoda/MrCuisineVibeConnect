@@ -1013,5 +1013,19 @@
   "La molette montre le bloc entouré.": "Der Drehknopf zeigt den umrahmten Block.",
   "Renommer %s": "%s umbenennen",
   "Nom du téléphone": "Name des Handys",
-  "Laissez vide pour reprendre « %s ».": "Leer lassen, um wieder „%s“ zu verwenden."
+  "Laissez vide pour reprendre « %s ».": "Leer lassen, um wieder „%s“ zu verwenden.",
+  "Réglage lu dans le texte de l'étape : vérifiez-le avant de l'enregistrer.": "Aus dem Text des Schritts gelesene Einstellung: vor dem Speichern prüfen.",
+  "Votre réglage reste sur ce robot, même après une synchronisation. Si le texte de cette étape change à la source, il ne s'applique plus.": "Ihre Einstellung bleibt auf diesem Gerät, auch nach einer Synchronisierung. Ändert sich der Text dieses Schritts in der Quelle, gilt sie nicht mehr.",
+  "Touchez une étape pour lui donner votre réglage du robot, sans copier la recette.": "Tippen Sie auf einen Schritt, um ihm Ihre eigene Einstellung zu geben, ohne das Rezept zu kopieren.",
+  "Étape %d : réglage de la recette": "Schritt %d: Einstellung des Rezepts",
+  "Étape %d : mon réglage enregistré": "Schritt %d: meine Einstellung gespeichert",
+  "Mon réglage : sans le robot": "Meine Einstellung: ohne das Gerät",
+  "Mon réglage": "Meine Einstellung",
+  "À vérifier": "Zu prüfen",
+  "Mon réglage pour l'étape %d": "Meine Einstellung für Schritt %d",
+  "Cette recette ne prend pas votre réglage du robot": "Dieses Rezept nimmt Ihre Robotereinstellung nicht an",
+  "Le robot ne prend pas votre réglage depuis le téléphone": "Der Roboter nimmt Ihre Einstellung nicht vom Telefon an",
+  "Étape %d : réglage du téléphone vérifié": "Schritt %d: Einstellung vom Telefon geprüft",
+  "Du téléphone : à vérifier": "Vom Telefon: zu prüfen",
+  "Réglage saisi sur le téléphone : vérifiez-le avant de l'enregistrer.": "Am Telefon eingegebene Einstellung: vor dem Speichern prüfen."
 }

@@ -1013,5 +1013,19 @@
   "La molette montre le bloc entouré.": "The knob shows the framed block.",
   "Renommer %s": "Rename %s",
   "Nom du téléphone": "Phone name",
-  "Laissez vide pour reprendre « %s ».": "Leave empty to go back to “%s”."
+  "Laissez vide pour reprendre « %s ».": "Leave empty to go back to “%s”.",
+  "Réglage lu dans le texte de l'étape : vérifiez-le avant de l'enregistrer.": "Setting read from the step's text: check it before saving.",
+  "Votre réglage reste sur ce robot, même après une synchronisation. Si le texte de cette étape change à la source, il ne s'applique plus.": "Your setting stays on this robot, even after a sync. If this step's text changes at the source, it no longer applies.",
+  "Touchez une étape pour lui donner votre réglage du robot, sans copier la recette.": "Tap a step to give it your own robot setting, without copying the recipe.",
+  "Étape %d : réglage de la recette": "Step %d: recipe's setting",
+  "Étape %d : mon réglage enregistré": "Step %d: my setting saved",
+  "Mon réglage : sans le robot": "My setting: without the robot",
+  "Mon réglage": "My setting",
+  "À vérifier": "To check",
+  "Mon réglage pour l'étape %d": "My setting for step %d",
+  "Cette recette ne prend pas votre réglage du robot": "This recipe does not take your robot setting",
+  "Le robot ne prend pas votre réglage depuis le téléphone": "The robot does not take your setting from the phone",
+  "Étape %d : réglage du téléphone vérifié": "Step %d: phone setting checked",
+  "Du téléphone : à vérifier": "From the phone: to check",
+  "Réglage saisi sur le téléphone : vérifiez-le avant de l'enregistrer.": "Setting typed on the phone: check it before saving."
 }

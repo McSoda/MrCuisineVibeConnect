@@ -17,6 +17,8 @@ import app.toque.core.i18n.tr
 import app.toque.core.recipes.McOnline
 import app.toque.core.recipes.QuantityLinks
 import app.toque.core.recipes.Ingredient
+import app.toque.core.recipes.OwnStepSetting
+import app.toque.core.recipes.OwnStepSettings
 import app.toque.core.recipes.Portions
 import app.toque.core.recipes.Recipe
 import app.toque.core.recipes.RecipeAdjustments
@@ -295,9 +297,45 @@ class RecipeScreen(a: MainActivity, val recipe: Recipe) : Screen(a) {
         return row
     }
 
+    /** La recette accepte un réglage du propriétaire par étape (Mealie) : une étape touchée l'ouvre. */
+    private val ownSettings = OwnStepSettings.appliesTo(recipe)
+
     private fun renderSteps() {
         stepsList.removeAllViews()
-        for ((i, s) in shown.steps.withIndex()) stepsList.addView(stepRow(i, s), Ui.lp(t = 12))
+        if (ownSettings && shown.steps.isNotEmpty())
+            stepsList.addView(Ui.text(c, tr("Touchez une étape pour lui donner votre réglage du robot, sans copier la recette."), 16f, Ui.TEXT2)
+                .apply { setLineSpacing(0f, 1.12f) }, Ui.lp(t = 4))
+        val owned = OwnStepSettings.owned(recipe, adjustments)
+        for ((i, s) in shown.steps.withIndex()) stepsList.addView(stepRow(i, s, owned[i]), Ui.lp(t = if (ownSettings) 6 else 12))
+    }
+
+    /**
+     * Réglage du robot de l'étape [i], gardé à côté de la recette (elle reste une seule recette, mise à jour
+     * par la synchro). Le réglage passe par la règle des étapes perso ; tapé ici, il n'est plus « à vérifier ».
+     */
+    private fun editStepSetting(i: Int) {
+        val s = shown.steps.getOrNull(i) ?: return
+        val own = OwnStepSettings.owned(recipe, adjustments)[i]
+        val mine = own != null
+        val reset: (() -> Unit)? = if (!mine) null else ({
+            save(adjustments.withoutStep(recipe, i))
+            a.toast(tr("Étape %d : réglage de la recette", i + 1))
+        })
+        a.push(StepEditScreen(a, s, i + 1, isNew = false, settingOnly = true, onReset = reset) { result ->
+            val m = result?.machine
+            val src = recipe.steps.getOrNull(i)
+            // OK sans rien changer à une étape sans réglage à vérifier : rien à garder.
+            if (!mine && src != null && m == src.machine && !src.needsReview) return@StepEditScreen
+            val problem = OwnStepSettings.problem(recipe, i, m)
+            if (problem != null) {
+                a.toast(problem.detail, Ui.WARN)
+                return@StepEditScreen
+            }
+            save(adjustments.withStep(recipe, i, m))
+            // Réglage venu d'un téléphone, gardé tel quel d'un appui sur OK : c'est la vérification sur le robot.
+            a.toast(if (own != null && !own.trusted && own.machine == m) tr("Étape %d : réglage du téléphone vérifié", i + 1)
+                else tr("Étape %d : mon réglage enregistré", i + 1), Ui.OK)
+        })
     }
 
     private fun quantity(qty: String, unit: String): String = listOf(qty.trim(), unit.trim()).filter { it.isNotEmpty() }.joinToString(" ")
@@ -568,7 +606,11 @@ class RecipeScreen(a: MainActivity, val recipe: Recipe) : Screen(a) {
     private fun section(t: String): TextView =
         Ui.text(c, t.uppercase(), 15f, Ui.TEXT2, Ui.MEDIUM).apply { letterSpacing = 0.08f; setPadding(0, Ui.u(10), 0, 0) }
 
-    private fun stepRow(i: Int, s: Step): View {
+    /**
+     * [own] : le réglage du propriétaire de l'étape, ou null. Tapé sur le robot : « Mon réglage » ; venu d'un
+     * téléphone : « Du téléphone : à vérifier », jusqu'à ce qu'il soit vérifié ici (OK sur l'étape) ou à la cuisson.
+     */
+    private fun stepRow(i: Int, s: Step, own: OwnStepSetting? = null): View {
         val row = Ui.horizontal(c, Gravity.TOP)
         val num = Ui.text(c, "${i + 1}", 17f, Ui.ACCENT_INK, Ui.MEDIUM).apply { gravity = Gravity.CENTER }
         num.background = Ui.round(Ui.ACCENT_DIM, 18f)
@@ -585,10 +627,27 @@ class RecipeScreen(a: MainActivity, val recipe: Recipe) : Screen(a) {
         s.machine?.let { m ->
             val ok = m.valid
             chips.addView(Ui.chip(c, m.summary, if (ok) Icon.Kind.POT else Icon.Kind.WARNING,
-                if (ok) Ui.ACCENT_INK else Ui.WARN, if (ok) Ui.ACCENT_DIM else 0x33FFC14D, 15f))
+                if (ok) Ui.ACCENT_INK else Ui.WARN, if (ok) Ui.ACCENT_DIM else 0x33FFC14D, 15f), Ui.lp(Ui.WRAP, Ui.WRAP, r = 8))
+        }
+        if (own != null && !own.trusted && s.machine != null) {
+            chips.addView(Ui.chip(c, tr("Du téléphone : à vérifier"), Icon.Kind.PHONE, Ui.WARN, 0x33FFC14D, 15f))
+        } else if (own != null) {
+            chips.addView(Ui.chip(c, if (s.machine == null) tr("Mon réglage : sans le robot") else tr("Mon réglage"), Icon.Kind.EDIT,
+                Ui.ACCENT_INK, Ui.SURFACE2, 15f))
+        } else if (ownSettings && s.machine != null && s.needsReview) {
+            // Réglage lu dans le texte : le propriétaire voit lesquels il n'a pas encore faits siens.
+            chips.addView(Ui.chip(c, tr("À vérifier"), null, Ui.TEXT2, Ui.SURFACE2, 15f))
         }
         if (chips.childCount > 0) col.addView(chips, Ui.lp(t = 8))
         row.addView(col, LinearLayout.LayoutParams(0, Ui.WRAP, 1f))
+        if (ownSettings) {
+            row.minimumHeight = Ui.u(52)
+            row.setPadding(Ui.u(6), Ui.u(6), Ui.u(6), Ui.u(6))
+            row.background = Ui.pressable(Ui.round(0, 14f), 14f)
+            row.isClickable = true
+            row.contentDescription = tr("Mon réglage pour l'étape %d", i + 1)
+            row.setOnClickListener { editStepSetting(i) }
+        }
         return row
     }
 

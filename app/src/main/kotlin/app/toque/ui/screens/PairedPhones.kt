@@ -102,7 +102,8 @@ internal object PairedPhones {
             a.closeOverlay()
         }
         fun commit() {
-            a.app.companion?.hub?.pairing?.rename(p.id, input.text.toString())
+            // Par le hub : une nouvelle révision, le téléphone renommé voit son nom tout de suite.
+            a.app.companion?.hub?.renamePhone(p.id, input.text.toString())
             close()
         }
         input.setOnEditorActionListener { _, action, _ ->

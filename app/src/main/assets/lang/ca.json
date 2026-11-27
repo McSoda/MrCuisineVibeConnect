@@ -1013,5 +1013,19 @@
   "La molette montre le bloc entouré.": "El botó mostra el bloc emmarcat.",
   "Renommer %s": "Canvia el nom de %s",
   "Nom du téléphone": "Nom del telèfon",
-  "Laissez vide pour reprendre « %s ».": "Deixeu-ho buit per tornar a «%s»."
+  "Laissez vide pour reprendre « %s ».": "Deixeu-ho buit per tornar a «%s».",
+  "Réglage lu dans le texte de l'étape : vérifiez-le avant de l'enregistrer.": "Ajust llegit al text del pas: comproveu-lo abans de desar-lo.",
+  "Votre réglage reste sur ce robot, même après une synchronisation. Si le texte de cette étape change à la source, il ne s'applique plus.": "El vostre ajust es queda en aquest robot, fins i tot després d'una sincronització. Si el text d'aquest pas canvia a l'origen, deixa d'aplicar-se.",
+  "Touchez une étape pour lui donner votre réglage du robot, sans copier la recette.": "Toqueu un pas per donar-li el vostre ajust del robot, sense copiar la recepta.",
+  "Étape %d : réglage de la recette": "Pas %d: ajust de la recepta",
+  "Étape %d : mon réglage enregistré": "Pas %d: el meu ajust desat",
+  "Mon réglage : sans le robot": "El meu ajust: sense el robot",
+  "Mon réglage": "El meu ajust",
+  "À vérifier": "Per comprovar",
+  "Mon réglage pour l'étape %d": "El meu ajust per al pas %d",
+  "Cette recette ne prend pas votre réglage du robot": "Aquesta recepta no admet el vostre ajust del robot",
+  "Le robot ne prend pas votre réglage depuis le téléphone": "El robot no admet el vostre ajust des del telèfon",
+  "Étape %d : réglage du téléphone vérifié": "Pas %d: ajust del telèfon comprovat",
+  "Du téléphone : à vérifier": "Del telèfon: per comprovar",
+  "Réglage saisi sur le téléphone : vérifiez-le avant de l'enregistrer.": "Ajust escrit al telèfon: comproveu-lo abans de desar-lo."
 }

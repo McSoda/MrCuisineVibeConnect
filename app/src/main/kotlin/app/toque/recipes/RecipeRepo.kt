@@ -11,9 +11,13 @@ import app.toque.Logbook
 import app.toque.core.mealie.MealieRecipes
 import app.toque.core.recipes.CommunityRecipes
 import app.toque.core.recipes.IndexedRecipe
+import app.toque.core.recipes.OwnStepSettings
 import app.toque.core.recipes.Recipe
 import app.toque.core.recipes.RecipeAdjustments
 import app.toque.core.recipes.RecipeCodec
+import app.toque.core.recipes.RecipeProblem
+import app.toque.core.recipes.SettingAuthor
+import app.toque.core.recipes.StepMachine
 import app.toque.core.recipes.RecipeSource
 import app.toque.core.robot.RecipeCompat
 import app.toque.core.robot.RobotProfiles
@@ -498,15 +502,89 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
     fun setAdjustments(id: String, a: RecipeAdjustments) {
         if (!adjustmentsLoaded) loadAdjustments(helper.writableDatabase)
         if (a.isEmpty) adjustments.remove(id) else adjustments[id] = a
-        main.post { for (l in synchronized(adjustedListeners) { ArrayList(adjustedListeners) }) l(id) }
-        exec.execute {
-            val db = helper.writableDatabase
-            if (a.isEmpty) db.delete("adjustments", "id = ?", arrayOf(id))
-            else db.insertWithOnConflict("adjustments", null, ContentValues().apply {
-                put("id", id)
-                put("json", a.encode())
-            }, SQLiteDatabase.CONFLICT_REPLACE)
+        adjustedChanged(id)
+        exec.execute { writeAdjustments(helper.writableDatabase, id, a) }
+    }
+
+    private fun adjustedChanged(id: String) = main.post { for (l in synchronized(adjustedListeners) { ArrayList(adjustedListeners) }) l(id) }
+
+    private fun writeAdjustments(db: SQLiteDatabase, id: String, a: RecipeAdjustments) {
+        if (a.isEmpty) db.delete("adjustments", "id = ?", arrayOf(id))
+        else db.insertWithOnConflict("adjustments", null, ContentValues().apply {
+            put("id", id)
+            put("json", a.encode())
+        }, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    /**
+     * Le réglage du propriétaire [machine] (null : aucun) pour l'étape [index] de la recette [id], tapé
+     * par [by] ; null si enregistré, sinon le refus ([OwnStepSettings.problem], la règle de l'éditeur
+     * d'étape des recettes perso). Rien n'est enregistré sur un refus.
+     */
+    fun setStepSetting(id: String, index: Int, machine: StepMachine?, by: SettingAuthor = SettingAuthor.ROBOT): RecipeProblem? {
+        val r = get(id) ?: return RecipeProblem(OwnStepSettings.NOT_ALLOWED, "steps", index, OwnStepSettings.NOT_ALLOWED)
+        OwnStepSettings.problem(r, index, machine)?.let { return it }
+        setAdjustments(id, adjustmentsOf(id).withStep(r, index, machine, by))
+        return null
+    }
+
+    /**
+     * « J'ai vérifié ce réglage » à la cuisson guidée, à l'étape [index] de la recette [id] : le réglage du
+     * propriétaire venu d'un téléphone, s'il est toujours [machine], devient le sien (comme tapé sur le robot :
+     * plus « à vérifier »). Rien d'autre ne change ; un réglage qui ne passe plus la règle reste tel quel.
+     */
+    fun confirmStepSetting(id: String, index: Int, machine: StepMachine?) {
+        val r = get(id) ?: return
+        if (machine == null || !OwnStepSettings.appliesTo(r)) return
+        val a = adjustmentsOf(id)
+        val o = OwnStepSettings.owned(r, a)[index] ?: return
+        if (o.trusted || o.machine != machine || OwnStepSettings.problem(r, index, machine) != null) return
+        setAdjustments(id, a.withStep(r, index, machine, SettingAuthor.ROBOT))
+    }
+
+    /** L'étape [index] de la recette [id] revient au réglage de la recette. */
+    fun clearStepSetting(id: String, index: Int) {
+        val r = get(id) ?: return
+        val a = adjustmentsOf(id)
+        val next = a.withoutStep(r, index)
+        if (next != a) setAdjustments(id, next)
+    }
+
+    /**
+     * Remplace en mémoire et dans la base les adaptations [old] de [id] par [next] (fil des recettes),
+     * seulement si personne ne les a changées entre-temps (un appui sur l'écran passe avant).
+     */
+    private fun replaceAdjustments(db: SQLiteDatabase, id: String, old: RecipeAdjustments, next: RecipeAdjustments) {
+        val ok = if (next.isEmpty) adjustments.remove(id, old) else adjustments.replace(id, old, next)
+        if (!ok) return
+        writeAdjustments(db, id, next)
+        adjustedChanged(id)
+    }
+
+    /** Recettes reçues à nouveau : les réglages d'étapes dont le texte a changé ne serviront plus (fil des recettes). */
+    private fun pruneStepSettings(db: SQLiteDatabase, recipes: List<Recipe>) {
+        if (adjustments.isEmpty() && adjustmentsLoaded) return
+        loadAdjustments(db)
+        for (r in recipes) {
+            val a = adjustments[r.id] ?: continue
+            val next = a.keepingStepsOf(r)
+            if (next != a) replaceAdjustments(db, r.id, a, next)
         }
+    }
+
+    /**
+     * Liste complète d'une source reçue ([belongs] : ses identifiants ; [keep] : toutes ses recettes) :
+     * les réglages d'étapes des recettes de cette source qui n'y sont plus partent. Notes et quantités restent.
+     */
+    fun forgetStepSettingsExcept(keep: Set<String>, belongs: (String) -> Boolean) {
+        exec.submit {
+            val db = helper.writableDatabase
+            loadAdjustments(db)
+            for ((id, a) in HashMap(adjustments)) {
+                if (a.steps.isEmpty() || id in keep || !belongs(id)) continue
+                replaceAdjustments(db, id, a, a.copy(steps = emptyMap()))
+            }
+        }.get()
     }
 
     fun isFavorite(id: String): Boolean = synchronized(favorites) { id in favorites }
@@ -614,6 +692,7 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
             } finally {
                 db.endTransaction()
             }
+            pruneStepSettings(db, recipes)
             if (rebuild) reloadNow()
         }.get()
     }
@@ -674,7 +753,9 @@ class RecipeRepo(private val context: Context, private val log: Logbook? = null)
 
     /**
      * Retire les recettes Mealie absentes de [keep] (retirées du serveur, ou toutes en déliant),
-     * favorites comprises : le serveur fait foi. Leurs notes et cuissons restent.
+     * favorites comprises : le serveur fait foi. Leurs notes, réglages d'étapes et cuissons restent
+     * (relié à nouveau au même serveur, tout revient) ; les réglages d'étapes partent à la liste
+     * complète suivante qui ne les contient pas ([forgetStepSettingsExcept]).
      */
     fun removeMealieExcept(keep: Set<String>) {
         exec.submit {
