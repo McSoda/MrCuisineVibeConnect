@@ -19,13 +19,13 @@ upstream Toque, which has no such API.
 
 ## What differs
 
-Based on Toque **0.11.0**. Our releases add a fourth number (**0.11.0.1** is the first one based on 0.11.0). Newer
+Based on Toque **0.12.0**. Our releases add a fourth number (**0.12.0.1** is the first one based on 0.12.0). Newer
 upstream releases are not included until they are merged here.
 
 | | This fork |
 |---|---|
 | **Home Assistant API** | A local, **read-only** HTTP/SSE API: robot state, guided recipe in progress, recipes and diagnostics. **Off by default**; turn it on in *Settings › Advanced › Home Assistant* (port 8765, access token). Nothing can be controlled remotely. Announced on the network as `_toque-ha._tcp` since 0.11.0.1 (before: `_toque._tcp`, which upstream 0.11.0 uses for Toque Compagnon). [Specification](docs/HOME_ASSISTANT_API.md) |
-| **Cooking session** | The state of the guided recipe lives in `core` (`CookSession`): it survives a restart of the app and is published by the API. |
+| **Cooking session** | The state of the guided recipe lives in `core` (`CookSession`): it survives a restart of the app and is published by the API. Toque Compagnon and its suspended session (`suspendedSession`, 0.12.0) are unchanged from upstream. |
 | **Updates** | *Settings › Updates* reads **the releases of this repository**. |
 | **APK** | `MCC-285-Toque-x.y.z.apk`, for the **Monsieur Cuisine Connect only**. We publish no Smart APK: Smart owners should use [upstream](https://github.com/Wuki60/MrCuisineVibeConnect/releases/latest). |
 | **Tests** | A check of the Smart codec against the SDK's "manual" vectors, and the [real-robot test report for 0.10.0.1 and 0.9.0.1](docs/TESTS-0.9.0.1.md) (in French). We have tested on an SKMC 1200 only. |
@@ -35,7 +35,7 @@ upstream releases are not included until they are merged here.
 Follow the [upstream installation guides](https://github.com/Wuki60/MrCuisineVibeConnect#readme), from **this**
 repository, with these differences:
 
-- **Windows and macOS**: the setup scripts of this repository (`tools\setup\toque-setup.ps1`,
+- **Windows, macOS and Linux**: the setup scripts of this repository (`tools\setup\toque-setup.ps1`,
   `tools/setup/toque-setup.sh`) download our APK from our
   [latest release](https://github.com/McSoda/MrCuisineVibeConnect/releases/latest). If the work folder already holds
   an upstream APK with a higher version number, the install step picks that one: delete it or pass our file.
